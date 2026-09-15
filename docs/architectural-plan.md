@@ -80,28 +80,28 @@ Expo Go is limited to UI work that does not exercise those integrations.
 
 ## Technology Stack
 
-| Technology | Responsibility |
-| --- | --- |
-| Expo Router | Typed routes, protected routes, native stacks, tabs, and deep links |
-| React Native | Native application UI |
-| TypeScript | Static types and contract safety |
-| Uniwind and Tailwind CSS v4 | Semantic design tokens and component styling |
-| TanStack Query | HTTP server state, caching, retries, and invalidation |
-| Zustand | Minimal shared client state and normalized realtime presence |
-| openapi-fetch | Type-safe HTTP transport generated from the Campus API contract |
-| openapi-typescript | Generated path and operation types from the OpenAPI document |
-| LiveKit React Native SDK | Meeting audio, video, participants, and reconnects |
-| Expo SecureStore | Refresh-token storage |
-| Expo AuthSession and WebBrowser | Google authorization-code flow with PKCE |
-| Expo Notifications | Meeting reminders and notification responses |
-| NetInfo | Connectivity state and query online management |
-| Expo Image | Cached and memory-efficient remote images |
-| FlashList | Virtualized meeting and member lists |
-| Reanimated and Gesture Handler | Purposeful UI transitions and gestures |
-| PostHog adapter | Product events, errors, and API correlation metadata |
-| Jest, jest-expo, and React Native Testing Library | Unit and component tests |
-| MSW | HTTP integration tests |
-| Maestro | Native end-to-end flows on Android and iOS builds |
+| Technology                                        | Responsibility                                                      |
+| ------------------------------------------------- | ------------------------------------------------------------------- |
+| Expo Router                                       | Typed routes, protected routes, native stacks, tabs, and deep links |
+| React Native                                      | Native application UI                                               |
+| TypeScript                                        | Static types and contract safety                                    |
+| Uniwind and Tailwind CSS v4                       | Semantic design tokens and component styling                        |
+| TanStack Query                                    | HTTP server state, caching, retries, and invalidation               |
+| Zustand                                           | Minimal shared client state and normalized realtime presence        |
+| openapi-fetch                                     | Type-safe HTTP transport generated from the Campus API contract     |
+| openapi-typescript                                | Generated path and operation types from the OpenAPI document        |
+| LiveKit React Native SDK                          | Meeting audio, video, participants, and reconnects                  |
+| Expo SecureStore                                  | Refresh-token storage                                               |
+| Expo AuthSession and WebBrowser                   | Google authorization-code flow with PKCE                            |
+| Expo Notifications                                | Meeting reminders and notification responses                        |
+| NetInfo                                           | Connectivity state and query online management                      |
+| Expo Image                                        | Cached and memory-efficient remote images                           |
+| FlashList                                         | Virtualized meeting and member lists                                |
+| Reanimated and Gesture Handler                    | Purposeful UI transitions and gestures                              |
+| PostHog adapter                                   | Product events, errors, and API correlation metadata                |
+| Jest, jest-expo, and React Native Testing Library | Unit and component tests                                            |
+| MSW                                               | HTTP integration tests                                              |
+| Maestro                                           | Native end-to-end flows on Android and iOS builds                   |
 
 Native packages must be installed directly in the mobile application and pinned
 through the lockfile using Expo-compatible versions.
@@ -184,15 +184,15 @@ landscape orientation and must restore portrait behavior when it closes.
 
 ## Feature Domains
 
-| Feature | Responsibility |
-| --- | --- |
-| `auth` | Session bootstrap, Google login, token refresh, logout, and route eligibility |
-| `meetings` | Live/upcoming lists, details, access state, and join orchestration |
-| `meeting-room` | LiveKit room lifecycle, media controls, participants, and reconnect UI |
-| `presence` | Presence snapshot, realtime updates, directory, filters, and freshness |
-| `availability` | The current user's available, busy, or DND mutation |
-| `notifications` | Permission education, device registration, and meeting routing |
-| `settings` | Account details, permissions, diagnostics, and logout |
+| Feature         | Responsibility                                                                |
+| --------------- | ----------------------------------------------------------------------------- |
+| `auth`          | Session bootstrap, Google login, token refresh, logout, and route eligibility |
+| `meetings`      | Live/upcoming lists, details, access state, and join orchestration            |
+| `meeting-room`  | LiveKit room lifecycle, media controls, participants, and reconnect UI        |
+| `presence`      | Presence snapshot, realtime updates, directory, filters, and freshness        |
+| `availability`  | The current user's available, busy, or DND mutation                           |
+| `notifications` | Permission education, device registration, and meeting routing                |
+| `settings`      | Account details, permissions, diagnostics, and logout                         |
 
 `meetings` must not import `meeting-room`. The route layer composes a validated
 meeting with the room feature after the join grant is issued.
@@ -233,17 +233,17 @@ render, user actions use event handlers, and external-store subscriptions use
 
 ## State Ownership
 
-| State | Owner |
-| --- | --- |
-| Meeting lists and details | TanStack Query |
-| Campus member profile data | TanStack Query |
-| Access token | In-memory auth session |
-| Refresh token | Expo SecureStore |
-| Authentication bootstrap status | Auth store |
-| Normalized realtime presence | Presence store |
-| LiveKit room, tracks, and participants | LiveKit room instance |
-| Route and selected identifiers | Expo Router |
-| Component-only interaction state | Local React state |
+| State                                  | Owner                  |
+| -------------------------------------- | ---------------------- |
+| Meeting lists and details              | TanStack Query         |
+| Campus member profile data             | TanStack Query         |
+| Access token                           | In-memory auth session |
+| Refresh token                          | Expo SecureStore       |
+| Authentication bootstrap status        | Auth store             |
+| Normalized realtime presence           | Presence store         |
+| LiveKit room, tracks, and participants | LiveKit room instance  |
+| Route and selected identifiers         | Expo Router            |
+| Component-only interaction state       | Local React state      |
 
 Presence is stored by member ID rather than repeatedly searching arrays.
 Selectors subscribe to the smallest required slice so one member update does

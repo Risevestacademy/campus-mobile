@@ -36,9 +36,17 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# quality reports
+coverage/
+.eslintcache
+test-results/
+
 example
 
 # generated native folders
 /ios
 /android
 .agents/skills
+
+# Others
+docs/plans
