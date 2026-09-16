@@ -2,13 +2,14 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "types": ["jest"],
     "paths": {
       "@assets/*": ["./src/assets/*"],
       "@core/*": ["./src/core/*"],
-      "@services/*": ["./src/services/*"],
-      "@shared/*": ["./src/shared/*"],
+      "@design-system/*": ["./src/design-system/*"],
       "@features/*": ["./src/features/*"],
-    },
+      "@shared/*": ["./src/shared/*"]
+    }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }

@@ -1,0 +1,41 @@
+name: Mobile quality
+
+on:
+  pull_request:
+
+concurrency:
+  group: mobile-quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      HUSKY: 0
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate commits
+        run: >
+          pnpm commitlint
+          --from "${{ github.event.pull_request.base.sha }}"
+          --to "${{ github.event.pull_request.head.sha }}"
+          --verbose
+
+      - run: pnpm check

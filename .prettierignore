@@ -1,0 +1,8 @@
+.expo/
+coverage/
+dist/
+node_modules/
+test-results/
+expo-env.d.ts
+pnpm-lock.yaml
+src/uniwind-types.d.ts
