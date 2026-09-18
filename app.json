@@ -8,7 +8,8 @@
     "scheme": "campusmobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./src/assets/expo.icon"
+      "icon": "./src/assets/expo.icon",
+      "bundleIdentifier": "com.rise.campus"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,11 +18,12 @@
         "backgroundImage": "./src/assets/images/android-icon-background.png",
         "monochromeImage": "./src/assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rise.campus"
     },
     "web": {
       "output": "static",
-      "favicon": ".src/assets/images/favicon.png"
+      "favicon": "./src/assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -29,7 +31,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",
-          "image": ".src/assets/images/splash-icon.png",
+          "image": "./src/assets/images/splash-icon.png",
           "imageWidth": 76
         }
       ]
