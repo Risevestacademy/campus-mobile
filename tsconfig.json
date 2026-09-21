@@ -1,8 +1,11 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "strict": true,
     "types": ["jest"],
+    "noUncheckedIndexedAccess": true,
     "paths": {
       "@assets/*": ["./src/assets/*"],
       "@core/*": ["./src/core/*"],
@@ -11,5 +14,6 @@
       "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["scripts/**"]
 }

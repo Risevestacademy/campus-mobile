@@ -1,23 +1,13 @@
-import { env } from "@core/config";
-import axios from "axios";
+import createFetchClient from "openapi-fetch";
 
-// eslint-disable-next-line import/no-named-as-default-member -- Axios documents axios.create as its instance factory.
-export const httpClient = axios.create({ baseURL: env.apiBaseUrl });
+import config from "../config";
+import type { paths } from "./generated/schema";
+import { loggingMiddleware } from "./middleware";
 
-httpClient.interceptors.request.use(
-  function (config) {
-    return config;
-  },
-  function (error) {
-    return Promise.reject(error);
-  },
-);
+const client = createFetchClient<paths>({
+  baseUrl: config.apiBaseUrl,
+});
 
-httpClient.interceptors.response.use(
-  function (response) {
-    return response;
-  },
-  function (error) {
-    return Promise.reject(error);
-  },
-);
+client.use(loggingMiddleware);
+
+export { client };
