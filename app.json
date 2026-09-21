@@ -1,15 +1,11 @@
 {
   "expo": {
-    "name": "campus-mobile",
-    "slug": "campus-mobile",
-    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "campusmobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./src/assets/expo.icon",
-      "bundleIdentifier": "com.rise.campus"
+      "icon": "./src/assets/expo.icon"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,8 +14,7 @@
         "backgroundImage": "./src/assets/images/android-icon-background.png",
         "monochromeImage": "./src/assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.rise.campus"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
