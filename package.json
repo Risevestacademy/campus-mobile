@@ -55,13 +55,14 @@
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.9.5",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "zod": "^4.6.5"
   },
   "scripts": {
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "prebuild": "expo prebuild",
     "web": "expo start --web",
     "lint": "expo lint src tests --max-warnings=0",
     "lint:fix": "expo lint src tests --fix --max-warnings=0",
@@ -75,7 +76,7 @@
     "commitlint": "commitlint",
     "lint-staged": "lint-staged",
     "prepare": "husky",
-    "openapi:gen": "openapi-typescript https://campus-api-staging.up.railway.app/docs-json -o ./src/core/api/schema.d.ts"
+    "api:type-gen": "node --env-file-if-exists=.env.local ./scripts/generate-api-types.mts && prettier src/core/api/generated/schema.d.ts --write"
   },
   "private": true
 }

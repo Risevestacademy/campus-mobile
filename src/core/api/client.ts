@@ -1,13 +1,13 @@
-import { env } from "@core/config";
 import createFetchClient from "openapi-fetch";
 
+import config from "../config";
+import type { paths } from "./generated/schema";
 import { loggingMiddleware } from "./middleware";
-import type { paths } from "./schema";
 
-const $api = createFetchClient<paths>({
-  baseUrl: env.apiBaseUrl,
+const client = createFetchClient<paths>({
+  baseUrl: config.apiBaseUrl,
 });
 
-$api.use(loggingMiddleware);
+client.use(loggingMiddleware);
 
-export default $api;
+export { client };
