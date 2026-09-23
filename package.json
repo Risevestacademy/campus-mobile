@@ -7,6 +7,8 @@
     "node": ">=22.13.0"
   },
   "dependencies": {
+    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
+    "@expo-google-fonts/instrument-sans": "^0.4.2",
     "@expo/ui": "~57.0.18",
     "expo": "~57.0.22",
     "expo-constants": "~57.0.18",

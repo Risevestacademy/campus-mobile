@@ -1,10 +1,9 @@
-import { Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Text, View } from "react-native";
 
 export default function Index() {
   return (
-    <SafeAreaView className="flex-1 items-center justify-center bg-white dark:bg-black">
-      <Text className="">Rise Campus</Text>
-    </SafeAreaView>
+    <View className="flex-1 items-center justify-center bg-bg-canvas">
+      <Text className="font-display text-text-primary">Rise Campus</Text>
+    </View>
   );
 }
