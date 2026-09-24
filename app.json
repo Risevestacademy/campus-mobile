@@ -34,6 +34,17 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "appConfig": {
+        "env": "production",
+        "apiBaseUrl": "https://your-api.up.railway.app"
+      },
+      "router": {},
+      "eas": {
+        "projectId": "c3d3d2d2-2120-4b08-9d45-a6f09f882500"
+      }
+    },
+    "owner": "rise-academy"
   }
 }
