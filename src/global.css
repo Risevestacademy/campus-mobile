@@ -2,6 +2,90 @@
 @import "uniwind";
 
 @theme {
+  --color-bg-canvas: #effaff;
+  --color-bg-surface: #f5f6fa;
+  --color-bg-elevated: #effaff;
+  --color-bg-hover: #e9ecf6;
+  --color-bg-pressed: #ccd4f0;
+  --color-bg-disabled: #e5f4fa;
+  --color-bg-inverse: #252525;
+  --color-bg-campus-canvas: #fff9f0;
+  --color-bg-campus-surface: #fff6e8;
+
+  --color-text-primary: #152228;
+  --color-text-secondary: #475d67;
+  --color-text-muted: #475d67;
+  --color-text-disabled: #b2c8d2;
+  --color-text-inverse: #f7f7f7;
+  --color-text-link: #1e6c64;
+  --color-text-brand: #2443b3;
+  --color-text-campus-primary: #292114;
+  --color-text-campus-secondary: #695b45;
+
+  --color-border-default: #d0e3ec;
+  --color-border-subtle: #e5f4fa;
+  --color-border-strong: #8ca5b0;
+  --color-border-focus: #3155d6;
+  --color-border-disabled: #e5f4fa;
+  --color-border-campus-default: #ede1cf;
+
+  --color-icon-default: #475d67;
+  --color-icon-muted: #6c8793;
+  --color-icon-disabled: #b2c8d2;
+  --color-icon-inverse: #f7f7f7;
+  --color-icon-brand: #2443b3;
+
+  --color-action-primary-default: #3155d6;
+  --color-action-primary-hover: #2443b3;
+  --color-action-primary-active: #1f378f;
+  --color-action-primary-disabled: #d0e3ec;
+  --color-action-primary-text: #effaff;
+
+  --color-action-secondary-default: #2aada0;
+  --color-action-secondary-hover: #238a80;
+  --color-action-secondary-active: #1e6c64;
+  --color-action-secondary-disabled: #d0e3ec;
+  --color-action-secondary-text: #152228;
+
+  --color-action-accent-default: #ffd23e;
+  --color-action-accent-hover: #ffc400;
+  --color-action-accent-active: #d6a400;
+  --color-action-accent-text: #152228;
+
+  --color-status-error-bg-subtle: #faf5f5;
+  --color-status-error-solid: #d63941;
+  --color-status-error-text: #8e1f25;
+  --color-status-error-border: #e69ea1;
+  --color-status-error-icon: #b1252c;
+
+  --color-status-success-bg-subtle: #f5faf7;
+  --color-status-success-solid: #32cd6d;
+  --color-status-success-text: #1e6b3c;
+  --color-status-success-border: #a0e3ba;
+  --color-status-success-icon: #2aac5c;
+
+  --color-status-warning-bg-subtle: #fcf9f3;
+  --color-status-warning-solid: #feb800;
+  --color-status-warning-text: #846106;
+  --color-status-warning-border: #f9db8b;
+  --color-status-warning-icon: #d69b00;
+
+  --color-status-info-bg-subtle: #f4f8fb;
+  --color-status-info-solid: #2e90e5;
+  --color-status-info-text: #155b98;
+  --color-status-info-border: #97c5ed;
+  --color-status-info-icon: #1871bf;
+
+  --color-map-secondary-commons-fill: #ffd23e;
+  --color-map-secondary-commons-text-on-fill: #152228;
+  --color-map-secondary-classrooms-fill: #3daeff;
+  --color-map-secondary-classrooms-text-on-fill: #152228;
+  --color-map-secondary-faculty-fill: #7445f5;
+  --color-map-secondary-faculty-text-on-fill: #effaff;
+  --color-map-secondary-mentorship-fill: #71cb94;
+  --color-map-secondary-mentorship-text-on-fill: #152228;
+  --color-map-secondary-events-fill: #ff6b57;
+  --color-map-secondary-events-text-on-fill: #152228;
   --font-display: "BricolageGrotesque_800ExtraBold";
   --font-h1: "BricolageGrotesque_700Bold";
   --font-h2: "BricolageGrotesque_700Bold";
