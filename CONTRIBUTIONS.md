@@ -1,14 +1,47 @@
 # Contributing
 
+## Local development
+
+Follow [README.md](README.md) to install dependencies and start the
+application.
+
+Before opening or updating a pull request, run:
+
+```bash
+pnpm check
+```
+
+This is the complete local gate for linting, strict typechecking, formatting,
+and tests.
+
+The Git hooks provide additional feedback:
+
+- `pre-commit` runs ESLint and Prettier against staged files.
+- `commit-msg` validates Conventional Commit syntax.
+
+Hooks are a safety net, not a replacement for `pnpm check`.
+
+## Engineering expectations
+
+- Features include deterministic tests and required eval coverage.
+- Bug fixes include a regression test and an eval that would have caught the
+  issue.
+- Source code follows the dependency boundaries in
+  [docs/architectural-plan.md](docs/architectural-plan.md).
+- Feature modules expose public APIs through their root `index.ts`.
+- Generated files and provider-specific code are not edited through unrelated
+  feature modules.
+
 ## Branches
 
-| Branch                              | Purpose                                       | Merges via    |
-| ----------------------------------- | --------------------------------------------- | ------------- |
-| `main`                              | Production. Tagged releases.                  | PR from `dev` |
-| `dev`                               | Default branch. Staging. Branch from here.    | Squashed PRs  |
-| `feat/*` `fix/*` `chore/*` `docs/*` | Branch out for Your work with this convention | PR into `dev` |
+| Branch                              | Purpose                                    | Merges via    |
+| ----------------------------------- | ------------------------------------------ | ------------- |
+| `main`                              | Production. Tagged releases.               | PR from `dev` |
+| `dev`                               | Default branch. Staging. Branch from here. | Squashed PRs  |
+| `feat/*` `fix/*` `chore/*` `docs/*` | Working branches created from `dev`        | PR into `dev` |
 
-Nobody pushes directly to `dev` or `main`, branch off dev then create a pr
+Do not push directly to `dev` or `main`. Create a branch from `dev`, then open
+a pull request.
 
 ## Who approves
 
@@ -41,9 +74,9 @@ git push -u origin feat/your-thing
 gh pr create --base dev
 ```
 
-Four things must be true to merge:
+Four things must be true before merging:
 
-1. CI passes
+1. All configured status checks pass
 2. An admin has approved
 3. All review comments resolved
 4. Branch is up to date with `dev` — click **Update branch** if prompted
