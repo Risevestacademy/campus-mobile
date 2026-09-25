@@ -21,6 +21,19 @@
       "favicon": "./src/assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "node_modules/@expo-google-fonts/bricolage-grotesque/800ExtraBold/BricolageGrotesque_800ExtraBold.ttf",
+            "node_modules/@expo-google-fonts/bricolage-grotesque/700Bold/BricolageGrotesque_700Bold.ttf",
+            "node_modules/@expo-google-fonts/bricolage-grotesque/600SemiBold/BricolageGrotesque_600SemiBold.ttf",
+            "node_modules/@expo-google-fonts/instrument-sans/400Regular/InstrumentSans_400Regular.ttf",
+            "node_modules/@expo-google-fonts/instrument-sans/500Medium/InstrumentSans_500Medium.ttf",
+            "node_modules/@expo-google-fonts/instrument-sans/600SemiBold/InstrumentSans_600SemiBold.ttf"
+          ]
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
