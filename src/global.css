@@ -2,6 +2,10 @@
 @import "uniwind";
 
 @theme {
+  /* radius */
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
   --font-display: "BricolageGrotesque_800ExtraBold";
   --font-h1: "BricolageGrotesque_700Bold";
   --font-h2: "BricolageGrotesque_700Bold";

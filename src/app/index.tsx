@@ -1,9 +1,5 @@
-import { Text, View } from "react-native";
+import { Redirect } from "expo-router";
 
 export default function Index() {
-  return (
-    <View className="flex-1 items-center justify-center bg-bg-canvas">
-      <Text className="font-display text-text-primary">Rise Campus</Text>
-    </View>
-  );
+  return <Redirect href="/(auth)/Invitation" />;
 }
