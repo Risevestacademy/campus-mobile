@@ -4,3 +4,4 @@ export * from "./Divider";
 export * from "./Pill";
 export * from "./StatusDot";
 export * from "./Text";
+export * from "./TextField";

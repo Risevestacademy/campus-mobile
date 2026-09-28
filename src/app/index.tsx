@@ -5,13 +5,14 @@ import {
   Pill,
   StatusDot,
   Text,
+  TextField,
 } from "@shared/components/atoms";
 import { ScrollView, View } from "react-native";
 
 export default function Index() {
   return (
     <View className="flex-1 bg-bg-canvas">
-      <View className="items-center justify-center">
+      <View className="items-center justify-center px-4">
         <Text variant="display">Rise Campus</Text>
         <Avatar />
         <Avatar imageUrl="https://picsum.photos/200" />
@@ -58,6 +59,29 @@ export default function Index() {
           <StatusDot status="offline" />
           <StatusDot status="busy" />
         </View>
+        <TextField
+          label="Email Address"
+          placeholder="enter your email"
+          helper="We'll send your confirmation code here"
+        />
+        <TextField
+          label="Password"
+          placeholder="enter password"
+          error="Password must be at least 8 characters"
+        />
+        <TextField
+          label="Department"
+          placeholder="Select department..."
+          select
+        />
+        <TextField label="Amount" prefix="$" suffix="USD" placeholder="0.00" />
+        <TextField label="Username" value="ayobami" disabled />
+        <TextField
+          label="Bio"
+          secureTextEntry
+          inputClassName="h-20"
+          multiline
+        />
       </View>
     </View>
   );

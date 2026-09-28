@@ -19,9 +19,13 @@ export function Avatar({ size = 40, imageUrl, bg, placeholder }: AvatarProps) {
   if (imageUrl) {
     child = <Image source={{ uri: imageUrl }} className="h-full w-full" />;
   } else if (placeholder) {
-    child = <Text color="inverse">{placeholder}</Text>;
+    child = (
+      <Text variant="overline" color="inverse">
+        {placeholder}
+      </Text>
+    );
   } else {
-    child = <StyledUserIcon className="text-text-inverse" />;
+    child = <StyledUserIcon colorClassName="accent-text-inverse" />;
   }
 
   return (
