@@ -10,7 +10,7 @@
       "@assets/*": ["./src/assets/*"],
       "@core/*": ["./src/core/*"],
       "@design-system/*": ["./src/design-system/*"],
-      "@features/*": ["src/feature/*"],
+      "@features/*": ["./src/feature/*"],
       "@shared/*": ["./src/shared/*"]
     }
   },

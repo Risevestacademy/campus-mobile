@@ -1,0 +1,17 @@
+{
+  "cli": {
+    "version": ">= 24.7.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "autoIncrement": true,
+      "environment": "preview"
+    },
+    "production": {
+      "autoIncrement": true,
+      "environment": "production"
+    }
+  }
+}

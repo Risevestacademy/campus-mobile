@@ -1,4 +1,7 @@
 import { ConfigContext, ExpoConfig } from "expo/config";
+import { config as loadDotenv } from "dotenv";
+
+loadDotenv({ path: [".env.local", ".env"], quiet: true });
 
 const INVALID_ORIGIN_MESSAGE =
   "API_BASE_URL must be an HTTPS origin or a Railway private HTTP origin.";
