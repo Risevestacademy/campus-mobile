@@ -1,11 +1,17 @@
-import { render, screen } from "@testing-library/react-native";
+import { render } from "@testing-library/react-native";
+import { Redirect } from "expo-router";
 
 import Index from "../../src/app/index";
 
-describe("Home screen", () => {
-  it("shows the Campus product name", async () => {
+jest.mock("expo-router", () => ({
+  Redirect: jest.fn(() => null),
+}));
+
+describe("Index", () => {
+  it("redirects to the invitation screen", async () => {
     await render(<Index />);
 
-    expect(screen.getByText("Rise Campus")).toBeTruthy();
+    const props = (Redirect as jest.Mock).mock.calls[0][0];
+    expect(props).toEqual({ href: "/(auth)/Invitation" });
   });
 });
