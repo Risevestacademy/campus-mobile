@@ -1,5 +1,5 @@
-import { Avatar, Button, Text } from "@shared/components/atoms";
-import { View } from "react-native";
+import { Avatar, Button, Divider, Pill, Text } from "@shared/components/atoms";
+import { ScrollView, View } from "react-native";
 
 export default function Index() {
   return (
@@ -17,6 +17,33 @@ export default function Index() {
       <Button variant="tertiary">
         <Text>Tertiary Button</Text>
       </Button>
+      <Divider />
+      <ScrollView horizontal>
+        <Pill label="Label" color="neutral" variant="solid" size="sm" />
+        <Pill label="Label" color="neutral" variant="solid" size="lg" />
+        <Pill label="Label" color="neutral" variant="subtle" size="sm" />
+        <Pill label="Label" color="neutral" variant="subtle" size="lg" />
+        <Pill label="Label" color="brand" variant="solid" size="sm" />
+        <Pill label="Label" color="brand" variant="solid" size="lg" />
+        <Pill label="Label" color="brand" variant="subtle" size="sm" />
+        <Pill label="Label" color="brand" variant="subtle" size="lg" />
+        <Pill label="Label" color="success" variant="solid" size="sm" />
+        <Pill label="Label" color="success" variant="solid" size="lg" />
+        <Pill label="Label" color="success" variant="subtle" size="sm" />
+        <Pill label="Label" color="success" variant="subtle" size="lg" />
+        <Pill label="Label" color="warning" variant="solid" size="sm" />
+        <Pill label="Label" color="warning" variant="solid" size="lg" />
+        <Pill label="Label" color="warning" variant="subtle" size="sm" />
+        <Pill label="Label" color="warning" variant="subtle" size="lg" />
+        <Pill label="Label" color="error" variant="solid" size="sm" />
+        <Pill label="Label" color="error" variant="solid" size="lg" />
+        <Pill label="Label" color="error" variant="subtle" size="sm" />
+        <Pill label="Label" color="error" variant="subtle" size="lg" />
+        <Pill label="Label" color="info" variant="solid" size="sm" />
+        <Pill label="Label" color="info" variant="solid" size="lg" />
+        <Pill label="Label" color="info" variant="subtle" size="sm" />
+        <Pill label="Label" color="info" variant="subtle" size="lg" />
+      </ScrollView>
     </View>
   );
 }
