@@ -1,3 +1,4 @@
+export * from "./AtomsPreview";
 export * from "./Avatar";
 export * from "./Button";
 export * from "./Divider";
