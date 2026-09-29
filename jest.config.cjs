@@ -13,4 +13,7 @@ module.exports = {
     "<rootDir>/src/**/*.test.{ts,tsx}",
     "<rootDir>/tests/**/*.test.{ts,tsx}",
   ],
+  transformIgnorePatterns: [
+    "node_modules/(?!(?:.pnpm/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|uniwind|phosphor-react-native))",
+  ],
 };
