@@ -38,6 +38,12 @@
           "backgroundColor": "#3155D6",
           "imageWidth": 642
         }
+      ],
+      [
+        "react-native-nitro-google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.416818957033-okf2o1q2975tmf0f7i8mae30tab2k1k8"
+        }
       ]
     ],
     "experiments": {

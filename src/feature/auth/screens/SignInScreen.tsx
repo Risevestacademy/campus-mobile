@@ -1,16 +1,41 @@
 import { Button, Text, TextField } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { EyeOpen, Google } from "@shared/icons";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Image, Pressable, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import {
+  GoogleOneTapSignIn,
+  isNoSavedCredentialFoundResponse,
+  isSuccessResponse,
+} from "react-native-nitro-google-signin";
 
 import { Header } from "../components";
 
 function SignInScreen() {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+
+  const signIn = async () => {
+    await GoogleOneTapSignIn.checkPlayServices();
+
+    let response = await GoogleOneTapSignIn.signIn();
+    console.warn(response.type);
+
+    if (isNoSavedCredentialFoundResponse(response)) {
+      response = await GoogleOneTapSignIn.createAccount();
+      console.warn(response.type);
+    }
+    if (isNoSavedCredentialFoundResponse(response)) {
+      response = await GoogleOneTapSignIn.presentExplicitSignIn();
+      console.warn(response.type);
+    }
+
+    if (isSuccessResponse(response)) {
+      const { user, serverAuthCode } = response.data;
+      // Send idToken to your backend for verification
+      console.warn(user.email, serverAuthCode);
+    }
+  };
 
   return (
     <SafeArea>
@@ -58,16 +83,17 @@ function SignInScreen() {
       </KeyboardAwareScrollView>
 
       <View className="gap-4 py-2">
-        <Button variant="secondary" className="gap-2 border-border-strong">
+        <Button
+          variant="secondary"
+          className="gap-2 border-border-strong"
+          onPress={signIn}
+        >
           <Google />
           <Text className="font-label text-label text-text-primary">
             Continue with Google
           </Text>
         </Button>
-        <Button
-          label="Sign in"
-          onPress={() => router.push("/(auth)/SetupProfile")}
-        />
+        <Button label="Sign in" />
       </View>
     </SafeArea>
   );
