@@ -16,4 +16,5 @@ module.exports = {
   transformIgnorePatterns: [
     "node_modules/(?!(?:.pnpm/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|uniwind|phosphor-react-native))",
   ],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
 };
