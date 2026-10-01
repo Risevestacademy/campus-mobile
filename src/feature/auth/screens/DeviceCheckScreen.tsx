@@ -28,7 +28,7 @@ export default function DeviceCheckScreen() {
         <Input
           label="Availability on arrival"
           variant="select"
-          options={["Available", "Not-Available"]}
+          options={["Available", "Not Available"]}
         />
       </ScrollView>
 

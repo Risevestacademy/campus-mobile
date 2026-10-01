@@ -46,7 +46,7 @@ export function Modal({
         {/* Inner Pressable swallows taps so only the backdrop closes the modal. */}
         <Pressable
           className={cn(
-            "items-center gap-3 rounded-xl border border-border-default bg-white p-6",
+            "items-center gap-3 rounded-xl border border-border-default bg-white p-6 dark:bg-bg-hover",
             className,
           )}
         >
@@ -59,7 +59,7 @@ export function Modal({
               {title}
             </Text>
             {description ? (
-              <Text className="text-center font-body-sm text-body-sm text-[#6B7280]">
+              <Text className="text-center font-body-sm text-body-sm text-[#6B7280] dark:text-text-on-dark">
                 {description}
               </Text>
             ) : null}
@@ -71,10 +71,12 @@ export function Modal({
               variant={actionVariant}
               className={cn(
                 "mt-2 self-stretch",
-                actionVariant === "secondary" && "border-border-focus",
+                actionVariant === "secondary" &&
+                  "border-border-focus dark:border-bg-band",
               )}
               labelClassName={cn(
-                actionVariant === "secondary" && "text-text-brand",
+                actionVariant === "secondary" &&
+                  "text-text-brand dark:text-text-on-dark",
               )}
               onPress={onAction}
             />

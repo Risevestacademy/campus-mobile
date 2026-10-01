@@ -16,16 +16,16 @@ export default function CreatePasswordScreen() {
       <Header />
 
       <View className="mt-12.25 flex-1">
-        <Text className="mb-1 font-h5 text-h5 text-[#14171A]">
+        <Text className="mb-1" color="primary" variant="h5">
           Are your details correct?
         </Text>
-        <Text className="mb-7.25 font-body-md text-body-md text-text-secondary">
+        <Text className="mb-7.25" color="secondary" variant="body-md">
           Check your details
         </Text>
 
         <InvitationDetailsCard />
 
-        <Text className="font-caption text-caption text-[#9CA3AF]">
+        <Text color="muted" variant="caption">
           Set by the campus admin — not editable here.
         </Text>
       </View>

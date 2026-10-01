@@ -16,7 +16,7 @@ export default function SafeArea({
 }: SafeAreaProps) {
   return (
     <StyledSafeAreaView
-      className="flex-1 bg-bg-card px-6"
+      className="flex-1 bg-bg-page px-6"
       edges={
         disableBottomInset
           ? ["top", "left", "right"]

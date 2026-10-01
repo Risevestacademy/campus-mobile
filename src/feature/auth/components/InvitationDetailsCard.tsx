@@ -4,8 +4,10 @@ import { View } from "react-native";
 const DetailRow = ({ title, value }: { title: string; value: string }) => {
   return (
     <View className="flex flex-row items-center justify-between gap-4">
-      <Text className="font-body-sm text-label text-[#6B7280]">{title}</Text>
-      <Text className="shrink font-body-md text-body-md text-[#14171A]">
+      <Text variant="body-sm" color="muted">
+        {title}
+      </Text>
+      <Text variant="body-md" color="primary">
         {value}
       </Text>
     </View>
@@ -14,7 +16,7 @@ const DetailRow = ({ title, value }: { title: string; value: string }) => {
 
 const InvitationDetailsCard = () => {
   return (
-    <View className="mb-4 gap-4 rounded-lg border border-[#E5E6EB] bg-[#F6F7F8] p-5">
+    <View className="mb-4 gap-4 rounded-lg border border-border-default bg-bg-card p-5 dark:border-none">
       <DetailRow title="Name" value="David Olaleye" />
       <DetailRow title="Email" value="someone@email.com" />
       <DetailRow title="Role" value="Student" />

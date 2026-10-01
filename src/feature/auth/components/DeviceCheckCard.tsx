@@ -9,7 +9,7 @@ const StatusPill = ({ label }: { label: string }) => (
     variant="subtle"
     size="lg"
     label={label}
-    className="min-w-39 border border-green-250 px-3 py-2"
+    className="min-w-39 border border-green-250 px-3 py-2 dark:border-transparent"
   />
 );
 

@@ -26,11 +26,11 @@ export default function MeetingsScreen() {
         </View>
 
         <View className="mt-4 mb-6 flex-row items-center gap-3">
-          <Text className="font-overline text-overline text-[#000000]">
+          <Text color="primary" variant="overline">
             Thursday
           </Text>
-          <View className="size-3 overflow-hidden rounded-full bg-[#000000]" />
-          <Text className="font-label text-label text-[#000000]">
+          <View className="size-3 overflow-hidden rounded-full bg-paper-950" />
+          <Text color="primary" variant="overline">
             24 September 2026
           </Text>
         </View>
@@ -40,11 +40,11 @@ export default function MeetingsScreen() {
         <Text className="mt-6.25 mb-4 font-caption text-caption text-text-secondary">
           Meeting now
         </Text>
-        <View className="gap-3 rounded-lg border border-border-default bg-status-success-subtle p-2.5">
-          <Text className="font-caption text-caption text-[#000000]">
+        <View className="gap-3 rounded-lg border border-border-default bg-status-success-subtle p-2.5 dark:border-transparent">
+          <Text color="primary" variant="caption">
             12:00 - 13:00
           </Text>
-          <Text className="font-caption text-caption text-[#000000]">
+          <Text color="primary" variant="caption">
             UI/UX Design class
           </Text>
           <MeetingParticipants others={12} />
@@ -57,10 +57,10 @@ export default function MeetingsScreen() {
         <View className="gap-5">
           {UPCOMING_MEETINGS.map(({ time, title }) => (
             <View key={title} className="gap-2">
-              <Text className="font-caption text-caption text-[#000000]">
+              <Text color="primary" variant="caption">
                 {time}
               </Text>
-              <Text className="font-caption text-caption text-[#000000]">
+              <Text color="primary" variant="caption">
                 {title}
               </Text>
               <MeetingParticipants others={12} />

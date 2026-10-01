@@ -23,14 +23,14 @@ export default function InvitationScreen() {
           />
         </View>
 
-        <Text variant={"h5"} className="mb-2 text-[#6B7280]">
+        <Text variant="h5" className="mb-2" color="muted">
           CAMPUS INVITATION
         </Text>
-        <Text className="mb-4 font-h5 text-h5 text-[#14171A]">
-          You’re invited to join Product Design Cohort 2026
+        <Text variant="h5" className="mb-4 font-h5 text-h5" color="primary">
+          You&apos;re invited to join Product Design Cohort 2026
         </Text>
 
-        <Text className="mb-8.5 font-body-sm text-sm text-[#6B7280]">
+        <Text variant="body-sm" className="mb-8.5" color="muted">
           Campus by Rise is a shared virtual space for your cohort classes,
           mentor sessions and resources all live in one place. This invitation
           gives you a Student seat in this cohort; you’ll set up your account on

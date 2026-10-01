@@ -26,7 +26,7 @@ export default function MeetingParticipants({ others }: { others: number }) {
         {PARTICIPANTS.map(({ letter, className, textClassName }, index) => (
           <View
             key={letter}
-            className={`size-6 items-center justify-center rounded-full border-2 border-bg-card ${className} ${index > 0 ? "-ml-2" : ""}`}
+            className={`size-6 items-center justify-center rounded-full border-2 border-bg-card dark:border-0 ${className} ${index > 0 ? "-ml-2" : ""}`}
           >
             <Text className={`font-caption text-caption ${textClassName}`}>
               {letter}
