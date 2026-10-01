@@ -1,31 +1,50 @@
+import { Pill, Text, TextField } from "@shared/components/atoms";
 import { getInitials } from "@shared/helpers";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
-export default function ProfileCard() {
+interface ProfileCardProps {
+  name?: string;
+  cohort?: string;
+  bio: string;
+  onBioChange: (bio: string) => void;
+}
+
+export default function ProfileCard({
+  name = "Joseph Akintomide",
+  cohort = "Product Design · Cohort 2026",
+  bio,
+  onBioChange,
+}: ProfileCardProps) {
   return (
-    <View className="mb-5.75 rounded-xl border border-border-default bg-bg-surface px-4 pt-3.75 pb-3.25">
-      <Text className="mb-4.75 font-overline text-overline text-text-brand">
-        LIVE PROFILE PREVIEW
-      </Text>
-      <View className="flex flex-row items-center gap-4">
-        <View className="size-16 items-center justify-center rounded-full bg-action-secondary-default">
-          <Text className="font-h5 text-h5 text-text-primary">
-            {getInitials("Joseph Akintomide")}
-          </Text>
+    <View className="overflow-hidden rounded-3xl border border-border-default bg-bg-page">
+      <View className="h-30.75 items-center justify-center bg-turquoise-600">
+        <Text className="font-overline text-[32px] text-text-on-dark">
+          {getInitials(name)}
+        </Text>
+      </View>
+
+      <View className="items-center px-6 pt-4 pb-6">
+        <Text className="mb-2 text-center font-h4 text-h4 text-text-primary">
+          {name}
+        </Text>
+        <Text className="mb-6 text-center font-caption text-caption text-text-secondary">
+          {cohort}
+        </Text>
+        <Text className="mb-4 text-center font-body-lg text-body-lg text-text-secondary">
+          {bio}
+        </Text>
+        <View className="mb-2.75">
+          <Pill color="success" variant="solid" size="lg" label="Available" />
         </View>
-        <View>
-          <Text className="mb-2.25 font-h6 text-h6 text-text-primary">
-            Joseph Akintomide
-          </Text>
-          <Text className="mb-2 font-caption text-caption text-text-secondary">
-            Product Design · Cohort 2026
-          </Text>
-          <View className="h-8 w-40.75 items-center justify-center rounded-full border border-status-success-border bg-status-success-bg-subtle px-3 py-1.5">
-            <Text className="font-label text-label text-status-success-text">
-              Available
-            </Text>
-          </View>
-        </View>
+
+        <TextField
+          label="Short bio"
+          value={bio}
+          onChangeText={onBioChange}
+          multiline
+          // containerClassName="mt-1"
+          labelClassName="font-label text-label text-text-secondary"
+        />
       </View>
     </View>
   );

@@ -1,50 +1,72 @@
-import Button from "@shared/components/buttons/Button";
-import Input from "@shared/components/inputs/Input";
+import { Button, Text, TextField } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
+import { EyeOpen, Google } from "@shared/icons";
 import { useRouter } from "expo-router";
-import { Image, ScrollView, Text, View } from "react-native";
+import { useState } from "react";
+import { Image, Pressable, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { Header } from "../components";
 
 function SignInScreen() {
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <SafeArea>
       <Header />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Text className="mb-3.5 font-overline text-overline text-text-brand">
-          WELCOME BACK
-        </Text>
-        <Text className="mb-11.5 font-h1 text-h1 text-text-primary">
+      <KeyboardAwareScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Image
+          source={require("@assets/images/brand-illustration.png")}
+          className="mt-3 h-33 w-full rounded-2xl"
+        />
+
+        <Text className="mt-12 mb-6 text-center font-h3 text-h3 text-[#14171A]">
           Sign in
         </Text>
 
-        <View className="mb-17 flex gap-9">
-          <Input label="Display name" placeholder="Joseph" variant="text" />
-          <Input label="Password" placeholder="Enter your password" />
-          <Text className="-mt-4 font-body-sm text-body-sm text-text-link">
+        <View className="gap-4">
+          <TextField label="Display Name" placeholder="Joseph" />
+          <TextField label="Cohort" placeholder="Rise Academy 2026" />
+          <TextField
+            label="Password"
+            placeholder="Enter password"
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            suffix={
+              <Pressable
+                onPress={() => setShowPassword((shown) => !shown)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showPassword ? "Hide password" : "Show password"
+                }
+              >
+                <EyeOpen />
+              </Pressable>
+            }
+          />
+          <Text className="-mt-2 font-caption text-caption text-text-secondary">
             Forgot password
           </Text>
         </View>
+      </KeyboardAwareScrollView>
 
-        <View className="mb-4">
-          <Image
-            source={require("@assets/images/brand-illustration.png")}
-            className="h-33 w-full"
-            // resizeMode="contain"
-          />
-        </View>
-
-        <Text className="font-body-md text-label text-text-secondary">
-          Your cohort is waiting.
-        </Text>
-      </ScrollView>
-
-      <View className="py-2">
+      <View className="gap-4 py-2">
+        <Button variant="secondary" className="gap-2 border-border-strong">
+          <Google />
+          <Text className="font-label text-label text-text-primary">
+            Continue with Google
+          </Text>
+        </Button>
         <Button
-          title="Sign in"
-          onPress={() => router.push("/(auth)/InvalidInvitation")}
+          label="Sign in"
+          onPress={() => router.push("/(auth)/SetupProfile")}
         />
       </View>
     </SafeArea>

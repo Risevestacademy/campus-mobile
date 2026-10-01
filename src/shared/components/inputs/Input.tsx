@@ -141,7 +141,7 @@ export default function Input({
               className="flex-1 justify-end bg-black/40"
               onPress={() => setOpen(false)}
             >
-              <View className="rounded-t-2xl bg-bg-surface p-2">
+              <View className="rounded-t-2xl bg-bg-card p-2">
                 <FlatList
                   data={options}
                   keyExtractor={(item) => item}

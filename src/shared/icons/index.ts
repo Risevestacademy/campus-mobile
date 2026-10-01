@@ -3,5 +3,8 @@ export { default as Cancel } from "./Cancel";
 export { default as Check } from "./Check";
 export { default as ChevronDown } from "./ChevronDown";
 export { default as EyeOpen } from "./EyeOpen";
+export { default as Google } from "./Google";
 export { default as Mic } from "./Mic";
+export { default as VerifiedCheck } from "./VerifiedCheck";
+export { default as Warning } from "./WarningIcon";
 export { default as Wifi } from "./Wifi";

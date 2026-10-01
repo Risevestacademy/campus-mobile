@@ -1,5 +1,5 @@
-import { AtomsPreview } from "@shared/components/atoms";
+import { Redirect } from "expo-router";
 
 export default function Index() {
-  return <AtomsPreview />;
+  return <Redirect href="/(auth)/Invitation" />;
 }

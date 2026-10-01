@@ -31,16 +31,16 @@ export const pillContainerVariants = cva(
       {
         color: "success",
         variant: "solid",
-        className: "bg-status-success-solid",
+        className: "bg-status-success",
       },
       {
         color: "success",
         variant: "subtle",
-        className: "bg-status-success-bg-subtle",
+        className: "bg-status-success-subtle",
       },
 
       // Neutral
-      { color: "neutral", variant: "solid", className: "bg-bg-inverse" },
+      { color: "neutral", variant: "solid", className: "bg-bg-tag" },
       {
         color: "neutral",
         variant: "subtle",
@@ -51,40 +51,40 @@ export const pillContainerVariants = cva(
       {
         color: "brand",
         variant: "solid",
-        className: "bg-action-primary-default rounded-full",
+        className: "bg-action-primary rounded-full",
       },
       {
         color: "brand",
         variant: "subtle",
-        className: "bg-action-primary-disabled",
+        className: "bg-bg-hover",
       },
 
       // Warning
       {
         color: "warning",
         variant: "solid",
-        className: "bg-status-warning-solid",
+        className: "bg-status-warning",
       },
       {
         color: "warning",
         variant: "subtle",
-        className: "bg-status-warning-bg-subtle",
+        className: "bg-status-warning-subtle",
       },
 
       // Error
-      { color: "error", variant: "solid", className: "bg-status-error-solid" },
+      { color: "error", variant: "solid", className: "bg-status-danger" },
       {
         color: "error",
         variant: "subtle",
-        className: "bg-status-error-bg-subtle",
+        className: "bg-status-danger-subtle",
       },
 
       // Info
-      { color: "info", variant: "solid", className: "bg-status-info-solid" },
+      { color: "info", variant: "solid", className: "bg-identity-sky-strong" },
       {
         color: "info",
         variant: "subtle",
-        className: "bg-status-info-bg-subtle",
+        className: "bg-bg-tint-sky-card",
       },
     ],
     defaultVariants: {
@@ -116,11 +116,11 @@ export const pillTextVariants = cva("font-label text-center", {
   },
   compoundVariants: [
     // Success
-    { color: "success", variant: "solid", className: "text-white" },
+    { color: "success", variant: "solid", className: "text-text-on-dark" },
     {
       color: "success",
       variant: "subtle",
-      className: "text-status-success-text",
+      className: "text-text-success",
     },
 
     // Neutral
@@ -128,28 +128,28 @@ export const pillTextVariants = cva("font-label text-center", {
     { color: "neutral", variant: "subtle", className: "text-text-secondary" },
 
     // Brand
-    { color: "brand", variant: "solid", className: "text-action-primary-text" },
+    { color: "brand", variant: "solid", className: "text-text-on-dark" },
     { color: "brand", variant: "subtle", className: "text-text-brand" },
 
     // Warning
     {
       color: "warning",
       variant: "solid",
-      className: "text-neutral-ui-dark-950",
+      className: "text-text-on-accent",
     },
     {
       color: "warning",
       variant: "subtle",
-      className: "text-status-warning-text",
+      className: "text-text-warning",
     },
 
     // Error
-    { color: "error", variant: "solid", className: "text-white" },
-    { color: "error", variant: "subtle", className: "text-status-error-text" },
+    { color: "error", variant: "solid", className: "text-text-on-dark" },
+    { color: "error", variant: "subtle", className: "text-text-danger" },
 
     // Info
-    { color: "info", variant: "solid", className: "text-white" },
-    { color: "info", variant: "subtle", className: "text-status-info-text" },
+    { color: "info", variant: "solid", className: "text-text-on-dark" },
+    { color: "info", variant: "subtle", className: "text-text-sky" },
   ],
   defaultVariants: {
     color: "neutral",

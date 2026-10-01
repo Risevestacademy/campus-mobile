@@ -27,7 +27,7 @@ function Section({
           </Text>
         )}
       </View>
-      <View className="gap-4 rounded-2xl border border-border-subtle bg-bg-surface p-4 shadow-sm">
+      <View className="gap-4 rounded-2xl border border-border-hairline bg-bg-card p-4 shadow-sm">
         {children}
       </View>
     </View>
@@ -37,7 +37,7 @@ function Section({
 export function AtomsPreview() {
   return (
     <ScrollView
-      className="flex-1 bg-bg-canvas"
+      className="bg-bg-canvas flex-1"
       contentContainerClassName="px-4 pt-safe pb-12 gap-6"
       showsVerticalScrollIndicator={false}
     >

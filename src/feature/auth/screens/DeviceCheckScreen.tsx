@@ -1,8 +1,8 @@
-import Button from "@shared/components/buttons/Button";
+import { Button, Text } from "@shared/components/atoms";
 import Input from "@shared/components/inputs/Input";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { useRouter } from "expo-router";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 
 import { DeviceCheckCard, Header } from "../components";
 
@@ -13,14 +13,13 @@ export default function DeviceCheckScreen() {
       <Header />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Text className="mb-3.5 font-overline text-overline text-text-brand">
+        <Text className="mt-10.25 mb-4 font-overline text-overline text-text-brand">
           BEFORE YOU ENTER
         </Text>
-        <Text className="mb-3.5 font-h1 text-h1 text-text-primary">
+        <Text className="mb-4 font-h6 text-h6 text-text-primary">
           Choose how you want to arrive
         </Text>
-
-        <Text className="mb-5.75 font-body-md text-label text-text-secondary">
+        <Text className="mb-6 font-body-sm text-body-sm text-text-secondary">
           Camera stays off by default. Change these settings at any time.
         </Text>
 
@@ -35,8 +34,8 @@ export default function DeviceCheckScreen() {
 
       <View className="py-2">
         <Button
-          title="Continue"
-          onPress={() => router.push("/(auth)/Confirmation")}
+          label="Save and Continue"
+          onPress={() => router.push("/Meetings")}
         />
       </View>
     </SafeArea>

@@ -1,7 +1,8 @@
-import Button from "@shared/components/buttons/Button";
+import { Button } from "@shared/components/atoms";
+import { Text } from "@shared/components/atoms/Text";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { useRouter } from "expo-router";
-import { Image, ScrollView, Text, View } from "react-native";
+import { Image, ScrollView, View } from "react-native";
 
 import { Chip, Header } from "../components";
 
@@ -11,25 +12,29 @@ export default function InvitationScreen() {
     <SafeArea>
       <Header />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View className="mb-7">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={{ marginTop: 24 }}
+      >
+        <View className="mb-8.5 h-33">
           <Image
             source={require("@assets/images/brand-illustration.png")}
-            className="h-33 w-full"
+            className="h-full w-full"
           />
         </View>
 
-        <Text className="mb-3.5 font-overline text-overline text-text-brand">
+        <Text variant={"h5"} className="mb-2 text-[#6B7280]">
           CAMPUS INVITATION
         </Text>
-        <Text className="mb-5 font-h1 text-h1 text-text-primary">
+        <Text className="mb-4 font-h5 text-h5 text-[#14171A]">
           You’re invited to join Product Design Cohort 2026
         </Text>
 
-        <Text className="mb-14.5 font-body-md text-label text-text-secondary">
-          Campus by Rise brings your cohort classes, mentor sessions and
-          resources into one shared space. This invitation gives you a Student
-          seat. Set up your account next.
+        <Text className="mb-8.5 font-body-sm text-sm text-[#6B7280]">
+          Campus by Rise is a shared virtual space for your cohort classes,
+          mentor sessions and resources all live in one place. This invitation
+          gives you a Student seat in this cohort; you’ll set up your account on
+          the next step.
         </Text>
 
         <View className="flex flex-row flex-wrap gap-3">
@@ -41,7 +46,7 @@ export default function InvitationScreen() {
 
       <View className="py-2">
         <Button
-          title="Continue"
+          label="Continue"
           onPress={() => router.push("/(auth)/CreatePassword")}
         />
       </View>

@@ -1,47 +1,57 @@
-import Button from "@shared/components/buttons/Button";
-import Input from "@shared/components/inputs/Input";
+import { Button, Modal, Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { useRouter } from "expo-router";
-import { Text, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useState } from "react";
+import { View } from "react-native";
 
 import { Header, InvitationDetailsCard } from "../components";
 
 export default function CreatePasswordScreen() {
   const router = useRouter();
+  // TODO: show this after Continue once real invite-expiry checks exist;
+  // "Flag an issue" triggers it for now.
+  const [linkExpiredVisible, setLinkExpiredVisible] = useState(false);
   return (
     <SafeArea>
       <Header />
 
-      <KeyboardAwareScrollView showsVerticalScrollIndicator={false}>
-        <Text className="mb-3.5 font-overline text-overline text-text-brand">
-          SET UP YOUR ACCOUNT
+      <View className="mt-12.25 flex-1">
+        <Text className="mb-1 font-h5 text-h5 text-[#14171A]">
+          Are your details correct?
         </Text>
-        <Text className="mb-8 font-h1 text-h1 text-text-primary">
-          Create your password
+        <Text className="mb-7.25 font-body-md text-body-md text-text-secondary">
+          Check your details
         </Text>
 
         <InvitationDetailsCard />
 
-        <Text className="mb-14 font-body-md text-label text-text-secondary">
-          Set by your inviter. These details can’t be edited here.
+        <Text className="font-caption text-caption text-[#9CA3AF]">
+          Set by the campus admin — not editable here.
         </Text>
+      </View>
 
-        <View className="flex gap-7.5">
-          <Input label="Password" placeholder="At least 8 characters" />
-          <Input
-            label="Confirm password"
-            placeholder="Re-enter your password"
-          />
-        </View>
-      </KeyboardAwareScrollView>
-
-      <View className="py-2">
+      <View className="gap-4 py-2">
         <Button
-          title="Create account"
-          onPress={() => router.push("/(auth)/SetupProfile")}
+          label="Continue"
+          onPress={() => router.push("/(auth)/AccountVerified")}
+        />
+        <Button
+          label="Flag an issue"
+          variant="secondary"
+          className="border-bg-band"
+          labelClassName="text-text-brand"
+          onPress={() => setLinkExpiredVisible(true)}
         />
       </View>
+
+      <Modal
+        visible={linkExpiredVisible}
+        title="Invite link expired"
+        description="This invitation link has expired or has already been used. Contact whoever gave you this link for a new one."
+        actionLabel="Request another link"
+        onAction={() => setLinkExpiredVisible(false)}
+        onClose={() => setLinkExpiredVisible(false)}
+      />
     </SafeArea>
   );
 }

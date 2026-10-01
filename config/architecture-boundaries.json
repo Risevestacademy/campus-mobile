@@ -2,7 +2,7 @@
   "elements": [
     {
       "type": "feature",
-      "pattern": "features/*",
+      "pattern": "feature/*",
       "capture": ["featureName"],
       "partialMatch": false
     },

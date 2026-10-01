@@ -82,9 +82,9 @@ export function TextField({
       {Boolean(label) && (
         <Text
           className={cn(
-            "font-label text-label text-text-primary",
+            "font-label text-label text-text-secondary",
             disabled && "text-text-disabled",
-            hasError && "text-status-error-text",
+            hasError && "text-text-danger",
             labelClassName,
           )}
         >
@@ -95,13 +95,13 @@ export function TextField({
         disabled={disabled}
         onPress={handleContainerPress}
         className={cn(
-          "min-h-11 flex-row items-center rounded-lg border bg-bg-surface px-3.5 py-2.5 transition-colors",
+          "min-h-11 flex-row items-center rounded-lg border bg-bg-card px-3.5 py-2.5 transition-colors",
           hasError
-            ? "border-status-error-border bg-status-error-bg-subtle"
+            ? "border-status-danger-border bg-status-danger-subtle"
             : isFocused
               ? "border-border-focus ring-1 ring-border-focus"
               : "border-border-default",
-          disabled && "border-border-disabled bg-bg-disabled",
+          disabled && "border-border-default bg-bg-hover",
           inputContainerClassName,
         )}
       >
@@ -122,10 +122,10 @@ export function TextField({
           editable={!disabled && !select}
           placeholder={placeholder}
           onFocus={handleFocus}
-          placeholderTextColorClassName="text-text-muted"
+          placeholderTextColorClassName="accent-text-muted"
           onBlur={handleBlur}
           className={cn(
-            "m-0 flex-1 p-0 font-body-md text-body-md text-text-primary",
+            "m-0 flex-1 p-0 font-body-md text-body-md text-text-secondary",
             disabled && "text-text-disabled",
             inputClassName,
           )}
@@ -144,7 +144,7 @@ export function TextField({
           {hasError && (
             <StyledWarningCircleIcon
               size={20}
-              colorClassName="accent-status-error-icon"
+              colorClassName="accent-text-danger-icon"
             />
           )}
 
@@ -157,7 +157,7 @@ export function TextField({
         <Text
           className={cn(
             "font-caption text-caption text-text-muted",
-            hasError && "text-status-error-text",
+            hasError && "text-text-danger",
             helperClassName,
           )}
         >

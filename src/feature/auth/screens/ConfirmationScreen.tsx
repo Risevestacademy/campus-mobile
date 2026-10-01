@@ -1,8 +1,9 @@
+import { Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { useTimeout } from "@shared/hooks/useTimeout";
 import { Check } from "@shared/icons";
 import { useRouter } from "expo-router";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { Header } from "../components";
 
@@ -16,7 +17,7 @@ export default function ConfirmationScreen() {
       <Header />
 
       <View className="flex-1 items-center justify-center">
-        <View className="mb-12.75 size-22 items-center justify-center rounded-full bg-action-secondary-default">
+        <View className="mb-12.75 size-22 items-center justify-center rounded-full bg-bg-card">
           <Check />
         </View>
 

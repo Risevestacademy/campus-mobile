@@ -5,10 +5,10 @@ import { View, type ViewProps } from "react-native";
 export const statusDotVariants = cva("size-2 rounded-full", {
   variants: {
     status: {
-      online: "bg-status-success-solid",
-      away: "bg-status-warning-solid",
-      busy: "bg-status-error-solid",
-      offline: "bg-bg-disabled",
+      online: "bg-status-success",
+      away: "bg-status-warning",
+      busy: "bg-status-danger",
+      offline: "bg-text-disabled",
     },
   },
   defaultVariants: {

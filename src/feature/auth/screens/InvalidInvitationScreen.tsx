@@ -1,6 +1,7 @@
+import { Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { Cancel } from "@shared/icons";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { Header } from "../components";
 
@@ -10,7 +11,7 @@ export default function InvalidInvitation() {
       <Header />
 
       <View className="flex-1 items-center justify-center">
-        <View className="mb-10.75 size-20 items-center justify-center rounded-full bg-status-error-bg-subtle">
+        <View className="mb-10.75 size-20 items-center justify-center rounded-full bg-status-danger-subtle">
           <Cancel />
         </View>
 

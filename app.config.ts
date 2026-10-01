@@ -1,5 +1,5 @@
-import { ConfigContext, ExpoConfig } from "expo/config";
 import { config as loadDotenv } from "dotenv";
+import { ConfigContext, ExpoConfig } from "expo/config";
 
 loadDotenv({ path: [".env.local", ".env"], quiet: true });
 
