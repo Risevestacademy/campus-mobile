@@ -54,6 +54,12 @@
         "projectId": "c3d3d2d2-2120-4b08-9d45-a6f09f882500"
       }
     },
-    "owner": "rise-academy"
+    "owner": "rise-academy",
+    "updates": {
+      "url": "https://u.expo.dev/c3d3d2d2-2120-4b08-9d45-a6f09f882500"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }

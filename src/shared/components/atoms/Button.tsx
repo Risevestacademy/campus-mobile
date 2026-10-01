@@ -1,6 +1,6 @@
 import { cn } from "@shared/utils/style";
 import { cva, type VariantProps } from "class-variance-authority";
-import { ReactNode } from "react";
+import { ReactNode, useRef } from "react";
 import {
   Pressable as RNPressable,
   type PressableProps as RNPressableProps,
@@ -9,14 +9,13 @@ import {
 import { Text } from "./Text";
 
 export const buttonVariants = cva(
-  "flex-row items-center justify-center rounded-lg active:opacity-90 disabled:opacity-50",
+  "flex-row items-center justify-center rounded-md active:opacity-90 disabled:opacity-50 h-12.5",
   {
     variants: {
       variant: {
-        primary:
-          "bg-action-primary-default active:bg-action-primary-active disabled:bg-action-primary-disabled",
+        primary: "bg-action-primary active:bg-action-primary-active",
         secondary:
-          "bg-transparent border border-border-default active:bg-bg-hover disabled:border-border-disabled",
+          "bg-transparent border border-border-default active:bg-bg-hover disabled:border-border-default",
         tertiary: "bg-transparent active:bg-bg-hover disabled:bg-transparent",
       },
       size: {
@@ -33,12 +32,12 @@ export const buttonVariants = cva(
       {
         variant: "primary",
         disabled: true,
-        className: "bg-action-primary-disabled",
+        className: "bg-action-primary",
       },
       {
         variant: "secondary",
         disabled: true,
-        className: "bg-transparent border-border-disabled",
+        className: "bg-transparent border-border-default",
       },
       {
         variant: "tertiary",
@@ -57,7 +56,7 @@ export const buttonVariants = cva(
 export const buttonTextVariants = cva("font-label text-center", {
   variants: {
     variant: {
-      primary: "text-action-primary-text",
+      primary: "text-text-on-dark",
       secondary: "text-text-primary",
       tertiary: "text-text-primary",
     },
@@ -86,6 +85,8 @@ export interface ButtonProps
   label?: string;
   labelClassName?: string;
   disabled?: boolean;
+  /** Ms to ignore further presses after one fires. 0 disables the lock. */
+  throttle?: number;
 }
 
 export function Button({
@@ -96,14 +97,29 @@ export function Button({
   children,
   label,
   disabled = false,
+  throttle = 600,
+  onPress,
   ...props
 }: ButtonProps) {
   const content = label ?? children;
   const isDisabled = Boolean(disabled);
+  const locked = useRef(false);
+
+  const handlePress: RNPressableProps["onPress"] = (event) => {
+    if (locked.current) return;
+    if (throttle > 0) {
+      locked.current = true;
+      setTimeout(() => {
+        locked.current = false;
+      }, throttle);
+    }
+    onPress?.(event);
+  };
 
   return (
     <RNPressable
       {...props}
+      onPress={handlePress}
       disabled={isDisabled}
       className={cn(
         buttonVariants({ variant, size, disabled: isDisabled }),

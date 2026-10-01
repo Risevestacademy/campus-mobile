@@ -72,7 +72,7 @@ export default defineConfig([
       "src/app/**/*.{js,jsx,ts,tsx}",
       "src/core/**/*.{js,jsx,ts,tsx}",
       "src/design-system/**/*.{js,jsx,ts,tsx}",
-      "src/features/**/*.{js,jsx,ts,tsx}",
+      "src/feature/**/*.{js,jsx,ts,tsx}",
       "src/shared/**/*.{js,jsx,ts,tsx}",
     ],
     plugins: {

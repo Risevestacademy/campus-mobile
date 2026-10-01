@@ -30,7 +30,7 @@ export function Avatar({ size = 40, imageUrl, bg, placeholder }: AvatarProps) {
 
   return (
     <View
-      className="items-center justify-center overflow-hidden rounded-full bg-action-primary-default"
+      className="items-center justify-center overflow-hidden rounded-full bg-action-primary"
       style={{
         width: size,
         height: size,
