@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react-native";
+import { render, screen } from "@testing-library/react-native";
 
 import Index from "../../src/app/index";
 
@@ -10,6 +10,6 @@ describe("Index", () => {
   it("redirects to the invitation screen", async () => {
     await render(<Index />);
 
-    expect(screen.getByText("Campus Design System")).toBeTruthy();
+    expect(screen.getByText("Campus Invitation")).toBeTruthy();
   });
 });
