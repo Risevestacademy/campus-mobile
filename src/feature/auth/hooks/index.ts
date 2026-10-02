@@ -34,7 +34,9 @@ export function useInviteDecision() {
   return { decideOnInvite: mutateAsync, isLoading: isPending };
 }
 
-export function useInviteValidate({ enabled = true }: { enabled?: boolean }) {
+export function useInviteValidate({
+  enabled = true,
+}: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ["validateInvite"],
     queryFn: InviteService.validateInvite,

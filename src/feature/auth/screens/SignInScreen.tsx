@@ -2,7 +2,6 @@ import { ApiError, isApiError } from "@core/api/error";
 import { Button, Text, toast } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { Google } from "@shared/icons";
-import { useInviteStore } from "@store/invite";
 import { useRouter } from "expo-router";
 import { Image, View } from "react-native";
 import {
@@ -12,16 +11,12 @@ import {
 } from "react-native-nitro-google-signin";
 
 import { Header } from "../components";
-import { useInviteValidate, useSignInWithGoogle } from "../hooks";
+import { useSignInWithGoogle } from "../hooks";
 
 function SignInScreen() {
   const router = useRouter();
   const { signInWithGoogle, isLoading: isLoadingGoogle } =
     useSignInWithGoogle();
-  const { refetch, isLoading: isLoadingInvite } = useInviteValidate({
-    enabled: false,
-  });
-  const setInvite = useInviteStore((s) => s.setInvite);
 
   const signIn = async () => {
     try {
@@ -40,15 +35,7 @@ function SignInScreen() {
         const { idToken } = response.data;
         const signInResp = await signInWithGoogle(idToken);
         if (signInResp?.inviteId) {
-          const _inviteResp = await refetch({ throwOnError: true });
-          const data = _inviteResp?.data;
-          if (data) {
-            setInvite({
-              inviteId: signInResp.inviteId,
-              inviteDetails: data,
-            });
-            router.push("/(auth)/invitation");
-          }
+          router.push("/(auth)/CreatePassword");
           return;
         }
 
@@ -59,7 +46,7 @@ function SignInScreen() {
         const e = error as ApiError;
         // If code is invite accepted, log the user in
         if (e.code === "INVITE_ALREADY_ACCEPTED") {
-          router.replace("/AccountVerified");
+          router.replace("/(tabs)/(campus)");
           return;
         } else if (e.code === "INVITE_ALREADY_DECLINED") {
           router.replace("/InvalidInvitation");
@@ -89,7 +76,7 @@ function SignInScreen() {
           variant="secondary"
           className="gap-2 border-border-strong"
           onPress={signIn}
-          loading={isLoadingGoogle || isLoadingInvite}
+          loading={isLoadingGoogle}
         >
           <Google />
           <Text className="font-label text-label text-text-primary">

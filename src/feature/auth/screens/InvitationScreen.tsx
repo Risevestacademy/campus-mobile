@@ -1,19 +1,63 @@
-import { Button } from "@shared/components/atoms";
+import { ApiError, isApiError } from "@core/api/error";
+import { Button, toast } from "@shared/components/atoms";
 import { Text } from "@shared/components/atoms/Text";
 import SafeArea from "@shared/components/safearea/SafeArea";
+import { Google } from "@shared/icons";
 import { useInviteStore } from "@store/invite";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Image, ScrollView, View } from "react-native";
+import {
+  GoogleOneTapSignIn,
+  isNoSavedCredentialFoundResponse,
+  isSuccessResponse,
+} from "react-native-nitro-google-signin";
 
 import { Chip, Header } from "../components";
-import { useInvitePreview } from "../hooks";
+import { useInvitePreview, useSignInWithGoogle } from "../hooks";
 
 export default function InvitationScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const { inviteDetails, setInvite } = useInviteStore();
   const { previewInvite, isLoading } = useInvitePreview();
+  const { signInWithGoogle, isLoading: isLoadingGoogle } =
+    useSignInWithGoogle();
   const router = useRouter();
+
+  const signIn = async () => {
+    try {
+      await GoogleOneTapSignIn.checkPlayServices();
+
+      let response = await GoogleOneTapSignIn.createAccount();
+
+      if (isNoSavedCredentialFoundResponse(response)) {
+        response = await GoogleOneTapSignIn.presentExplicitSignIn();
+      }
+
+      if (isSuccessResponse(response)) {
+        const { idToken } = response.data;
+        // Send idToken to your backend for verification
+        await signInWithGoogle(idToken);
+        // decide immediately upon sign in
+        router.replace("/(auth)/CreatePassword");
+      }
+    } catch (error) {
+      if (isApiError(error)) {
+        const e = error as ApiError;
+        // If code is invite accepted, log the user in
+        if (e.code === "INVITE_ALREADY_ACCEPTED") {
+          router.replace("/(tabs)/(campus)");
+          return;
+        } else if (e.code === "INVITE_ALREADY_DECLINED") {
+          router.replace("/InvalidInvitation");
+          return;
+        }
+        // TODO: We should also handle for delined @jesse
+        // Navigate to error screen
+        toast.error(e.message || "Sign in failed");
+      }
+    }
+  };
 
   React.useEffect(() => {
     if (!token) return;
@@ -36,7 +80,7 @@ export default function InvitationScreen() {
   return (
     <SafeArea>
       <Header />
-      {token && isLoading ? (
+      {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -81,13 +125,15 @@ export default function InvitationScreen() {
 
           <View className="py-2">
             <Button
-              label="Continue"
-              onPress={() =>
-                router.push(
-                  `/(auth)/CreatePassword?isDeepLinked=${token && token !== ""}`,
-                )
-              }
-            />
+              className="gap-2 border-border-strong"
+              onPress={signIn}
+              loading={isLoadingGoogle}
+            >
+              <Google />
+              <Text className="font-label text-label text-text-primary">
+                Continue with Google
+              </Text>
+            </Button>
           </View>
         </View>
       )}
