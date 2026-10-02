@@ -1,17 +1,30 @@
 import { Button, Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { Header, ProfileCard } from "../components";
+import { useInviteValidate } from "../hooks";
 
 export default function SetupProfileScreen() {
   const router = useRouter();
+  const { data: validatedInviteDetails, error } = useInviteValidate();
+
   const [bio, setBio] = useState(
     "Learning product design and building with my cohort.",
   );
+
+  if (error) {
+    return <Redirect href={"/(auth)/InvalidInvitation"} />;
+  }
+
+  const cohortDate = validatedInviteDetails?.cohort?.startDate
+    ? new Date(validatedInviteDetails.cohort?.startDate)
+    : null;
+  const cohort = `${validatedInviteDetails?.cohort?.name} ·  ${cohortDate?.getUTCFullYear()}`;
+  const name = validatedInviteDetails?.user.displayName ?? "New Student";
 
   return (
     <SafeArea>
@@ -28,7 +41,12 @@ export default function SetupProfileScreen() {
           Changes appear in the preview before you continue.
         </Text>
 
-        <ProfileCard bio={bio} onBioChange={setBio} />
+        <ProfileCard
+          bio={bio}
+          onBioChange={setBio}
+          name={name}
+          cohort={cohort}
+        />
       </KeyboardAwareScrollView>
 
       <View className="py-2">

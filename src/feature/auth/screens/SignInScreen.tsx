@@ -1,9 +1,10 @@
-import { Button, Text, TextField } from "@shared/components/atoms";
+import { ApiError, isApiError } from "@core/api/error";
+import { Button, Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
-import { EyeOpen, Google } from "@shared/icons";
-import { useState } from "react";
-import { Image, Pressable, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { Google } from "@shared/icons";
+import { useInviteStore } from "@store/invite";
+import { useRouter } from "expo-router";
+import { Image, View } from "react-native";
 import {
   GoogleOneTapSignIn,
   isNoSavedCredentialFoundResponse,
@@ -11,29 +12,57 @@ import {
 } from "react-native-nitro-google-signin";
 
 import { Header } from "../components";
+import { useInvitePreview, useSignInWithGoogle } from "../hooks";
 
 function SignInScreen() {
-  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+  const { signInWithGoogle } = useSignInWithGoogle();
+  const { previewInvite } = useInvitePreview();
+  const { setInvite } = useInviteStore();
 
   const signIn = async () => {
-    await GoogleOneTapSignIn.checkPlayServices();
+    try {
+      await GoogleOneTapSignIn.checkPlayServices();
 
-    let response = await GoogleOneTapSignIn.signIn();
-    console.warn(response.type);
+      let response = await GoogleOneTapSignIn.signIn();
 
-    if (isNoSavedCredentialFoundResponse(response)) {
-      response = await GoogleOneTapSignIn.createAccount();
-      console.warn(response.type);
-    }
-    if (isNoSavedCredentialFoundResponse(response)) {
-      response = await GoogleOneTapSignIn.presentExplicitSignIn();
-      console.warn(response.type);
-    }
+      if (isNoSavedCredentialFoundResponse(response)) {
+        response = await GoogleOneTapSignIn.createAccount();
+      }
+      if (isNoSavedCredentialFoundResponse(response)) {
+        response = await GoogleOneTapSignIn.presentExplicitSignIn();
+      }
 
-    if (isSuccessResponse(response)) {
-      const { user, serverAuthCode } = response.data;
-      // Send idToken to your backend for verification
-      console.warn(user.email, serverAuthCode);
+      if (isSuccessResponse(response)) {
+        const { idToken } = response.data;
+        // Send idToken to your backend for verification
+        const signInResp = await signInWithGoogle(idToken);
+        // Check if invite is stil active
+        const _inviteResp = await previewInvite(signInResp?.inviteId!);
+        if (_inviteResp) {
+          setInvite({
+            inviteId: signInResp?.inviteId!,
+            inviteDetails: _inviteResp,
+          });
+        }
+        // Navigate to invite screen if invite is stil active
+        router.push("/invitation");
+      }
+    } catch (error) {
+      if (isApiError(error)) {
+        const e = error as ApiError;
+        // If code is invite accepted, log the user in
+        if (e.code === "INVITE_ALREADY_ACCEPTED") {
+          router.replace("/AccountVerified");
+          return;
+        } else if (e.code === "INVITE_ALREADY_DECLINED") {
+          router.replace("/InvalidInvitation");
+          return;
+        }
+        // TODO: We should also handle for delined @jesse
+        // Navigate to error screen
+        console.error(error);
+      }
     }
   };
 
@@ -41,48 +70,16 @@ function SignInScreen() {
     <SafeArea>
       <Header />
 
-      <KeyboardAwareScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Image
-          source={require("@assets/images/brand-illustration.png")}
-          className="mt-3 h-33 w-full rounded-2xl"
-        />
+      <Image
+        source={require("@assets/images/brand-illustration.png")}
+        className="mt-3 h-33 w-full rounded-2xl"
+      />
 
-        <Text className="mt-12 mb-6 text-center font-h3 text-h3 text-[#14171A]">
+      <View className="">
+        <Text className="mt-12 mb-6 text-center" variant="h3" color="primary">
           Sign in
         </Text>
 
-        <View className="gap-4">
-          <TextField label="Display Name" placeholder="Joseph" />
-          <TextField label="Cohort" placeholder="Rise Academy 2026" />
-          <TextField
-            label="Password"
-            placeholder="Enter password"
-            secureTextEntry={!showPassword}
-            autoCapitalize="none"
-            autoCorrect={false}
-            suffix={
-              <Pressable
-                onPress={() => setShowPassword((shown) => !shown)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  showPassword ? "Hide password" : "Show password"
-                }
-              >
-                <EyeOpen />
-              </Pressable>
-            }
-          />
-          <Text className="-mt-2 font-caption text-caption text-text-secondary">
-            Forgot password
-          </Text>
-        </View>
-      </KeyboardAwareScrollView>
-
-      <View className="gap-4 py-2">
         <Button
           variant="secondary"
           className="gap-2 border-border-strong"
@@ -93,7 +90,6 @@ function SignInScreen() {
             Continue with Google
           </Text>
         </Button>
-        <Button label="Sign in" />
       </View>
     </SafeArea>
   );

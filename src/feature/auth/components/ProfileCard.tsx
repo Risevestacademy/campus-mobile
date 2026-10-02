@@ -42,7 +42,6 @@ export default function ProfileCard({
           value={bio}
           onChangeText={onBioChange}
           multiline
-          // containerClassName="mt-1"
           labelClassName="font-label text-label text-text-secondary"
         />
       </View>

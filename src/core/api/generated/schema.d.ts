@@ -75,6 +75,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/auth/google/token": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Sign in from a native app
+     * @description For a client that cannot keep cookies. The app signs the user in with Google's own SDK and posts the id_token it receives; the API makes the same decision the browser callback makes and answers with the session in the body instead of a redirect and cookies. Send `accessToken` as a bearer token from then on, and keep `refreshToken` for POST /v1/auth/refresh. `inviteId` set means there is an invite to answer first.
+     */
+    post: operations["AuthController_tokenSignIn"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/auth/me": {
     parameters: {
       query?: never;
@@ -106,7 +126,7 @@ export interface paths {
     put?: never;
     /**
      * Refresh the access session
-     * @description Rotates both cookies and issues a new full-access session. The body says when the new tokens lapse, so the next refresh can be scheduled rather than guessed; the tokens themselves stay in the cookies.
+     * @description Rotates both cookies and issues a new full-access session. The body says when the new tokens lapse, so the next refresh can be scheduled rather than guessed; the tokens themselves stay in the cookies. A client that holds its own tokens sends `refreshToken` in the body instead, and gets the new pair back in the body with no cookies set.
      */
     post: operations["AuthController_refresh"];
     delete?: never;
@@ -126,7 +146,7 @@ export interface paths {
     put?: never;
     /**
      * Revoke the refresh session
-     * @description Revokes the refresh cookie and clears both session cookies.
+     * @description Revokes the refresh cookie and clears both session cookies. A client that holds its own tokens sends `refreshToken` in the body instead.
      */
     post: operations["AuthController_logout"];
     delete?: never;
@@ -183,8 +203,8 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Validate the invite the current provisional session was issued for
-     * @description Resolves the invite from the inviteId carried in the provisional session, confirms it is addressed to the signed-in account, and returns it only while it is still live. Takes no body: the session identifies both the invite and the caller, so a full-access session is rejected with 401 rather than quietly reading someone else's offer. Returns 200 only for a live invite, so the decision screen can be rendered as-is. Not a re-send of the admin create-receipt: the token, the shareable link and mentorshipGroupId (no MENTORSHIP_GROUPS table) are withheld. The address under `invitee` is the signed-in account's own, read from its USERS row — the same string as the invited address, because the two must match to get this far. Note this read is not free of writes — a lapsed-but-still-pending invite has its status materialised here, which is what makes the following 403 truthful.
+     * Validate the invite the signed-in account has to answer
+     * @description For a provisional session, the invite it was issued for. For a full-access session — a member, who can be invited to another cohort — the pending invite addressed to the account. Confirms it is addressed to the signed-in account and returns it only while it is still live. Takes no body: the session identifies both the invite and the caller, so nobody can read someone else's offer. Returns 200 only for a live invite, so the decision screen can be rendered as-is. Not a re-send of the admin create-receipt: the token, the shareable link and mentorshipGroupId (no MENTORSHIP_GROUPS table) are withheld. The address under `invitee` is the signed-in account's own, read from its USERS row — the same string as the invited address, because the two must match to get this far. Note this read is not free of writes — a lapsed-but-still-pending invite has its status materialised here, which is what makes the following 403 truthful.
      */
     get: operations["InvitesController_validateUserInvite"];
     put?: never;
@@ -205,8 +225,8 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Accept or decline the invite this session was opened with
-     * @description Answers the invite named in the session cookie — the caller does not say which one. Accept enrols the invitee (or revives a membership they previously left), applies the invite's systemRole, and replaces the provisional cookie with a full-access one. Decline closes the invite and clears the cookie, leaving the account row in place. An invite that already carries an answer is a 409 — branch on error.code to decide where the caller goes next.
+     * Accept or decline the invite the signed-in account has
+     * @description Answers the invite identified by the signed-in session and request. A provisional session already identifies the invite it was issued for, so `inviteId` may be omitted; when supplied, it must match the session. A full-access session (a member invited to another cohort) must supply the `inviteId` returned by validate-user-invite. This ensures the server answers the invite the member saw rather than a replacement created afterward. Accept enrols the invitee (or revives a membership they previously left) and applies the invite's systemRole; a provisional cookie is replaced with a full-access one. Decline closes the invite; a provisional cookie is cleared, leaving the account row in place. A full-access session keeps its cookies either way: accepting only adds a membership, which never shortens access. A caller authenticated with a bearer token rather than the cookie is answered in the body instead: an accept that upgrades a provisional session returns the new tokens in `session`, and no cookie is set or cleared. An invite that already carries an answer is a 409 — branch on error.code to decide where the caller goes next.
      */
     post: operations["InvitesController_decide"];
     delete?: never;
@@ -430,11 +450,40 @@ export interface components {
       /** @description The error envelope. */
       error: components["schemas"]["ApiErrorBodyDto"];
     };
+    GoogleTokenSignInDto: {
+      /** @description The id_token Google's sign-in SDK gave the app, unmodified. It must be addressed to this deployment's web client or to one of its native app clients. */
+      idToken: string;
+    };
     /**
      * @description `full_access` belongs in the campus. `provisional` still has an invite to answer, and every route but onboarding refuses it.
      * @enum {string}
      */
     SessionScope: "provisional" | "full_access";
+    TokenSignInResponseDto: {
+      /** @description `full_access` belongs in the campus. `provisional` still has an invite to answer, and every route but onboarding refuses it. */
+      scope: components["schemas"]["SessionScope"];
+      /** @description Send as `Authorization: Bearer <accessToken>` on every call. */
+      accessToken: string;
+      /**
+       * Format: date-time
+       * @description When the access token lapses. Refresh a little before this.
+       * @example 2026-09-30T12:15:00.000Z
+       */
+      expiresAt: string;
+      /** @description Exchange at POST /v1/auth/refresh for a new pair. Works once: keep the one each refresh returns. Null for a provisional session, which cannot be refreshed. */
+      refreshToken: string | null;
+      /**
+       * Format: date-time
+       * @description When the refresh token lapses. Past this, the user signs in again. Null for a provisional session.
+       * @example 2026-10-30T12:00:00.000Z
+       */
+      refreshExpiresAt: string | null;
+      /**
+       * @description The invite to answer, if any: for a provisional session, the one it was issued for; for a full-access session, a pending invite to another cohort. Load it with GET /v1/invites/validate-user-invite.
+       * @example 66666666-6666-4666-8666-666666666666
+       */
+      inviteId: string | null;
+    };
     /** @enum {string} */
     SystemRole: "user" | "admin";
     SessionUserDto: {
@@ -459,6 +508,18 @@ export interface components {
       cohortId: string;
       role: components["schemas"]["CohortRole"];
     };
+    SessionCohortDto: {
+      /** @example Cohort 3 */
+      name: string;
+      /** @example C3 */
+      code: string;
+    };
+    SessionCohortPlaceDto: {
+      /** @example 11111111-1111-4111-8111-111111111111 */
+      cohortId: string;
+      role: components["schemas"]["CohortRole"];
+      cohort: components["schemas"]["SessionCohortDto"];
+    };
     SessionResponseDto: {
       /** @description `full_access` belongs in the campus. `provisional` still has an invite to answer, and every route but onboarding refuses it. */
       scope: components["schemas"]["SessionScope"];
@@ -469,13 +530,19 @@ export interface components {
        */
       expiresAt: string;
       /**
-       * @description Provisional sessions only: the invite to answer. Load it with GET /v1/invites/validate-user-invite.
+       * @description The invite to answer, if any: for a provisional session, the one it was issued for; for a full-access session, a pending invite to another cohort. Load it with GET /v1/invites/validate-user-invite.
        * @example 66666666-6666-4666-8666-666666666666
        */
       inviteId?: string | null;
       user: components["schemas"]["SessionUserDto"];
-      /** @description Null for a provisional session, and for an admin who holds no cohort place. */
+      /** @description The first of `memberships` — only one, so it cannot describe somebody in several cohorts; read `memberships` instead. Null for a provisional session, and for an admin who holds no cohort place. */
       membership?: components["schemas"]["SessionMembershipDto"] | null;
+      /** @description Every cohort this account may enter, most recently joined first — a person can belong to several, in any mix of roles. Empty for a provisional session and for an admin with no cohort place. `membership` is the first entry, kept while clients move to this. */
+      memberships: components["schemas"]["SessionCohortPlaceDto"][];
+    };
+    RefreshTokenDto: {
+      /** @description The refresh token, for a client that holds its tokens itself. Ignored when the refresh cookie is present. */
+      refreshToken?: string;
     };
     RefreshResponseDto: {
       /**
@@ -490,6 +557,10 @@ export interface components {
        * @example 2026-10-30T12:00:00.000Z
        */
       refreshExpiresAt: string;
+      /** @description The new access token. Only when the refresh token came in the request body; a cookie refresh answers in cookies. */
+      accessToken?: string;
+      /** @description The new refresh token, replacing the one just spent. Only when the refresh token came in the request body. */
+      refreshToken?: string;
     };
     CreateInviteDto: {
       /**
@@ -760,6 +831,11 @@ export interface components {
     InviteDecisionDto: {
       /** @description Accept admits the invitee: cohort membership is created and the session is upgraded to full access. Decline closes the invite and ends the provisional session. */
       decision: components["schemas"]["InviteDecision"];
+      /**
+       * @description The invite being answered — the id GET /v1/invites/validate-user-invite returned. Required for a full-access session (a member invited to another cohort), so an invite replaced since the member read it is never accepted unseen. A provisional session may omit it; its session already names the invite, and an id that differs is refused.
+       * @example 66666666-6666-4666-8666-666666666666
+       */
+      inviteId?: string;
     };
     /** @enum {string} */
     InviteDecisionStatus: "accepted" | "declined";
@@ -785,6 +861,26 @@ export interface components {
        */
       accessExpiresAt?: string | null;
     };
+    SessionTokensDto: {
+      /** @description `full_access` belongs in the campus. `provisional` still has an invite to answer, and every route but onboarding refuses it. */
+      scope: components["schemas"]["SessionScope"];
+      /** @description Send as `Authorization: Bearer <accessToken>` on every call. */
+      accessToken: string;
+      /**
+       * Format: date-time
+       * @description When the access token lapses. Refresh a little before this.
+       * @example 2026-09-30T12:15:00.000Z
+       */
+      expiresAt: string;
+      /** @description Exchange at POST /v1/auth/refresh for a new pair. Works once: keep the one each refresh returns. Null for a provisional session, which cannot be refreshed. */
+      refreshToken: string | null;
+      /**
+       * Format: date-time
+       * @description When the refresh token lapses. Past this, the user signs in again. Null for a provisional session.
+       * @example 2026-10-30T12:00:00.000Z
+       */
+      refreshExpiresAt: string | null;
+    };
     InviteDecisionResponseDto: {
       /** @example 66666666-6666-4666-8666-666666666666 */
       inviteId: string;
@@ -798,6 +894,8 @@ export interface components {
       membership?: components["schemas"]["MembershipGrantedDto"] | null;
       /** @description The account's role after accepting — the invite is the only channel that can grant anything above the default a provisional sign-in gets. Null on decline. */
       systemRole?: components["schemas"]["SystemRole"] | null;
+      /** @description The full-access session an accept upgraded a provisional one to. Present only when the request was authenticated with a bearer token rather than the cookie; replace the provisional token with it. Absent on a decline, and for a full-access caller, who keeps the session they came with. */
+      session?: components["schemas"]["SessionTokensDto"];
     };
     CreateTrackDto: {
       /** @example Software Engineering */
@@ -1051,12 +1149,62 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description On success, sets the session cookie and redirects to /invitation when an invite is still to be answered, otherwise to /. On failure, redirects to /sign-in?error=<code>, where code is one of invite_required, account_suspended, denied, invalid_state, expired_state, missing_code, exchange_failed, unverified_email, incomplete_profile, invalid_request, rate_limited, server_error. */
+      /** @description On success, sets the session cookie and redirects to /invitation when an invite is still to be answered — including for somebody already a member, invited to another cohort — otherwise to /campus. On failure, redirects to /sign-in?error=<code>, where code is one of invite_required, account_suspended, denied, invalid_state, expired_state, missing_code, exchange_failed, unverified_email, incomplete_profile, invalid_request, rate_limited, server_error. */
       302: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Google sign-in is switched off on this deployment. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  AuthController_tokenSignIn: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GoogleTokenSignInDto"];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TokenSignInResponseDto"];
+        };
+      };
+      /** @description UNAUTHORIZED: the id_token could not be verified, is addressed to a client this deployment does not name, or carries no verified email address. `details.reason` says which: exchange_failed, unverified_email or incomplete_profile. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description INVITE_REQUIRED: nobody invited this address. ACCOUNT_SUSPENDED: the account exists but has been closed. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
       };
       /** @description Google sign-in is switched off on this deployment. */
       404: {
@@ -1104,7 +1252,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RefreshTokenDto"];
+      };
+    };
     responses: {
       200: {
         headers: {
@@ -1132,7 +1284,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RefreshTokenDto"];
+      };
+    };
     responses: {
       204: {
         headers: {
@@ -1199,7 +1355,7 @@ export interface operations {
           "application/json": components["schemas"]["ApiErrorResponseDto"];
         };
       };
-      /** @description A pending invite already exists for this address, enforced by the partial unique index invites_email_pending_unique. The open invite must be revoked or allowed to lapse first — it is never reused or rotated, since a link the first recipient still holds would stop working. */
+      /** @description A pending invite already exists for this address, enforced by the partial unique index invites_email_pending_unique. The open invite must be revoked or allowed to lapse first — it is never reused or rotated, since a link the first recipient still holds would stop working. Also refused: an invite to a cohort the address is already a live member of, which could never be accepted. Membership of other cohorts is no obstacle, and nor is one that has ended. */
       409: {
         headers: {
           [name: string]: unknown;
@@ -1277,7 +1433,7 @@ export interface operations {
           "application/json": components["schemas"]["InviteOnboardingResponseDto"];
         };
       };
-      /** @description No session, or a session that is not provisional. A full-access session lands here too: this endpoint only finishes onboarding, so there is no invite for an already-onboarded caller to read. */
+      /** @description No usable session. */
       401: {
         headers: {
           [name: string]: unknown;
@@ -1295,7 +1451,7 @@ export interface operations {
           "application/json": components["schemas"]["ApiErrorResponseDto"];
         };
       };
-      /** @description The session carries an inviteId but no such invite exists, or the provisional session has no inviteId at all. The first means a stale or tampered cookie; the second is answered identically rather than distinguished, so a probe cannot tell the two apart. */
+      /** @description The session carries an inviteId but no such invite exists, the provisional session has no inviteId at all, or a full-access session has no pending invite addressed to it. All three mean there is nothing here to answer. */
       404: {
         headers: {
           [name: string]: unknown;
@@ -1336,7 +1492,7 @@ export interface operations {
           "application/json": components["schemas"]["InviteDecisionResponseDto"];
         };
       };
-      /** @description The body is not one of the two decisions. An absent or empty body reports the same way, since `decision` is the only field. */
+      /** @description The body is not one of the two decisions (an absent or empty body reports the same way), or a full-access session did not name the invite it is answering in `inviteId`. */
       400: {
         headers: {
           [name: string]: unknown;
@@ -1345,7 +1501,7 @@ export interface operations {
           "application/json": components["schemas"]["ApiErrorResponseDto"];
         };
       };
-      /** @description The session cannot answer a decision. A full-access session is refused here: someone already on the roster has nothing left to decide. A suspended account is a 401 rather than a 403 because the guard rejects it before the route runs. */
+      /** @description No usable session. A suspended account is a 401 rather than a 403 because the guard rejects it before the route runs. */
       401: {
         headers: {
           [name: string]: unknown;
@@ -1363,7 +1519,7 @@ export interface operations {
           "application/json": components["schemas"]["ApiErrorResponseDto"];
         };
       };
-      /** @description The session names no invite, or names one that does not exist. Both mean there is nothing here to decide. */
+      /** @description A provisional session names no invite or one that does not exist, or a full-access caller names an invite that does not exist or is addressed to another account. All mean there is nothing here to decide. */
       404: {
         headers: {
           [name: string]: unknown;

@@ -3,6 +3,12 @@ import { ConfigContext, ExpoConfig } from "expo/config";
 
 loadDotenv({ path: [".env.local", ".env"], quiet: true });
 
+const HOSTS = {
+  development: "dev.campusbyrise.com",
+  staging: "staging.campusbyrise.com",
+  production: "campusbyrise.com",
+} as const;
+
 const INVALID_ORIGIN_MESSAGE =
   "API_BASE_URL must be an HTTPS origin or a Railway private HTTP origin.";
 
@@ -64,12 +70,17 @@ function loadEnv() {
   return {
     env: appEnv as "development" | "staging" | "production",
     apiBaseUrl: readApiBaseUrl(),
+    googleIosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME,
+    googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
+    googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID,
   };
 }
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const appConfig = loadEnv();
   const suffix = appConfig.env === "production" ? "" : `.${appConfig.env}`;
+  const host = HOSTS[appConfig.env];
+
   return {
     ...config,
     version: "1.0.0",
@@ -79,7 +90,25 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         : `Rise Campus (${appConfig.env})`,
     slug: "rise-campus",
     ios: { ...config.ios, bundleIdentifier: `com.rise.campus${suffix}` },
-    android: { ...config.android, package: `com.rise.campus${suffix}` },
+    android: {
+      ...config.android,
+      package: `com.rise.campus${suffix}`,
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [{ scheme: "https", host, pathPrefix: "/invitation" }],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+      ],
+    },
+    plugins: [
+      ...(config.plugins ?? []),
+      [
+        "react-native-nitro-google-signin",
+        { iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME },
+      ],
+    ],
     extra: { ...config.extra, appConfig },
   };
 };

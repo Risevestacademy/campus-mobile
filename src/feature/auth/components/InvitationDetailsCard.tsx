@@ -14,13 +14,23 @@ const DetailRow = ({ title, value }: { title: string; value: string }) => {
   );
 };
 
-const InvitationDetailsCard = () => {
+type InvitationDetailsCardProps = {
+  email: string;
+  role: string;
+  cohort: string;
+};
+
+const InvitationDetailsCard = ({
+  email,
+  role,
+  cohort,
+}: InvitationDetailsCardProps) => {
   return (
     <View className="mb-4 gap-4 rounded-lg border border-border-default bg-bg-card p-5 dark:border-none">
-      <DetailRow title="Name" value="David Olaleye" />
-      <DetailRow title="Email" value="someone@email.com" />
-      <DetailRow title="Role" value="Student" />
-      <DetailRow title="Cohort" value="Product Design 2026" />
+      {/*<DetailRow title="Name" value="David Olaleye" />*/}
+      <DetailRow title="Email" value={email} />
+      <DetailRow title="Role" value={role} />
+      <DetailRow title="Cohort" value={cohort} />
     </View>
   );
 };
