@@ -1,5 +1,5 @@
 import { ApiError, isApiError } from "@core/api/error";
-import { Button, Text } from "@shared/components/atoms";
+import { Button, Text, toast } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { Google } from "@shared/icons";
 import { useInviteStore } from "@store/invite";
@@ -61,7 +61,7 @@ function SignInScreen() {
           return;
         }
         // TODO: We should also handle for delined @jesse
-        console.error(error);
+        toast.error(e.message || "Sign in failed");
       }
     }
   };

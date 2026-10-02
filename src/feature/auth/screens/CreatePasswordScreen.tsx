@@ -1,5 +1,5 @@
 import { ApiError, isApiError } from "@core/api/error";
-import { Button, Modal, Text } from "@shared/components/atoms";
+import { Button, Modal, Text, toast } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { Google } from "@shared/icons";
 import { InvitePreviewData, useInviteStore } from "@store/invite";
@@ -40,8 +40,11 @@ export default function CreatePasswordScreen({
       });
     } catch (error) {
       if (isApiError(error)) {
+        const e = error as ApiError;
+        toast.error(e.message || "Failed to accept invite");
+      } else {
+        toast.error("Failed to accept invite");
       }
-      console.error(error);
       setLinkExpiredVisible(true);
     }
   };
@@ -93,7 +96,7 @@ export default function CreatePasswordScreen({
         }
         // TODO: We should also handle for delined @jesse
         // Navigate to error screen
-        console.error(error);
+        toast.error(e.message || "Sign in failed");
       }
     }
   };

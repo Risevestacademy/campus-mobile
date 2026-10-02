@@ -21,8 +21,6 @@ export class AuthService {
       client.POST("/v1/auth/google/token", { body: { idToken } }),
     );
 
-    console.warn(data);
-
     if (data?.accessToken) {
       await saveAuthTokens({
         accessToken: data.accessToken,
