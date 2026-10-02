@@ -2,6 +2,7 @@ import { cn } from "@shared/utils/style";
 import { cva, type VariantProps } from "class-variance-authority";
 import { ReactNode, useRef } from "react";
 import {
+  ActivityIndicator,
   Pressable as RNPressable,
   type PressableProps as RNPressableProps,
 } from "react-native";
@@ -9,7 +10,7 @@ import {
 import { Text } from "./Text";
 
 export const buttonVariants = cva(
-  "flex-row items-center justify-center rounded-md active:opacity-90 disabled:opacity-50 h-12.5",
+  "flex-row items-center justify-center gap-2 rounded-md active:opacity-90 disabled:opacity-50 h-12.5",
   {
     variants: {
       variant: {
@@ -85,6 +86,7 @@ export interface ButtonProps
   label?: string;
   labelClassName?: string;
   disabled?: boolean;
+  loading?: boolean;
   /** Ms to ignore further presses after one fires. 0 disables the lock. */
   throttle?: number;
 }
@@ -97,16 +99,17 @@ export function Button({
   children,
   label,
   disabled = false,
+  loading = false,
   throttle = 600,
   onPress,
   ...props
 }: ButtonProps) {
   const content = label ?? children;
-  const isDisabled = Boolean(disabled);
+  const isDisabled = Boolean(disabled) || Boolean(loading);
   const locked = useRef(false);
 
   const handlePress: RNPressableProps["onPress"] = (event) => {
-    if (locked.current) return;
+    if (locked.current || isDisabled) return;
     if (throttle > 0) {
       locked.current = true;
       setTimeout(() => {
@@ -115,6 +118,13 @@ export function Button({
     }
     onPress?.(event);
   };
+
+  const spinnerColorClass =
+    disabled && !loading
+      ? "accent-text-disabled"
+      : variant === "primary"
+        ? "accent-text-on-dark"
+        : "accent-text-primary";
 
   return (
     <RNPressable
@@ -137,6 +147,10 @@ export function Button({
         </Text>
       ) : (
         content
+      )}
+
+      {Boolean(loading) && (
+        <ActivityIndicator size="small" colorClassName={spinnerColorClass} />
       )}
     </RNPressable>
   );
