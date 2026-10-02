@@ -49,7 +49,7 @@ export default function CreatePasswordScreen({
     }
   };
 
-  const email = (inviteDetails as InvitePreviewData).email ?? "";
+  const email = (inviteDetails as InvitePreviewData)?.email ?? "";
   const role = inviteDetails?.cohortRole ?? "";
   const cohortDate = inviteDetails?.cohort?.startDate
     ? new Date(inviteDetails?.cohort?.startDate)
