@@ -10,7 +10,9 @@ import { useInviteValidate } from "../hooks";
 
 export default function SetupProfileScreen() {
   const router = useRouter();
-  const { data: validatedInviteDetails, error } = useInviteValidate();
+  const { data: validatedInviteDetails, error } = useInviteValidate({
+    enabled: true,
+  });
 
   const [bio, setBio] = useState(
     "Learning product design and building with my cohort.",

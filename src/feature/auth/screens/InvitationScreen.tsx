@@ -74,7 +74,7 @@ export default function InvitationScreen() {
               />
               <Chip title={`Role · ${inviteDetails?.cohortRole}`} />
               <Chip
-                title={`Cohort · ${inviteDetails?.track?.name} ${cohortYear}`}
+                title={`${inviteDetails?.cohort?.name} · ${inviteDetails?.track?.name} ${cohortYear}`}
               />
             </View>
           </ScrollView>

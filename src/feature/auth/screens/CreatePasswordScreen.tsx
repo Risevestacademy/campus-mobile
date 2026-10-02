@@ -34,6 +34,10 @@ export default function CreatePasswordScreen({
     }
 
     try {
+      await decideOnInvite({
+        decision: "accept",
+        token: inviteId,
+      });
     } catch (error) {
       if (isApiError(error)) {
       }

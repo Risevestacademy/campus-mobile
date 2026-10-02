@@ -12,13 +12,16 @@ import {
 } from "react-native-nitro-google-signin";
 
 import { Header } from "../components";
-import { useInvitePreview, useSignInWithGoogle } from "../hooks";
+import { useInviteValidate, useSignInWithGoogle } from "../hooks";
 
 function SignInScreen() {
   const router = useRouter();
-  const { signInWithGoogle } = useSignInWithGoogle();
-  const { previewInvite } = useInvitePreview();
-  const { setInvite } = useInviteStore();
+  const { signInWithGoogle, isLoading: isLoadingGoogle } =
+    useSignInWithGoogle();
+  const { refetch, isLoading: isLoadingInvite } = useInviteValidate({
+    enabled: false,
+  });
+  const setInvite = useInviteStore((s) => s.setInvite);
 
   const signIn = async () => {
     try {
@@ -35,17 +38,15 @@ function SignInScreen() {
 
       if (isSuccessResponse(response)) {
         const { idToken } = response.data;
-        // Send idToken to your backend for verification
-        const signInResp = await signInWithGoogle(idToken);
-        // Check if invite is stil active
-        const _inviteResp = await previewInvite(signInResp?.inviteId!);
-        if (_inviteResp) {
+        await signInWithGoogle(idToken);
+        const _inviteResp = await refetch({ throwOnError: true });
+        const data = _inviteResp?.data;
+        if (data) {
           setInvite({
-            inviteId: signInResp?.inviteId!,
-            inviteDetails: _inviteResp,
+            inviteId: data.id,
+            inviteDetails: data,
           });
         }
-        // Navigate to invite screen if invite is stil active
         router.push("/invitation");
       }
     } catch (error) {
@@ -60,7 +61,6 @@ function SignInScreen() {
           return;
         }
         // TODO: We should also handle for delined @jesse
-        // Navigate to error screen
         console.error(error);
       }
     }
@@ -75,8 +75,8 @@ function SignInScreen() {
         className="mt-3 h-33 w-full rounded-2xl"
       />
 
-      <View className="">
-        <Text className="mt-12 mb-6 text-center" variant="h3" color="primary">
+      <View className="mt-40 items-center justify-center">
+        <Text className="mt-12 mb-6 text-3xl" variant="h3" color="primary">
           Sign in
         </Text>
 
@@ -84,6 +84,7 @@ function SignInScreen() {
           variant="secondary"
           className="gap-2 border-border-strong"
           onPress={signIn}
+          loading={isLoadingGoogle || isLoadingInvite}
         >
           <Google />
           <Text className="font-label text-label text-text-primary">

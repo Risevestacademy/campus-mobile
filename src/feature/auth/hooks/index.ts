@@ -3,11 +3,11 @@ import { InviteService } from "@services/invite";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 export function useSignInWithGoogle() {
-  const { mutateAsync } = useMutation({
+  const { mutateAsync, isPending } = useMutation({
     mutationFn: AuthService.signInWithGoogle,
   });
 
-  return { signInWithGoogle: mutateAsync };
+  return { signInWithGoogle: mutateAsync, isLoading: isPending };
 }
 
 export function useLogout() {
@@ -27,16 +27,17 @@ export function useInvitePreview() {
 }
 
 export function useInviteDecision() {
-  const { mutateAsync } = useMutation({
+  const { mutateAsync, isPending } = useMutation({
     mutationFn: InviteService.decideOnInvite,
   });
 
-  return { decideOnInvite: mutateAsync };
+  return { decideOnInvite: mutateAsync, isLoading: isPending };
 }
 
-export function useInviteValidate() {
+export function useInviteValidate({ enabled = true }: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["validateInvite"],
     queryFn: InviteService.validateInvite,
+    enabled,
   });
 }
