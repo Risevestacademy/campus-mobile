@@ -84,7 +84,7 @@ export default function InvitationScreen() {
               label="Continue"
               onPress={() =>
                 router.push(
-                  `/(auth)/CreatePassword?isDeepLinked=${token !== null}`,
+                  `/(auth)/CreatePassword?isDeepLinked=${token && token !== ""}`,
                 )
               }
             />

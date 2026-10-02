@@ -38,16 +38,21 @@ function SignInScreen() {
 
       if (isSuccessResponse(response)) {
         const { idToken } = response.data;
-        await signInWithGoogle(idToken);
-        const _inviteResp = await refetch({ throwOnError: true });
-        const data = _inviteResp?.data;
-        if (data) {
-          setInvite({
-            inviteId: data.id,
-            inviteDetails: data,
-          });
+        const signInResp = await signInWithGoogle(idToken);
+        if (signInResp?.inviteId) {
+          const _inviteResp = await refetch({ throwOnError: true });
+          const data = _inviteResp?.data;
+          if (data) {
+            setInvite({
+              inviteId: signInResp.inviteId,
+              inviteDetails: data,
+            });
+            router.push("/(auth)/invitation");
+          }
+          return;
         }
-        router.push("/invitation");
+
+        router.replace("/(tabs)/(campus)");
       }
     } catch (error) {
       if (isApiError(error)) {

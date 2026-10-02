@@ -2,7 +2,11 @@ import { ApiError, isApiError } from "@core/api/error";
 import { Button, Modal, Text, toast } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { Google } from "@shared/icons";
-import { InvitePreviewData, useInviteStore } from "@store/invite";
+import {
+  InviteOnboardingData,
+  InvitePreviewData,
+  useInviteStore,
+} from "@store/invite";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
@@ -41,6 +45,11 @@ export default function CreatePasswordScreen({
     } catch (error) {
       if (isApiError(error)) {
         const e = error as ApiError;
+
+        if (e.code === "INVITE_ALREADY_ACCEPTED") {
+          router.replace("/(tabs)/(campus)");
+          return;
+        }
         toast.error(e.message || "Failed to accept invite");
       } else {
         toast.error("Failed to accept invite");
@@ -49,7 +58,10 @@ export default function CreatePasswordScreen({
     }
   };
 
-  const email = (inviteDetails as InvitePreviewData)?.email ?? "";
+  const email =
+    (inviteDetails as InvitePreviewData)?.email ??
+    (inviteDetails as InviteOnboardingData)?.user.email ??
+    "";
   const role = inviteDetails?.cohortRole ?? "";
   const cohortDate = inviteDetails?.cohort?.startDate
     ? new Date(inviteDetails?.cohort?.startDate)
@@ -87,8 +99,7 @@ export default function CreatePasswordScreen({
         const e = error as ApiError;
         // If code is invite accepted, log the user in
         if (e.code === "INVITE_ALREADY_ACCEPTED") {
-          router.replace("/AccountVerified");
-          // TODO: Change this once screens are available
+          router.replace("/(tabs)/(campus)");
           return;
         } else if (e.code === "INVITE_ALREADY_DECLINED") {
           router.replace("/InvalidInvitation");
