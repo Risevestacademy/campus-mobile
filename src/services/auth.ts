@@ -1,11 +1,9 @@
 import { client } from "@core/api";
 import { unwrap } from "@core/api/error";
-import { paths } from "@core/api/generated/schema";
-import {
-  clearAuthTokens,
-  getAuthTokens,
-  saveAuthTokens,
-} from "@core/auth/tokenStorage";
+import type { paths } from "@core/api/generated/schema";
+import { getAuthTokens, saveAuthTokens } from "@core/auth/tokenStorage";
+import { useSessionStore } from "@store/session";
+import { GoogleOneTapSignIn } from "react-native-nitro-google-signin";
 
 type SignInWithGoogleResponse =
   paths["/v1/auth/google/token"]["post"]["responses"]["200"]["content"]["application/json"];
@@ -28,6 +26,7 @@ export class AuthService {
         accessExpiresAt: data.expiresAt,
         refreshExpiresAt: data.refreshExpiresAt,
       });
+      useSessionStore.getState().setAuthenticated();
     }
 
     return data;
@@ -37,15 +36,30 @@ export class AuthService {
     return unwrap<GetSignedInUserResponse>(client.GET("/v1/auth/me"));
   }
 
-  static async logout(): Promise<void> {
-    const tokens = await getAuthTokens();
-
-    if (tokens?.refreshToken) {
-      await client.POST("/v1/auth/logout", {
-        body: { refreshToken: tokens.refreshToken },
-      });
+  static async signOut(): Promise<void> {
+    try {
+      const tokens = await getAuthTokens();
+      if (tokens?.refreshToken) {
+        await client
+          .POST("/v1/auth/logout", {
+            body: { refreshToken: tokens.refreshToken },
+          })
+          .catch(() => {});
+      }
+    } catch (error) {
+      console.error("Backend logout failed:", error);
     }
 
-    await clearAuthTokens();
+    try {
+      await GoogleOneTapSignIn.signOut();
+    } catch (error) {
+      console.error("Google sign out failed:", error);
+    }
+
+    await useSessionStore.getState().clearSession();
+  }
+
+  static async logout(): Promise<void> {
+    return AuthService.signOut();
   }
 }

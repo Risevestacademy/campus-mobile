@@ -2,6 +2,7 @@ import { authEvents } from "@core/auth/authEvents";
 import {
   clearAuthTokens,
   getAuthTokens,
+  isAccessTokenExpired,
   isRefreshTokenExpired,
   saveAuthTokens,
 } from "@core/auth/tokenStorage";
@@ -20,6 +21,12 @@ const PUBLIC_PATHS = new Set([
   "/v1/health",
 ]);
 
+let sessionExpiredHandler: (() => void) | null = null;
+
+export function registerSessionExpiredHandler(handler: () => void): void {
+  sessionExpiredHandler = handler;
+}
+
 let refreshPromise: Promise<string | null> | null = null;
 
 const retryCopies = new WeakMap<Request, Request>();
@@ -35,17 +42,21 @@ function isPublicPath(urlStr: string): boolean {
   }
 }
 
-async function signOut(): Promise<null> {
-  await clearAuthTokens();
+async function triggerSessionExpired(): Promise<null> {
+  if (sessionExpiredHandler) {
+    sessionExpiredHandler();
+  } else {
+    await clearAuthTokens();
+  }
   authEvents.emitUnauthenticated();
   return null;
 }
 
 async function performTokenRefresh(): Promise<string | null> {
   const tokens = await getAuthTokens();
-  if (!tokens?.refreshToken) return signOut();
+  if (!tokens?.refreshToken) return triggerSessionExpired();
 
-  if (await isRefreshTokenExpired()) return signOut();
+  if (await isRefreshTokenExpired()) return triggerSessionExpired();
 
   try {
     const response = await fetch(`${config.apiBaseUrl}/v1/auth/refresh`, {
@@ -55,19 +66,23 @@ async function performTokenRefresh(): Promise<string | null> {
     });
 
     // The server rejected the refresh token: the session is really over
-    if (response.status === 401 || response.status === 403) {
-      return signOut();
+    if (
+      response.status === 401 ||
+      response.status === 403 ||
+      response.status === 400
+    ) {
+      return triggerSessionExpired();
     }
 
     // Transient server problem (5xx, 429, ...): keep tokens, fail this request
     if (!response.ok) return null;
 
     const data = (await response.json()) as RefreshResponseDto;
-    if (!data.accessToken) return signOut();
+    if (!data.accessToken) return triggerSessionExpired();
 
     await saveAuthTokens({
       accessToken: data.accessToken,
-      refreshToken: data.refreshToken ?? tokens.refreshToken,
+      refreshToken: data.refreshToken ?? undefined,
       accessExpiresAt: data.expiresAt,
       refreshExpiresAt: data.refreshExpiresAt,
     });
@@ -97,11 +112,17 @@ export const authMiddleware: Middleware = {
     // Keep an unused copy of the request so its body can be replayed on retry
     retryCopies.set(request, request.clone());
 
-    const tokens = await getAuthTokens();
+    let tokens = await getAuthTokens();
+    if (tokens?.accessToken && (await isAccessTokenExpired())) {
+      const newAccessToken = await refreshOnce();
+      if (newAccessToken) {
+        tokens = await getAuthTokens();
+      }
+    }
+
     if (tokens?.accessToken) {
       request.headers.set("Authorization", `Bearer ${tokens.accessToken}`);
     }
-    // no return: leaves the request unchanged
   },
 
   async onResponse({ request, response }) {
@@ -127,7 +148,6 @@ export const authMiddleware: Middleware = {
     });
     retry.headers.set("Authorization", `Bearer ${newAccessToken}`);
 
-    // Returning a Response is the only intended replacement
     return fetch(retry);
   },
 };

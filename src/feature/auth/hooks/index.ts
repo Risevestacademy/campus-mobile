@@ -1,6 +1,6 @@
 import { AuthService } from "@services/auth";
 import { InviteService } from "@services/invite";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useSignInWithGoogle() {
   const { mutateAsync, isPending } = useMutation({
@@ -11,11 +11,19 @@ export function useSignInWithGoogle() {
 }
 
 export function useLogout() {
-  const { mutateAsync } = useMutation({
-    mutationFn: AuthService.logout,
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: AuthService.signOut,
   });
 
-  return { logout: mutateAsync };
+  return { logout: mutateAsync, isLoading: isPending };
+}
+
+export function useMe({ enabled = true }: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ["me"],
+    queryFn: AuthService.getMe,
+    enabled,
+  });
 }
 
 export function useInvitePreview() {
@@ -27,8 +35,12 @@ export function useInvitePreview() {
 }
 
 export function useInviteDecision() {
+  const queryClient = useQueryClient();
   const { mutateAsync, isPending } = useMutation({
     mutationFn: InviteService.decideOnInvite,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
   });
 
   return { decideOnInvite: mutateAsync, isLoading: isPending };
