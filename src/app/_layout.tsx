@@ -12,6 +12,7 @@ import React from "react";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { GoogleOneTapSignIn } from "react-native-nitro-google-signin";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useResolveClassNames } from "uniwind";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -23,6 +24,8 @@ GoogleOneTapSignIn.configure({
 export default function RootLayout() {
   const status = useSessionStore((state) => state.status);
   const hydrate = useSessionStore((state) => state.hydrate);
+
+  const contentStyle = useResolveClassNames("bg-bg-band");
 
   React.useEffect(() => {
     void hydrate();
@@ -43,7 +46,13 @@ export default function RootLayout() {
       <SafeAreaProvider style={{ flex: 1 }}>
         <KeyboardProvider>
           <StatusBar style={"dark"} />
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle,
+              animation: "fade",
+            }}
+          >
             <Stack.Protected guard={status === "authenticated"}>
               <Stack.Screen name="(tabs)" />
             </Stack.Protected>
