@@ -1,5 +1,5 @@
-import { View } from "react-native";
+import { CampusScreen } from "@features/campus";
 
 export default function CampusIndex() {
-  return <View></View>;
+  return <CampusScreen />;
 }

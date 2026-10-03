@@ -1,3 +1,4 @@
+import { cn } from "@shared/utils/style";
 import {
   SafeAreaView,
   SafeAreaViewProps,
@@ -12,11 +13,12 @@ interface SafeAreaProps extends SafeAreaViewProps {
 
 export default function SafeArea({
   disableBottomInset,
+  className,
   ...props
 }: SafeAreaProps) {
   return (
     <StyledSafeAreaView
-      className="flex-1 bg-bg-page px-6"
+      className={cn("flex-1 bg-bg-page px-6", className)}
       edges={
         disableBottomInset
           ? ["top", "left", "right"]

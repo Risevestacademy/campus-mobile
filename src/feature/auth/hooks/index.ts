@@ -10,22 +10,6 @@ export function useSignInWithGoogle() {
   return { signInWithGoogle: mutateAsync, isLoading: isPending };
 }
 
-export function useLogout() {
-  const { mutateAsync, isPending } = useMutation({
-    mutationFn: AuthService.signOut,
-  });
-
-  return { logout: mutateAsync, isLoading: isPending };
-}
-
-export function useMe({ enabled = true }: { enabled?: boolean } = {}) {
-  return useQuery({
-    queryKey: ["me"],
-    queryFn: AuthService.getMe,
-    enabled,
-  });
-}
-
 export function useInvitePreview() {
   const { mutateAsync, isPending } = useMutation({
     mutationFn: InviteService.previewInvite,
