@@ -20,21 +20,14 @@ jest.mock("expo-router", () => ({
 }));
 
 const mockSignInWithGoogle = jest.fn();
-const mockRefetchInvite = jest.fn();
 
 const mockSignInHookResult = {
   signInWithGoogle: mockSignInWithGoogle,
   isLoading: false,
 };
 
-const mockInviteValidateHookResult = {
-  refetch: mockRefetchInvite,
-  isLoading: false,
-};
-
 jest.mock("@features/auth/hooks", () => ({
   useSignInWithGoogle: () => mockSignInHookResult,
-  useInviteValidate: () => mockInviteValidateHookResult,
 }));
 
 const renderWithProviders = (ui: React.ReactElement) => {
@@ -58,7 +51,7 @@ describe("SignInScreen", () => {
     expect(screen.getByText("Continue with Google")).toBeTruthy();
   });
 
-  it("executes Google sign in flow and navigates to invitation on success", async () => {
+  it("executes Google sign in flow and navigates to CreatePassword when user has inviteId", async () => {
     (GoogleOneTapSignIn.checkPlayServices as jest.Mock).mockResolvedValueOnce(
       true,
     );
@@ -66,12 +59,9 @@ describe("SignInScreen", () => {
       status: "success",
       data: { idToken: "test-google-id-token" },
     });
-    mockSignInWithGoogle.mockResolvedValueOnce({ accessToken: "abc" });
-    mockRefetchInvite.mockResolvedValueOnce({
-      data: {
-        id: "invite-999",
-        cohortRole: "Student",
-      },
+    mockSignInWithGoogle.mockResolvedValueOnce({
+      accessToken: "abc",
+      inviteId: "invite-999",
     });
 
     await renderWithProviders(<SignInScreen />);
@@ -82,12 +72,32 @@ describe("SignInScreen", () => {
       expect(GoogleOneTapSignIn.checkPlayServices).toHaveBeenCalled();
       expect(GoogleOneTapSignIn.signIn).toHaveBeenCalled();
       expect(mockSignInWithGoogle).toHaveBeenCalledWith("test-google-id-token");
-      expect(mockRefetchInvite).toHaveBeenCalled();
-      expect(mockPush).toHaveBeenCalledWith("/invitation");
+      expect(mockPush).toHaveBeenCalledWith("/(auth)/CreatePassword");
     });
   });
 
-  it("redirects to AccountVerified when ApiError is INVITE_ALREADY_ACCEPTED", async () => {
+  it("executes Google sign in flow and navigates to campus main app when user has no inviteId", async () => {
+    (GoogleOneTapSignIn.checkPlayServices as jest.Mock).mockResolvedValueOnce(
+      true,
+    );
+    (GoogleOneTapSignIn.signIn as jest.Mock).mockResolvedValueOnce({
+      status: "success",
+      data: { idToken: "test-google-id-token" },
+    });
+    mockSignInWithGoogle.mockResolvedValueOnce({
+      accessToken: "abc",
+    });
+
+    await renderWithProviders(<SignInScreen />);
+
+    await fireEvent.press(screen.getByText("Continue with Google"));
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/(tabs)/(campus)");
+    });
+  });
+
+  it("redirects to (tabs)/(campus) when ApiError is INVITE_ALREADY_ACCEPTED", async () => {
     (GoogleOneTapSignIn.checkPlayServices as jest.Mock).mockResolvedValueOnce(
       true,
     );
@@ -107,7 +117,7 @@ describe("SignInScreen", () => {
     await fireEvent.press(screen.getByText("Continue with Google"));
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/AccountVerified");
+      expect(mockReplace).toHaveBeenCalledWith("/(tabs)/(campus)");
     });
   });
 

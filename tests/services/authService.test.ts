@@ -5,11 +5,13 @@ import {
   saveAuthTokens,
 } from "@core/auth/tokenStorage";
 import { AuthService } from "@services/auth";
+import { GoogleOneTapSignIn } from "react-native-nitro-google-signin";
 
 describe("AuthService", () => {
   beforeEach(async () => {
     await clearAuthTokens();
     jest.clearAllMocks();
+    GoogleOneTapSignIn.signOut = jest.fn().mockResolvedValue(undefined);
   });
 
   describe("signInWithGoogle", () => {

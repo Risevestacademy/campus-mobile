@@ -2,11 +2,11 @@ import {
   useInviteDecision,
   useInvitePreview,
   useInviteValidate,
-  useLogout,
   useSignInWithGoogle,
 } from "@features/auth/hooks";
 import { AuthService } from "@services/auth";
 import { InviteService } from "@services/invite";
+import { useLogout } from "@shared/hooks/useLogout";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import React from "react";
@@ -14,6 +14,7 @@ import React from "react";
 jest.mock("@services/auth", () => ({
   AuthService: {
     signInWithGoogle: jest.fn(),
+    signOut: jest.fn(),
     logout: jest.fn(),
   },
 }));
@@ -79,8 +80,8 @@ describe("Auth Hooks", () => {
   });
 
   describe("useLogout", () => {
-    it("calls AuthService.logout", async () => {
-      (AuthService.logout as jest.Mock).mockResolvedValueOnce(undefined);
+    it("calls AuthService.signOut", async () => {
+      (AuthService.signOut as jest.Mock).mockResolvedValueOnce(undefined);
 
       const { result } = await renderHook(() => useLogout(), {
         wrapper: createWrapper(),
@@ -90,7 +91,7 @@ describe("Auth Hooks", () => {
         await result.current.logout();
       });
 
-      expect(AuthService.logout).toHaveBeenCalledWith(
+      expect(AuthService.signOut).toHaveBeenCalledWith(
         undefined,
         expect.anything(),
       );

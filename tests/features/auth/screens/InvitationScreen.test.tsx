@@ -8,13 +8,20 @@ import {
 } from "@testing-library/react-native";
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
+import { GoogleOneTapSignIn } from "react-native-nitro-google-signin";
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockPreviewInvite = jest.fn();
+const mockSignInWithGoogle = jest.fn();
 
-const mockHookResult = {
+const mockInvitePreviewResult = {
   previewInvite: mockPreviewInvite,
+  isLoading: false,
+};
+
+const mockSignInResult = {
+  signInWithGoogle: mockSignInWithGoogle,
   isLoading: false,
 };
 
@@ -26,7 +33,8 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@features/auth/hooks", () => ({
-  useInvitePreview: () => mockHookResult,
+  useInvitePreview: () => mockInvitePreviewResult,
+  useSignInWithGoogle: () => mockSignInResult,
 }));
 
 const details = {
@@ -49,6 +57,7 @@ describe("InvitationScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPreviewInvite.mockReset();
+    mockSignInWithGoogle.mockReset();
     (useLocalSearchParams as jest.Mock).mockReturnValue({
       token: "valid-token-123",
     });
@@ -79,16 +88,26 @@ describe("InvitationScreen", () => {
     );
   });
 
-  it("goes to CreatePassword when Continue is pressed", async () => {
+  it("goes to CreatePassword when Continue with Google is pressed and sign in succeeds", async () => {
     mockPreviewInvite.mockResolvedValueOnce(details);
+    (GoogleOneTapSignIn.checkPlayServices as jest.Mock).mockResolvedValueOnce(
+      true,
+    );
+    (GoogleOneTapSignIn.createAccount as jest.Mock).mockResolvedValueOnce({
+      status: "success",
+      data: { idToken: "test-google-id-token" },
+    });
+    mockSignInWithGoogle.mockResolvedValueOnce({ accessToken: "abc" });
 
     await renderWithProviders(<InvitationScreen />);
 
-    const continueButton = await screen.findByText("Continue");
+    const continueButton = await screen.findByText("Continue with Google");
     await fireEvent.press(continueButton);
 
-    expect(mockPush).toHaveBeenCalledWith(
-      "/(auth)/CreatePassword?isDeepLinked=true",
-    );
+    await waitFor(() => {
+      expect(GoogleOneTapSignIn.checkPlayServices).toHaveBeenCalled();
+      expect(mockSignInWithGoogle).toHaveBeenCalledWith("test-google-id-token");
+      expect(mockReplace).toHaveBeenCalledWith("/(auth)/CreatePassword");
+    });
   });
 });

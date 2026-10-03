@@ -1,3 +1,4 @@
+import { useSessionStore } from "@store/session";
 import { render, screen } from "@testing-library/react-native";
 import React from "react";
 import { Text as MockText } from "react-native";
@@ -13,9 +14,20 @@ jest.mock("expo-router", () => {
 });
 
 describe("Index", () => {
-  it("redirects to the sign in screen", async () => {
+  beforeEach(() => {
+    useSessionStore.setState({ status: "unauthenticated" });
+  });
+
+  it("redirects to the sign in screen when unauthenticated", async () => {
     await render(<Index />);
 
-    expect(screen.getByText("redirect:/SignIn")).toBeTruthy();
+    expect(screen.getByText("redirect:/(auth)/SignIn")).toBeTruthy();
+  });
+
+  it("redirects to campus tabs when authenticated", async () => {
+    useSessionStore.setState({ status: "authenticated" });
+    await render(<Index />);
+
+    expect(screen.getByText("redirect:/(tabs)/(campus)")).toBeTruthy();
   });
 });
