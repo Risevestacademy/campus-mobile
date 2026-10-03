@@ -95,26 +95,28 @@ pnpm check
 1. ESLint with zero warnings allowed.
 2. TypeScript in strict mode without emitting files.
 3. Prettier verification.
-4. Jest tests serially.
+4. Deterministic EAS workflow profile validation.
+5. Jest tests serially.
 
 Individual commands are also available:
 
-| Command             | Purpose                                    |
-| ------------------- | ------------------------------------------ |
-| `pnpm start`        | Start the Expo development server          |
-| `pnpm android`      | Build and run the Android application      |
-| `pnpm ios`          | Build and run the iOS application on macOS |
-| `pnpm web`          | Start the development-only web target      |
-| `pnpm prebuild`     | Generate native projects from Expo config  |
-| `pnpm lint`         | Check source and test files with ESLint    |
-| `pnpm lint:fix`     | Apply safe ESLint fixes                    |
-| `pnpm typecheck`    | Run strict TypeScript validation           |
-| `pnpm format`       | Format supported repository files          |
-| `pnpm format:check` | Verify formatting without changing files   |
-| `pnpm test`         | Run the Jest test suite                    |
-| `pnpm test:watch`   | Run Jest in watch mode                     |
-| `pnpm fix`          | Apply lint and formatting fixes            |
-| `pnpm api:type-gen` | Generate API types from `/docs-json`       |
+| Command                   | Purpose                                    |
+| ------------------------- | ------------------------------------------ |
+| `pnpm start`              | Start the Expo development server          |
+| `pnpm android`            | Build and run the Android application      |
+| `pnpm ios`                | Build and run the iOS application on macOS |
+| `pnpm web`                | Start the development-only web target      |
+| `pnpm prebuild`           | Generate native projects from Expo config  |
+| `pnpm lint`               | Check source and test files with ESLint    |
+| `pnpm lint:fix`           | Apply safe ESLint fixes                    |
+| `pnpm typecheck`          | Run strict TypeScript validation           |
+| `pnpm format`             | Format supported repository files          |
+| `pnpm format:check`       | Verify formatting without changing files   |
+| `pnpm test`               | Run the Jest test suite                    |
+| `pnpm test:watch`         | Run Jest in watch mode                     |
+| `pnpm eval:eas-workflows` | Validate workflow build profiles           |
+| `pnpm fix`                | Apply lint and formatting fixes            |
+| `pnpm api:type-gen`       | Generate API types from `/docs-json`       |
 
 ## Enforced code-quality practices
 

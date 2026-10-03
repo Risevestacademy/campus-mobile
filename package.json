@@ -66,7 +66,8 @@
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.9.5",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "yaml": "^2.9.0"
   },
   "scripts": {
     "start": "expo start",
@@ -82,11 +83,12 @@
     "format:check": "prettier . --check",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
-    "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test",
+    "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm eval:eas-workflows && pnpm test",
     "commitlint": "commitlint",
     "lint-staged": "lint-staged",
     "prepare": "husky",
-    "api:type-gen": "node --env-file-if-exists=.env.local ./scripts/generate-api-types.mts && prettier src/core/api/generated/schema.d.ts --write"
+    "api:type-gen": "node --env-file-if-exists=.env.local ./scripts/generate-api-types.mts && prettier src/core/api/generated/schema.d.ts --write",
+    "eval:eas-workflows": "node scripts/validate-eas-workflows.mjs"
   },
   "private": true
 }
