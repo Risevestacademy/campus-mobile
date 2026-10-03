@@ -3,6 +3,8 @@ import Constants from "expo-constants";
 type AppConfig = {
   env: "development" | "staging" | "production";
   apiBaseUrl: string;
+  googleIosClientId: string;
+  googleWebClientId: string;
 };
 
 const value = Constants.expoConfig?.extra?.appConfig as AppConfig | undefined;

@@ -1,73 +1,88 @@
-import { Button, Text, TextField } from "@shared/components/atoms";
+import { ApiError, isApiError } from "@core/api/error";
+import { Button, Text, toast } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
-import { EyeOpen, Google } from "@shared/icons";
+import { Google } from "@shared/icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Image, Pressable, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { Image, View } from "react-native";
+import {
+  GoogleOneTapSignIn,
+  isNoSavedCredentialFoundResponse,
+  isSuccessResponse,
+} from "react-native-nitro-google-signin";
 
 import { Header } from "../components";
+import { useSignInWithGoogle } from "../hooks";
 
 function SignInScreen() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
+  const { signInWithGoogle, isLoading: isLoadingGoogle } =
+    useSignInWithGoogle();
+
+  const signIn = async () => {
+    try {
+      await GoogleOneTapSignIn.checkPlayServices();
+
+      let response = await GoogleOneTapSignIn.signIn();
+
+      if (isNoSavedCredentialFoundResponse(response)) {
+        response = await GoogleOneTapSignIn.createAccount();
+      }
+      if (isNoSavedCredentialFoundResponse(response)) {
+        response = await GoogleOneTapSignIn.presentExplicitSignIn();
+      }
+
+      if (isSuccessResponse(response)) {
+        const { idToken } = response.data;
+        const signInResp = await signInWithGoogle(idToken);
+        if (signInResp?.inviteId) {
+          router.push("/(auth)/CreatePassword");
+          return;
+        }
+
+        router.replace("/(tabs)/(campus)");
+      }
+    } catch (error) {
+      if (isApiError(error)) {
+        const e = error as ApiError;
+        // If code is invite accepted, log the user in
+        if (e.code === "INVITE_ALREADY_ACCEPTED") {
+          router.replace("/(tabs)/(campus)");
+          return;
+        } else if (e.code === "INVITE_ALREADY_DECLINED") {
+          router.replace("/InvalidInvitation");
+          return;
+        }
+        // TODO: We should also handle for delined @jesse
+        toast.error(e.message || "Sign in failed");
+      }
+    }
+  };
 
   return (
     <SafeArea>
       <Header />
 
-      <KeyboardAwareScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Image
-          source={require("@assets/images/brand-illustration.png")}
-          className="mt-3 h-33 w-full rounded-2xl"
-        />
+      <Image
+        source={require("@assets/images/brand-illustration.png")}
+        className="mt-3 h-33 w-full rounded-2xl"
+      />
 
-        <Text className="mt-12 mb-6 text-center font-h3 text-h3 text-[#14171A]">
+      <View className="mt-40 items-center justify-center">
+        <Text className="mt-12 mb-6 text-3xl" variant="h3" color="primary">
           Sign in
         </Text>
 
-        <View className="gap-4">
-          <TextField label="Display Name" placeholder="Joseph" />
-          <TextField label="Cohort" placeholder="Rise Academy 2026" />
-          <TextField
-            label="Password"
-            placeholder="Enter password"
-            secureTextEntry={!showPassword}
-            autoCapitalize="none"
-            autoCorrect={false}
-            suffix={
-              <Pressable
-                onPress={() => setShowPassword((shown) => !shown)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  showPassword ? "Hide password" : "Show password"
-                }
-              >
-                <EyeOpen />
-              </Pressable>
-            }
-          />
-          <Text className="-mt-2 font-caption text-caption text-text-secondary">
-            Forgot password
-          </Text>
-        </View>
-      </KeyboardAwareScrollView>
-
-      <View className="gap-4 py-2">
-        <Button variant="secondary" className="gap-2 border-border-strong">
+        <Button
+          variant="secondary"
+          className="gap-2 border-border-strong"
+          onPress={signIn}
+          loading={isLoadingGoogle}
+        >
           <Google />
           <Text className="font-label text-label text-text-primary">
             Continue with Google
           </Text>
         </Button>
-        <Button
-          label="Sign in"
-          onPress={() => router.push("/(auth)/SetupProfile")}
-        />
       </View>
     </SafeArea>
   );
