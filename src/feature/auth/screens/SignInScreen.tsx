@@ -1,20 +1,28 @@
 import { ApiError, isApiError } from "@core/api/error";
 import { Button, Text, toast } from "@shared/components/atoms";
-import SafeArea from "@shared/components/safearea/SafeArea";
 import { Google } from "@shared/icons";
-import { useRouter } from "expo-router";
-import { Image, View } from "react-native";
+import { useSessionStore } from "@store/session";
+import { Redirect, useRouter } from "expo-router";
+import { ActivityIndicator, Image, View } from "react-native";
 import {
   GoogleOneTapSignIn,
   isNoSavedCredentialFoundResponse,
   isSuccessResponse,
 } from "react-native-nitro-google-signin";
+import { useUniwind } from "uniwind";
 
-import { Header } from "../components";
 import { useSignInWithGoogle } from "../hooks";
+
+const darkImage = require("@assets/images/splash-dark.png");
+const lightImage = require("@assets/images/splash.png");
 
 function SignInScreen() {
   const router = useRouter();
+  const status = useSessionStore((state) => state.status);
+  const hasInvite = useSessionStore((state) => state.hasInvite);
+
+  const { theme } = useUniwind();
+
   const { signInWithGoogle, isLoading: isLoadingGoogle } =
     useSignInWithGoogle();
 
@@ -52,39 +60,41 @@ function SignInScreen() {
           router.replace("/InvalidInvitation");
           return;
         }
-        // TODO: We should also handle for delined @jesse
         toast.error(e.message || "Sign in failed");
       }
     }
   };
 
-  return (
-    <SafeArea>
-      <Header />
+  if (status === "authenticated" && !hasInvite) {
+    return <Redirect href="/(tabs)/(campus)" />;
+  }
 
+  return (
+    <View className="relative flex-1">
       <Image
-        source={require("@assets/images/brand-illustration.png")}
-        className="mt-3 h-33 w-full rounded-2xl"
+        source={theme === "dark" ? darkImage : lightImage}
+        className="size-full"
       />
 
-      <View className="mt-40 items-center justify-center">
-        <Text className="mt-12 mb-6 text-3xl" variant="h3" color="primary">
-          Sign in
-        </Text>
-
-        <Button
-          variant="secondary"
-          className="gap-2 border-border-strong"
-          onPress={signIn}
-          loading={isLoadingGoogle}
-        >
-          <Google />
-          <Text className="font-label text-label text-text-primary">
-            Continue with Google
-          </Text>
-        </Button>
+      <View className="absolute bottom-16 w-full justify-center p-6">
+        {status === "unauthenticated" ||
+        (status === "authenticated" && hasInvite) ? (
+          <Button
+            variant="secondary"
+            className="bg-bg-card dark:border-0 dark:bg-action-primary"
+            onPress={signIn}
+            loading={isLoadingGoogle}
+          >
+            <Google />
+            <Text className="font-label text-label text-text-primary">
+              Continue with Google
+            </Text>
+          </Button>
+        ) : (
+          <ActivityIndicator />
+        )}
       </View>
-    </SafeArea>
+    </View>
   );
 }
 

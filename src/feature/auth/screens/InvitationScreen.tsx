@@ -44,9 +44,10 @@ export default function InvitationScreen() {
     } catch (error) {
       if (isApiError(error)) {
         const e = error as ApiError;
+        console.error(e);
         // If code is invite accepted, log the user in
         if (e.code === "INVITE_ALREADY_ACCEPTED") {
-          router.replace("/(tabs)/(campus)");
+          // router.replace("/(tabs)/(campus)");
           return;
         } else if (e.code === "INVITE_ALREADY_DECLINED") {
           router.replace("/InvalidInvitation");
@@ -130,7 +131,7 @@ export default function InvitationScreen() {
               loading={isLoadingGoogle}
             >
               <Google />
-              <Text className="font-label text-label text-text-primary">
+              <Text variant="label" className="text-text-on-dark">
                 Continue with Google
               </Text>
             </Button>

@@ -17,6 +17,7 @@ export default function CreatePasswordScreen() {
 
   const acceptInvite = async () => {
     try {
+      // console.log(inviteData);
       await decideOnInvite({
         decision: "accept",
         token: inviteData?.id!,
@@ -26,15 +27,19 @@ export default function CreatePasswordScreen() {
       if (isApiError(error)) {
         const e = error as ApiError;
 
-        if (e.code === "INVITE_ALREADY_ACCEPTED") {
-          router.replace("/(tabs)/(campus)");
-          return;
+        switch (e.code) {
+          case "INVITE_ALREADY_ACCEPTED":
+            router.replace("/(auth)/InvalidInvitation");
+            return;
+          case "INVITE_ALREADY_DECLINED":
+            setLinkExpiredVisible(true);
+            return;
+          default:
+            toast.error(e.message || "Failed to accept invite");
         }
-        toast.error(e.message || "Failed to accept invite");
       } else {
         toast.error("Failed to accept invite");
       }
-      setLinkExpiredVisible(true);
     }
   };
 
