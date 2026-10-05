@@ -4,13 +4,13 @@ import {
   useNavigationState,
 } from "expo-router/build/react-navigation";
 import {
-  BellRingingIcon,
-  CalendarCheckIcon,
-  ChatCircleIcon,
-  type Icon,
-  MapTrifoldIcon,
-  UserIcon,
-} from "phosphor-react-native";
+  CalendarCheck2,
+  type LucideIcon,
+  Map,
+  MessageCircle,
+  MessageCircleWarning,
+  UserRound,
+} from "lucide-react-native";
 import React from "react";
 import { ColorValue, StyleSheet, View } from "react-native";
 import Animated, {
@@ -27,7 +27,7 @@ function AnimatedTabIcon({
   color,
   routeName,
 }: {
-  IconComponent: Icon;
+  IconComponent: LucideIcon;
   color: ColorValue;
   routeName: string;
 }) {
@@ -77,7 +77,7 @@ function AnimatedTabIcon({
   );
 }
 
-function tabIcon(IconComponent: Icon, routeName: string) {
+function tabIcon(IconComponent: LucideIcon, routeName: string) {
   const icon = ({ color }: { color: ColorValue }) => (
     <AnimatedTabIcon
       IconComponent={IconComponent}
@@ -117,35 +117,35 @@ export default function TabsLayout() {
         name="(campus)"
         options={{
           title: "Campus",
-          tabBarIcon: tabIcon(MapTrifoldIcon, "(campus)"),
+          tabBarIcon: tabIcon(Map, "(campus)"),
         }}
       />
       <Tabs.Screen
         name="(messages)"
         options={{
           title: "Chat",
-          tabBarIcon: tabIcon(ChatCircleIcon, "(messages)"),
+          tabBarIcon: tabIcon(MessageCircle, "(messages)"),
         }}
       />
       <Tabs.Screen
         name="(calendar)"
         options={{
           title: "Schedule",
-          tabBarIcon: tabIcon(CalendarCheckIcon, "(calendar)"),
+          tabBarIcon: tabIcon(CalendarCheck2, "(calendar)"),
         }}
       />
       <Tabs.Screen
         name="(notifications)"
         options={{
           title: "Notices",
-          tabBarIcon: tabIcon(BellRingingIcon, "(notifications)"),
+          tabBarIcon: tabIcon(MessageCircleWarning, "(notifications)"),
         }}
       />
       <Tabs.Screen
         name="(profile)"
         options={{
           title: "Me",
-          tabBarIcon: tabIcon(UserIcon, "(profile)"),
+          tabBarIcon: tabIcon(UserRound, "(profile)"),
         }}
       />
     </Tabs>
