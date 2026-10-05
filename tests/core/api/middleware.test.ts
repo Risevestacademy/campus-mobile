@@ -1,10 +1,10 @@
 import { authMiddleware } from "@core/api/middleware";
-import { authEvents } from "@core/auth/authEvents";
 import {
   clearAuthTokens,
   getAuthTokens,
   saveAuthTokens,
 } from "@core/auth/tokenStorage";
+import { useSessionStore } from "@store/session";
 
 type OnRequestParams = Parameters<
   NonNullable<typeof authMiddleware.onRequest>
@@ -18,6 +18,7 @@ describe("authMiddleware", () => {
 
   beforeEach(async () => {
     await clearAuthTokens();
+    useSessionStore.setState({ status: "unauthenticated" });
     jest.clearAllMocks();
     global.fetch = jest.fn();
   });
@@ -118,13 +119,11 @@ describe("authMiddleware", () => {
       expect(result).toBeUndefined();
     });
 
-    it("attempts refresh on 401, saves new tokens, emits event, and retries request", async () => {
+    it("attempts refresh on 401, saves new tokens, and retries request", async () => {
       await saveAuthTokens({
         accessToken: "old-access-token",
         refreshToken: "valid-refresh-token",
       });
-
-      const emitRefreshedSpy = jest.spyOn(authEvents, "emitSessionRefreshed");
 
       const req = new Request("http://localhost:3000/v1/users/profile", {
         method: "GET",
@@ -149,8 +148,8 @@ describe("authMiddleware", () => {
             JSON.stringify({
               accessToken: "new-access-token",
               refreshToken: "new-refresh-token",
-              expiresAt: "2026-10-03T00:00:00Z",
-              refreshExpiresAt: "2026-10-10T00:00:00Z",
+              expiresAt: "2030-10-03T00:00:00Z",
+              refreshExpiresAt: "2030-10-10T00:00:00Z",
             }),
             { status: 200, headers: { "Content-Type": "application/json" } },
           ),
@@ -186,17 +185,14 @@ describe("authMiddleware", () => {
       expect(tokens?.accessToken).toBe("new-access-token");
       expect(tokens?.refreshToken).toBe("new-refresh-token");
 
-      expect(emitRefreshedSpy).toHaveBeenCalled();
       expect(retryResponse).toBeDefined();
     });
 
-    it("signs out and emits unauthenticated when refresh endpoint returns 401/403", async () => {
+    it("signs out and clears session when refresh endpoint returns 401/403", async () => {
       await saveAuthTokens({
         accessToken: "old-access-token",
         refreshToken: "expired-refresh-token",
       });
-
-      const emitUnauthSpy = jest.spyOn(authEvents, "emitUnauthenticated");
 
       const req = new Request("http://localhost:3000/v1/users/profile", {
         method: "GET",
@@ -228,7 +224,7 @@ describe("authMiddleware", () => {
 
       expect(result).toBeUndefined();
       expect(await getAuthTokens()).toBeNull();
-      expect(emitUnauthSpy).toHaveBeenCalled();
+      expect(useSessionStore.getState().status).toBe("unauthenticated");
     });
 
     it("handles network error during refresh without signing user out", async () => {
@@ -236,8 +232,8 @@ describe("authMiddleware", () => {
         accessToken: "old-access-token",
         refreshToken: "valid-refresh-token",
       });
+      useSessionStore.setState({ status: "authenticated" });
 
-      const emitUnauthSpy = jest.spyOn(authEvents, "emitUnauthenticated");
       const consoleSpy = jest
         .spyOn(console, "error")
         .mockImplementation(() => {});
@@ -272,7 +268,7 @@ describe("authMiddleware", () => {
       expect(result).toBeUndefined();
       // Tokens remain in store because it was a network error
       expect(await getAuthTokens()).not.toBeNull();
-      expect(emitUnauthSpy).not.toHaveBeenCalled();
+      expect(useSessionStore.getState().status).toBe("authenticated");
 
       consoleSpy.mockRestore();
     });

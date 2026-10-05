@@ -83,8 +83,12 @@ describe("CreatePasswordScreen", () => {
     });
   });
 
-  it("displays expired link modal when accept invite fails", async () => {
-    mockDecideOnInvite.mockRejectedValueOnce(new Error("Failed"));
+  it("displays expired link modal when invite is declined", async () => {
+    const inviteDeclinedError = new ApiError(400, {
+      code: "INVITE_ALREADY_DECLINED",
+      message: "Declined",
+    });
+    mockDecideOnInvite.mockRejectedValueOnce(inviteDeclinedError);
 
     await renderWithProviders(<CreatePasswordScreen />);
 
@@ -95,7 +99,7 @@ describe("CreatePasswordScreen", () => {
     });
   });
 
-  it("redirects to campus tabs when invite is already accepted", async () => {
+  it("redirects to InvalidInvitation when invite is already accepted", async () => {
     const inviteAcceptedError = new ApiError(400, {
       code: "INVITE_ALREADY_ACCEPTED",
       message: "Already accepted",
@@ -107,7 +111,7 @@ describe("CreatePasswordScreen", () => {
     await fireEvent.press(screen.getByText("Continue"));
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/(tabs)/(campus)");
+      expect(mockReplace).toHaveBeenCalledWith("/(auth)/InvalidInvitation");
     });
   });
 });

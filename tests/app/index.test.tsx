@@ -21,7 +21,7 @@ describe("Index", () => {
   it("redirects to the sign in screen when unauthenticated", async () => {
     await render(<Index />);
 
-    expect(screen.getByText("redirect:/(auth)/SignIn")).toBeTruthy();
+    expect(screen.getByText("redirect:/SignIn")).toBeTruthy();
   });
 
   it("redirects to campus tabs when authenticated", async () => {
