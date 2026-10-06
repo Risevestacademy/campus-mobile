@@ -1,4 +1,7 @@
-import { authMiddleware } from "@core/api/middleware";
+import {
+  authMiddleware,
+  registerSessionExpirationHandler,
+} from "@core/api/middleware";
 import {
   clearAuthTokens,
   getAuthTokens,
@@ -17,6 +20,9 @@ describe("authMiddleware", () => {
   const originalFetch = global.fetch;
 
   beforeEach(async () => {
+    registerSessionExpirationHandler((reason) => {
+      void useSessionStore.getState().clearSession(reason);
+    });
     await clearAuthTokens();
     useSessionStore.setState({ status: "unauthenticated" });
     jest.clearAllMocks();
@@ -271,6 +277,45 @@ describe("authMiddleware", () => {
       expect(useSessionStore.getState().status).toBe("authenticated");
 
       consoleSpy.mockRestore();
+    });
+
+    it("invokes the registered session expiration handler when session expires", async () => {
+      const handlerSpy = jest.fn();
+      registerSessionExpirationHandler(handlerSpy);
+
+      await saveAuthTokens({
+        accessToken: "expired-access-token",
+        refreshToken: "expired-refresh-token",
+      });
+
+      const req = new Request("http://localhost:3000/v1/users/profile", {
+        method: "GET",
+      });
+
+      await authMiddleware.onRequest!({
+        request: req,
+        options: {} as OnRequestParams["options"],
+        schemaPath: "/v1/users/profile",
+        params: {} as OnRequestParams["params"],
+        id: "1",
+      } as OnRequestParams);
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce(
+        new Response(null, { status: 401 }),
+      );
+
+      const res401 = new Response(null, { status: 401 });
+
+      await authMiddleware.onResponse!({
+        request: req,
+        response: res401,
+        options: {} as OnResponseParams["options"],
+        schemaPath: "/v1/users/profile",
+        params: {} as OnResponseParams["params"],
+        id: "1",
+      } as OnResponseParams);
+
+      expect(handlerSpy).toHaveBeenCalledWith("expired");
     });
   });
 });

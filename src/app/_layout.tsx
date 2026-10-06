@@ -1,5 +1,6 @@
 import "../global.css";
 
+import { registerSessionExpirationHandler } from "@core/api";
 import config from "@core/config";
 import { Toast } from "@shared/components/atoms";
 import { queryClient } from "@shared/lib/react-query";
@@ -19,6 +20,10 @@ LogBox.ignoreLogs(["SafeAreaView has been deprecated"]);
 GoogleOneTapSignIn.configure({
   webClientId: config.googleWebClientId,
   iosClientId: config.googleIosClientId,
+});
+
+registerSessionExpirationHandler((reason) => {
+  void useSessionStore.getState().clearSession(reason);
 });
 
 export default function RootLayout() {

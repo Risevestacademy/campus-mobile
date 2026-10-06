@@ -5,12 +5,23 @@ import {
   saveAuthTokens,
 } from "@core/auth/tokenStorage";
 import config from "@core/config";
-import { useSessionStore } from "@store/session";
 import type { Middleware } from "openapi-fetch";
 
 import type { components } from "./generated/schema";
 
 type RefreshResponseDto = components["schemas"]["RefreshResponseDto"];
+
+export type SessionExpirationHandler = (
+  reason?: string,
+) => Promise<void> | void;
+
+let sessionExpirationHandler: SessionExpirationHandler | null = null;
+
+export function registerSessionExpirationHandler(
+  handler: SessionExpirationHandler | null,
+): void {
+  sessionExpirationHandler = handler;
+}
 
 const PUBLIC_PATHS = new Set([
   "/v1/auth/google",
@@ -38,7 +49,10 @@ function isPublicPath(urlStr: string): boolean {
 }
 
 async function expireSession(): Promise<null> {
-  await useSessionStore.getState().clearSession("expired");
+  if (sessionExpirationHandler) {
+    await sessionExpirationHandler("expired");
+  }
+
   return null;
 }
 
