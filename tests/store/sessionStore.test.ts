@@ -26,13 +26,18 @@ describe("useSessionStore - clearSession", () => {
       executionOrder.push("clearAuthTokens");
     });
 
-    await useSessionStore.getState().clearSession();
+    await useSessionStore.getState().clearSession("expired");
 
     expect(executionOrder).toEqual([
       "cancelQueries",
       "clearCache",
       "clearAuthTokens",
     ]);
+    expect(useSessionStore.getState().status).toBe("unauthenticated");
+  });
+
+  it("handles clearSession with different reasons", async () => {
+    await useSessionStore.getState().clearSession("logout");
     expect(useSessionStore.getState().status).toBe("unauthenticated");
   });
 });

@@ -10,7 +10,7 @@ type SessionStore = {
 
   hydrate: () => Promise<void>;
   setAuthenticated: (hasInvite?: boolean) => void;
-  clearSession: () => Promise<void>;
+  clearSession: (reason?: string) => Promise<void>;
 };
 
 export const useSessionStore = create<SessionStore>((set) => ({
@@ -39,7 +39,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
     });
   },
 
-  clearSession: async () => {
+  clearSession: async (_reason?: string) => {
     try {
       await queryClient.cancelQueries();
       queryClient.clear();

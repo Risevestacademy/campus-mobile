@@ -1,5 +1,4 @@
 import {
-  clearAuthTokens,
   getAuthTokens,
   isAccessTokenExpired,
   isRefreshTokenExpired,
@@ -39,12 +38,7 @@ function isPublicPath(urlStr: string): boolean {
 }
 
 async function expireSession(): Promise<null> {
-  await clearAuthTokens();
-
-  useSessionStore.setState({
-    status: "unauthenticated",
-  });
-
+  await useSessionStore.getState().clearSession("expired");
   return null;
 }
 
