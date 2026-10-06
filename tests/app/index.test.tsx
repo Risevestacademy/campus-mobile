@@ -30,4 +30,11 @@ describe("Index", () => {
 
     expect(screen.getByText("redirect:/(tabs)/(campus)")).toBeTruthy();
   });
+
+  it("renders null and does not redirect while status is loading", async () => {
+    useSessionStore.setState({ status: "loading" });
+    const { toJSON } = render(<Index />);
+
+    expect(toJSON()).toBeNull();
+  });
 });

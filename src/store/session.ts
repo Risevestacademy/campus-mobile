@@ -1,4 +1,8 @@
-import { clearAuthTokens, getAuthTokens } from "@core/auth/tokenStorage";
+import {
+  clearAuthTokens,
+  getAuthTokens,
+  isRefreshTokenExpired,
+} from "@core/auth/tokenStorage";
 import { queryClient } from "@shared/lib/react-query";
 import { create } from "zustand";
 
@@ -13,22 +17,30 @@ type SessionStore = {
   clearSession: (reason?: string) => Promise<void>;
 };
 
-export const useSessionStore = create<SessionStore>((set) => ({
+export const useSessionStore = create<SessionStore>((set, get) => ({
   status: "loading",
   hasInvite: false,
   hydrate: async () => {
     try {
       const tokens = await getAuthTokens();
 
+      if (!tokens?.accessToken || !tokens?.refreshToken) {
+        await get().clearSession("expired");
+        return;
+      }
+
+      if (await isRefreshTokenExpired()) {
+        await get().clearSession("expired");
+        return;
+      }
+
       set({
-        status: tokens?.accessToken ? "authenticated" : "unauthenticated",
+        status: "authenticated",
       });
     } catch (error) {
       console.error("Failed to hydrate session:", error);
 
-      set({
-        status: "unauthenticated",
-      });
+      await get().clearSession("expired");
     }
   },
 

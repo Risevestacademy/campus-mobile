@@ -82,12 +82,15 @@ export async function isAccessTokenExpired(
   const expiresAt = await SecureStore.getItemAsync(KEYS.ACCESS_EXPIRES_AT);
   if (!expiresAt) return false;
   const expiryTime = new Date(expiresAt).getTime();
+  if (isNaN(expiryTime)) return true;
   const nowWithBuffer = Date.now() + bufferSeconds * 1000;
   return nowWithBuffer >= expiryTime;
 }
 
 export async function isRefreshTokenExpired(): Promise<boolean> {
   const expiresAt = await SecureStore.getItemAsync(KEYS.REFRESH_EXPIRES_AT);
-  if (!expiresAt) return false;
-  return Date.now() >= new Date(expiresAt).getTime();
+  if (!expiresAt) return true;
+  const expiryTime = new Date(expiresAt).getTime();
+  if (isNaN(expiryTime)) return true;
+  return Date.now() >= expiryTime;
 }
