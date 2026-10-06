@@ -1,8 +1,5 @@
 import { Tabs } from "expo-router";
-import {
-  PlatformPressable,
-  useNavigationState,
-} from "expo-router/build/react-navigation";
+import { PlatformPressable } from "expo-router/build/react-navigation";
 import {
   CalendarCheck2,
   type LucideIcon,
@@ -25,18 +22,13 @@ import { useCSSVariable, useResolveClassNames } from "uniwind";
 function AnimatedTabIcon({
   IconComponent,
   color,
-  routeName,
+  focused,
 }: {
   IconComponent: LucideIcon;
   color: ColorValue;
-  routeName: string;
+  focused: boolean;
 }) {
   const pillBg = useCSSVariable("--color-bg-hover") as string;
-
-  // Real focus state from the navigator, so it updates on every tab change
-  const focused = useNavigationState(
-    (state) => state.routes[state.index]?.name === routeName,
-  );
 
   const pill = useSharedValue(focused ? 1 : 0);
   const scale = useSharedValue(1);
@@ -45,20 +37,22 @@ function AnimatedTabIcon({
     pill.value = withTiming(focused ? 1 : 0, { duration: 300 });
 
     if (focused) {
-      scale.value = withSequence(
-        withTiming(0.7, { duration: 90 }),
-        withSpring(1, { damping: 5, stiffness: 220, mass: 0.6 }),
+      scale.set(
+        withSequence(
+          withTiming(0.97, { duration: 150 }),
+          withSpring(1, { damping: 5, stiffness: 220, mass: 0.6 }),
+        ),
       );
     }
   }, [focused, pill, scale]);
 
   const pillStyle = useAnimatedStyle(() => ({
-    opacity: pill.value,
-    transform: [{ scaleX: 0.3 + 0.7 * pill.value }],
+    opacity: pill.get(),
+    transform: [{ scaleX: 0.3 + 0.7 * pill.get() }],
   }));
 
   const iconStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [{ scale: scale.get() }],
   }));
 
   return (
@@ -77,12 +71,18 @@ function AnimatedTabIcon({
   );
 }
 
-function tabIcon(IconComponent: LucideIcon, routeName: string) {
-  const icon = ({ color }: { color: ColorValue }) => (
+function tabIcon(IconComponent: LucideIcon) {
+  const icon = ({
+    color,
+    focused,
+  }: {
+    color: ColorValue;
+    focused: boolean;
+  }) => (
     <AnimatedTabIcon
       IconComponent={IconComponent}
       color={color}
-      routeName={routeName}
+      focused={focused}
     />
   );
 
@@ -117,35 +117,35 @@ export default function TabsLayout() {
         name="(campus)"
         options={{
           title: "Campus",
-          tabBarIcon: tabIcon(Map, "(campus)"),
+          tabBarIcon: tabIcon(Map),
         }}
       />
       <Tabs.Screen
         name="(messages)"
         options={{
           title: "Chat",
-          tabBarIcon: tabIcon(MessageCircle, "(messages)"),
+          tabBarIcon: tabIcon(MessageCircle),
         }}
       />
       <Tabs.Screen
         name="(calendar)"
         options={{
           title: "Schedule",
-          tabBarIcon: tabIcon(CalendarCheck2, "(calendar)"),
+          tabBarIcon: tabIcon(CalendarCheck2),
         }}
       />
       <Tabs.Screen
         name="(notifications)"
         options={{
           title: "Notices",
-          tabBarIcon: tabIcon(MessageCircleWarning, "(notifications)"),
+          tabBarIcon: tabIcon(MessageCircleWarning),
         }}
       />
       <Tabs.Screen
         name="(profile)"
         options={{
           title: "Me",
-          tabBarIcon: tabIcon(UserRound, "(profile)"),
+          tabBarIcon: tabIcon(UserRound),
         }}
       />
     </Tabs>
