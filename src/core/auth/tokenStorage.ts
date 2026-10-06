@@ -12,6 +12,7 @@ const KEYS = {
   REFRESH_TOKEN: "campus_refresh_token",
   ACCESS_EXPIRES_AT: "campus_access_expires_at",
   REFRESH_EXPIRES_AT: "campus_refresh_expires_at",
+  HAS_INVITE: "campus_has_invite",
 } as const;
 
 export async function saveAuthTokens(tokens: AuthTokens): Promise<void> {
@@ -67,12 +68,26 @@ export async function getAuthTokens(): Promise<AuthTokens | null> {
   };
 }
 
+export async function getHasInvite(): Promise<boolean> {
+  const value = await SecureStore.getItemAsync(KEYS.HAS_INVITE);
+  return value === "true";
+}
+
+export async function setHasInvite(hasInvite: boolean): Promise<void> {
+  if (hasInvite) {
+    await SecureStore.setItemAsync(KEYS.HAS_INVITE, "true");
+  } else {
+    await SecureStore.deleteItemAsync(KEYS.HAS_INVITE);
+  }
+}
+
 export async function clearAuthTokens(): Promise<void> {
   await Promise.all([
     SecureStore.deleteItemAsync(KEYS.ACCESS_TOKEN),
     SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN),
     SecureStore.deleteItemAsync(KEYS.ACCESS_EXPIRES_AT),
     SecureStore.deleteItemAsync(KEYS.REFRESH_EXPIRES_AT),
+    SecureStore.deleteItemAsync(KEYS.HAS_INVITE),
   ]);
 }
 
@@ -82,12 +97,18 @@ export async function isAccessTokenExpired(
   const expiresAt = await SecureStore.getItemAsync(KEYS.ACCESS_EXPIRES_AT);
   if (!expiresAt) return false;
   const expiryTime = new Date(expiresAt).getTime();
+  if (isNaN(expiryTime)) return true;
   const nowWithBuffer = Date.now() + bufferSeconds * 1000;
   return nowWithBuffer >= expiryTime;
 }
 
 export async function isRefreshTokenExpired(): Promise<boolean> {
   const expiresAt = await SecureStore.getItemAsync(KEYS.REFRESH_EXPIRES_AT);
-  if (!expiresAt) return false;
-  return Date.now() >= new Date(expiresAt).getTime();
+  if (!expiresAt) {
+    const refreshToken = await SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
+    return !refreshToken;
+  }
+  const expiryTime = new Date(expiresAt).getTime();
+  if (isNaN(expiryTime)) return true;
+  return Date.now() >= expiryTime;
 }

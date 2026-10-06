@@ -21,13 +21,27 @@ describe("Index", () => {
   it("redirects to the sign in screen when unauthenticated", async () => {
     await render(<Index />);
 
-    expect(screen.getByText("redirect:/(auth)/SignIn")).toBeTruthy();
+    expect(screen.getByText("redirect:/SignIn")).toBeTruthy();
   });
 
-  it("redirects to campus tabs when authenticated", async () => {
-    useSessionStore.setState({ status: "authenticated" });
+  it("redirects to campus tabs when authenticated without pending invite", async () => {
+    useSessionStore.setState({ status: "authenticated", hasInvite: false });
     await render(<Index />);
 
     expect(screen.getByText("redirect:/(tabs)/(campus)")).toBeTruthy();
+  });
+
+  it("redirects to CreatePassword when authenticated with pending invite", async () => {
+    useSessionStore.setState({ status: "authenticated", hasInvite: true });
+    await render(<Index />);
+
+    expect(screen.getByText("redirect:/(auth)/CreatePassword")).toBeTruthy();
+  });
+
+  it("redirects to SignIn while status is loading so the loader mounts", async () => {
+    useSessionStore.setState({ status: "loading" });
+    await render(<Index />);
+
+    expect(screen.getByText("redirect:/SignIn")).toBeTruthy();
   });
 });

@@ -1,5 +1,6 @@
 import { ApiError } from "@core/api/error";
 import SignInScreen from "@features/auth/screens/SignInScreen";
+import { useSessionStore } from "@store/session";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   fireEvent,
@@ -42,12 +43,12 @@ const renderWithProviders = (ui: React.ReactElement) => {
 describe("SignInScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useSessionStore.setState({ status: "unauthenticated" });
   });
 
-  it("renders sign in title and Google sign in button", async () => {
+  it("renders Google sign in button", async () => {
     await renderWithProviders(<SignInScreen />);
 
-    expect(screen.getByText("Sign in")).toBeTruthy();
     expect(screen.getByText("Continue with Google")).toBeTruthy();
   });
 

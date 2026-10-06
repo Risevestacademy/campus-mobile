@@ -1,6 +1,7 @@
 import { ApiError, isApiError } from "@core/api/error";
 import { Button, Modal, Text, toast } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
+import { useSessionStore } from "@store/session";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -17,24 +18,31 @@ export default function CreatePasswordScreen() {
 
   const acceptInvite = async () => {
     try {
+      // console.log(inviteData);
       await decideOnInvite({
         decision: "accept",
         token: inviteData?.id!,
       });
+      await useSessionStore.getState().clearHasInvite();
       router.replace("/SetupProfile");
     } catch (error) {
       if (isApiError(error)) {
         const e = error as ApiError;
 
-        if (e.code === "INVITE_ALREADY_ACCEPTED") {
-          router.replace("/(tabs)/(campus)");
-          return;
+        switch (e.code) {
+          case "INVITE_ALREADY_ACCEPTED":
+            await useSessionStore.getState().clearHasInvite();
+            router.replace("/(auth)/InvalidInvitation");
+            return;
+          case "INVITE_ALREADY_DECLINED":
+            setLinkExpiredVisible(true);
+            return;
+          default:
+            toast.error(e.message || "Failed to accept invite");
         }
-        toast.error(e.message || "Failed to accept invite");
       } else {
         toast.error("Failed to accept invite");
       }
-      setLinkExpiredVisible(true);
     }
   };
 

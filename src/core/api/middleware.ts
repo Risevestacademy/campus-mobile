@@ -1,6 +1,4 @@
-import { authEvents } from "@core/auth/authEvents";
 import {
-  clearAuthTokens,
   getAuthTokens,
   isAccessTokenExpired,
   isRefreshTokenExpired,
@@ -13,6 +11,18 @@ import type { components } from "./generated/schema";
 
 type RefreshResponseDto = components["schemas"]["RefreshResponseDto"];
 
+export type SessionExpirationHandler = (
+  reason?: string,
+) => Promise<void> | void;
+
+let sessionExpirationHandler: SessionExpirationHandler | null = null;
+
+export function registerSessionExpirationHandler(
+  handler: SessionExpirationHandler | null,
+): void {
+  sessionExpirationHandler = handler;
+}
+
 const PUBLIC_PATHS = new Set([
   "/v1/auth/google",
   "/v1/auth/google/callback",
@@ -21,12 +31,6 @@ const PUBLIC_PATHS = new Set([
   "/v1/health",
 ]);
 
-let sessionExpiredHandler: (() => void) | null = null;
-
-export function registerSessionExpiredHandler(handler: () => void): void {
-  sessionExpiredHandler = handler;
-}
-
 let refreshPromise: Promise<string | null> | null = null;
 
 const retryCopies = new WeakMap<Request, Request>();
@@ -34,64 +38,86 @@ const retryCopies = new WeakMap<Request, Request>();
 function isPublicPath(urlStr: string): boolean {
   try {
     const { pathname } = new URL(urlStr);
+
     const normalized =
       pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+
     return PUBLIC_PATHS.has(normalized);
   } catch {
     return false;
   }
 }
 
-async function triggerSessionExpired(): Promise<null> {
-  if (sessionExpiredHandler) {
-    sessionExpiredHandler();
-  } else {
-    await clearAuthTokens();
+async function expireSession(): Promise<null> {
+  if (sessionExpirationHandler) {
+    await sessionExpirationHandler("expired");
   }
-  authEvents.emitUnauthenticated();
+
   return null;
 }
 
 async function performTokenRefresh(): Promise<string | null> {
   const tokens = await getAuthTokens();
-  if (!tokens?.refreshToken) return triggerSessionExpired();
 
-  if (await isRefreshTokenExpired()) return triggerSessionExpired();
+  if (!tokens?.refreshToken) {
+    return expireSession();
+  }
+
+  if (await isRefreshTokenExpired()) {
+    return expireSession();
+  }
 
   try {
     const response = await fetch(`${config.apiBaseUrl}/v1/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refreshToken: tokens.refreshToken,
+      }),
     });
 
-    // The server rejected the refresh token: the session is really over
+    /*
+     * These responses mean the refresh token/session
+     * is no longer valid.
+     */
     if (
+      response.status === 400 ||
       response.status === 401 ||
-      response.status === 403 ||
-      response.status === 400
+      response.status === 403
     ) {
-      return triggerSessionExpired();
+      return expireSession();
     }
 
-    // Transient server problem (5xx, 429, ...): keep tokens, fail this request
-    if (!response.ok) return null;
+    /*
+     * Don't log the user out because of a temporary
+     * server problem.
+     */
+    if (!response.ok) {
+      return null;
+    }
 
     const data = (await response.json()) as RefreshResponseDto;
-    if (!data.accessToken) return triggerSessionExpired();
+
+    if (!data.accessToken) {
+      return expireSession();
+    }
 
     await saveAuthTokens({
       accessToken: data.accessToken,
-      refreshToken: data.refreshToken ?? undefined,
+      refreshToken: data.refreshToken ?? tokens.refreshToken,
       accessExpiresAt: data.expiresAt,
       refreshExpiresAt: data.refreshExpiresAt,
     });
 
-    authEvents.emitSessionRefreshed();
     return data.accessToken;
   } catch (error) {
-    // Network error: don't sign the user out because they went offline
+    /*
+     * Network errors should not destroy the session.
+     */
     console.error("Failed to refresh session:", error);
+
     return null;
   }
 }
@@ -102,22 +128,42 @@ function refreshOnce(): Promise<string | null> {
       refreshPromise = null;
     });
   }
+
   return refreshPromise;
 }
 
 export const authMiddleware: Middleware = {
   async onRequest({ request }) {
-    if (isPublicPath(request.url)) return;
+    if (isPublicPath(request.url)) {
+      return;
+    }
 
-    // Keep an unused copy of the request so its body can be replayed on retry
+    /*
+     * Save a copy so the request body can be replayed
+     * if we need to retry after refreshing the token.
+     */
     retryCopies.set(request, request.clone());
 
     let tokens = await getAuthTokens();
-    if (tokens?.accessToken && (await isAccessTokenExpired())) {
+
+    /*
+     * No session. Don't attach an Authorization header.
+     */
+    if (!tokens?.accessToken) {
+      return;
+    }
+
+    /*
+     * Access token has expired.
+     */
+    if (await isAccessTokenExpired()) {
       const newAccessToken = await refreshOnce();
-      if (newAccessToken) {
-        tokens = await getAuthTokens();
+
+      if (!newAccessToken) {
+        return;
       }
+
+      tokens = await getAuthTokens();
     }
 
     if (tokens?.accessToken) {
@@ -126,26 +172,48 @@ export const authMiddleware: Middleware = {
   },
 
   async onResponse({ request, response }) {
-    if (response.status !== 401) return;
-    if (isPublicPath(request.url)) return;
+    if (response.status !== 401) {
+      return;
+    }
+
+    if (isPublicPath(request.url)) {
+      return;
+    }
 
     const original = retryCopies.get(request);
+
     retryCopies.delete(request);
-    if (!original) return;
 
-    // If another request already refreshed while this one was in flight,
-    // reuse the new token instead of refreshing a second time
-    const sent = request.headers.get("Authorization");
-    const current = (await getAuthTokens())?.accessToken;
+    if (!original) {
+      return;
+    }
+
+    /*
+     * Check whether another request already refreshed
+     * the token while this request was in flight.
+     */
+    const sentAuthorization = request.headers.get("Authorization");
+
+    const currentAccessToken = (await getAuthTokens())?.accessToken;
+
     const newAccessToken =
-      current && sent !== `Bearer ${current}` ? current : await refreshOnce();
+      currentAccessToken && sentAuthorization !== `Bearer ${currentAccessToken}`
+        ? currentAccessToken
+        : await refreshOnce();
 
-    // Refresh failed: let the original 401 reach the caller
-    if (!newAccessToken) return;
+    /*
+     * Refresh failed.
+     *
+     * expireSession() has already updated Zustand.
+     */
+    if (!newAccessToken) {
+      return;
+    }
 
     const retry = new Request(original, {
       headers: new Headers(original.headers),
     });
+
     retry.headers.set("Authorization", `Bearer ${newAccessToken}`);
 
     return fetch(retry);

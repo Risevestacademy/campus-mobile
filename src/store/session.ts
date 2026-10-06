@@ -1,102 +1,97 @@
-import { registerSessionExpiredHandler } from "@core/api/middleware";
 import {
   clearAuthTokens,
   getAuthTokens,
+  getHasInvite,
   isRefreshTokenExpired,
+  setHasInvite,
 } from "@core/auth/tokenStorage";
 import { queryClient } from "@shared/lib/react-query";
 import { create } from "zustand";
-import { combine } from "zustand/middleware";
 
 export type SessionStatus = "loading" | "authenticated" | "unauthenticated";
 
-let hydrationPromise: Promise<void> | null = null;
-let clearingPromise: Promise<void> | null = null;
+type SessionStore = {
+  status: SessionStatus;
+  hasInvite: boolean;
 
-export const useSessionStore = create(
-  combine({ status: "loading" as SessionStatus }, (set) => {
-    // Hydration may only resolve the initial "loading" state. If a login or
-    // logout happened while storage was being read, that result wins.
-    const resolveHydration = (status: Exclude<SessionStatus, "loading">) =>
-      set((s) => (s.status === "loading" ? { status } : s));
+  hydrate: () => Promise<void>;
+  setAuthenticated: (hasInvite?: boolean) => Promise<void>;
+  clearHasInvite: () => Promise<void>;
+  clearSession: (reason?: string) => Promise<void>;
+};
 
-    return {
-      hydrate: (): Promise<void> => {
-        if (hydrationPromise) {
-          return hydrationPromise;
-        }
+export const useSessionStore = create<SessionStore>((set, get) => ({
+  status: "loading",
+  hasInvite: false,
+  hydrate: async () => {
+    try {
+      const tokens = await getAuthTokens();
 
-        hydrationPromise = (async () => {
-          try {
-            const tokens = await getAuthTokens();
-            if (!tokens?.accessToken) {
-              resolveHydration("unauthenticated");
-              return;
-            }
+      if (!tokens?.accessToken || !tokens?.refreshToken) {
+        await get().clearSession("expired");
+        return;
+      }
 
-            const expired = await isRefreshTokenExpired();
-            if (expired) {
-              try {
-                await clearAuthTokens();
-              } catch (error) {
-                console.error("Error clearing expired auth tokens:", error);
-              }
-              resolveHydration("unauthenticated");
-              return;
-            }
+      if (await isRefreshTokenExpired()) {
+        await get().clearSession("expired");
+        return;
+      }
 
-            resolveHydration("authenticated");
-          } catch (error) {
-            console.error("Failed to hydrate session tokens:", error);
-            resolveHydration("unauthenticated");
-          }
-        })();
+      const hasInvite = await getHasInvite();
 
-        return hydrationPromise;
-      },
+      set({
+        status: "authenticated",
+        hasInvite,
+      });
+    } catch (error) {
+      console.error("Failed to hydrate session:", error);
 
-      setAuthenticated: () => {
-        set({ status: "authenticated" });
-      },
+      await get().clearSession("expired");
+    }
+  },
 
-      clearSession: (): Promise<void> => {
-        // Concurrent 401s share one in-flight teardown.
-        if (clearingPromise) {
-          return clearingPromise;
-        }
+  setAuthenticated: async (hasInvite = false) => {
+    try {
+      await setHasInvite(hasInvite);
+    } catch (error) {
+      console.error("Failed to persist hasInvite state:", error);
+    }
 
-        clearingPromise = (async () => {
-          try {
-            // 1. Tokens first, so any refetch triggered later cannot authenticate.
-            try {
-              await clearAuthTokens();
-            } catch (error) {
-              console.error("Error clearing auth tokens:", error);
-            }
+    set({
+      status: "authenticated",
+      hasInvite,
+    });
+  },
 
-            // 2. Flip status so the route guard unmounts protected screens.
-            set({ status: "unauthenticated" });
+  clearHasInvite: async () => {
+    try {
+      await setHasInvite(false);
+    } catch (error) {
+      console.error("Failed to clear hasInvite state:", error);
+    }
 
-            // 3. Stop in-flight requests, then drop cached user data.
-            try {
-              await queryClient.cancelQueries();
-            } catch (error) {
-              console.error("Error cancelling queries:", error);
-            }
-            queryClient.clear();
-          } finally {
-            // Allow a future re-hydrate and a future logout after re-login.
-            hydrationPromise = null;
-            clearingPromise = null;
-          }
-        })();
+    set({
+      hasInvite: false,
+    });
+  },
 
-        return clearingPromise;
-      },
-    };
-  }),
-);
+  clearSession: async (_reason?: string) => {
+    try {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+    } catch (error) {
+      console.error("Failed to cancel queries or clear cache:", error);
+    }
 
-registerSessionExpiredHandler(async () => {
-  await useSessionStore.getState().clearSession();
-});
+    try {
+      await clearAuthTokens();
+    } catch (error) {
+      console.error("Failed to clear auth tokens:", error);
+    }
+
+    set({
+      status: "unauthenticated",
+      hasInvite: false,
+    });
+  },
+}));

@@ -156,9 +156,30 @@ describe("tokenStorage", () => {
   });
 
   describe("isRefreshTokenExpired", () => {
-    it("returns false if no refreshExpiresAt key exists", async () => {
+    it("returns true if no refresh token exists", async () => {
+      const expired = await isRefreshTokenExpired();
+      expect(expired).toBe(true);
+    });
+
+    it("returns false if refresh token exists without explicit refreshExpiresAt key", async () => {
+      await saveAuthTokens({
+        accessToken: "access-123",
+        refreshToken: "refresh-456",
+      });
+
       const expired = await isRefreshTokenExpired();
       expect(expired).toBe(false);
+    });
+
+    it("returns true if refreshExpiresAt is malformed or unparsable", async () => {
+      await saveAuthTokens({
+        accessToken: "access-123",
+        refreshToken: "refresh-456",
+        refreshExpiresAt: "invalid-date",
+      });
+
+      const expired = await isRefreshTokenExpired();
+      expect(expired).toBe(true);
     });
 
     it("returns true if refresh token has past expiry date", async () => {

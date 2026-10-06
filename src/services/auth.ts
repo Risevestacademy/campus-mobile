@@ -26,7 +26,7 @@ export class AuthService {
         accessExpiresAt: data.expiresAt,
         refreshExpiresAt: data.refreshExpiresAt,
       });
-      useSessionStore.getState().setAuthenticated();
+      useSessionStore.getState().setAuthenticated(data.inviteId !== null);
     }
 
     return data;
@@ -56,7 +56,7 @@ export class AuthService {
       console.error("Google sign out failed:", error);
     }
 
-    await useSessionStore.getState().clearSession();
+    await useSessionStore.getState().clearSession("logout");
   }
 
   static async logout(): Promise<void> {

@@ -1,5 +1,6 @@
 import { Avatar, Button, Divider, Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
+import { useRouter } from "expo-router";
 import { ScrollView, View } from "react-native";
 
 import { MeetingParticipants } from "../components";
@@ -10,6 +11,8 @@ const UPCOMING_MEETINGS = [
 ];
 
 export default function MeetingsScreen() {
+  const router = useRouter();
+
   return (
     <SafeArea>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -70,7 +73,10 @@ export default function MeetingsScreen() {
       </ScrollView>
 
       <View className="py-2">
-        <Button label="Enter App" />
+        <Button
+          label="Enter App"
+          onPress={() => router.replace("/(tabs)/(campus)")}
+        />
       </View>
     </SafeArea>
   );
