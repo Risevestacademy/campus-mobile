@@ -1,7 +1,9 @@
 import {
   clearAuthTokens,
   getAuthTokens,
+  getHasInvite,
   isRefreshTokenExpired,
+  setHasInvite,
 } from "@core/auth/tokenStorage";
 import { queryClient } from "@shared/lib/react-query";
 import { create } from "zustand";
@@ -13,7 +15,8 @@ type SessionStore = {
   hasInvite: boolean;
 
   hydrate: () => Promise<void>;
-  setAuthenticated: (hasInvite?: boolean) => void;
+  setAuthenticated: (hasInvite?: boolean) => Promise<void>;
+  clearHasInvite: () => Promise<void>;
   clearSession: (reason?: string) => Promise<void>;
 };
 
@@ -34,8 +37,11 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         return;
       }
 
+      const hasInvite = await getHasInvite();
+
       set({
         status: "authenticated",
+        hasInvite,
       });
     } catch (error) {
       console.error("Failed to hydrate session:", error);
@@ -44,10 +50,28 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }
   },
 
-  setAuthenticated: (hasInvite?: boolean) => {
+  setAuthenticated: async (hasInvite = false) => {
+    try {
+      await setHasInvite(hasInvite);
+    } catch (error) {
+      console.error("Failed to persist hasInvite state:", error);
+    }
+
     set({
       status: "authenticated",
       hasInvite,
+    });
+  },
+
+  clearHasInvite: async () => {
+    try {
+      await setHasInvite(false);
+    } catch (error) {
+      console.error("Failed to clear hasInvite state:", error);
+    }
+
+    set({
+      hasInvite: false,
     });
   },
 
@@ -67,6 +91,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     set({
       status: "unauthenticated",
+      hasInvite: false,
     });
   },
 }));

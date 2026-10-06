@@ -4,6 +4,7 @@ import { Text } from "@shared/components/atoms/Text";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { Google } from "@shared/icons";
 import { useInviteStore } from "@store/invite";
+import { useSessionStore } from "@store/session";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Image, ScrollView, View } from "react-native";
@@ -47,6 +48,7 @@ export default function InvitationScreen() {
         console.error(e);
         // If code is invite accepted, log the user in
         if (e.code === "INVITE_ALREADY_ACCEPTED") {
+          await useSessionStore.getState().clearHasInvite();
           router.replace("/(tabs)/(campus)");
           return;
         } else if (e.code === "INVITE_ALREADY_DECLINED") {

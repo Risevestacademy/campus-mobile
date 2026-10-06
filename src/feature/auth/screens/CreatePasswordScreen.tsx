@@ -1,6 +1,7 @@
 import { ApiError, isApiError } from "@core/api/error";
 import { Button, Modal, Text, toast } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
+import { useSessionStore } from "@store/session";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -22,6 +23,7 @@ export default function CreatePasswordScreen() {
         decision: "accept",
         token: inviteData?.id!,
       });
+      await useSessionStore.getState().clearHasInvite();
       router.replace("/SetupProfile");
     } catch (error) {
       if (isApiError(error)) {
@@ -29,6 +31,7 @@ export default function CreatePasswordScreen() {
 
         switch (e.code) {
           case "INVITE_ALREADY_ACCEPTED":
+            await useSessionStore.getState().clearHasInvite();
             router.replace("/(auth)/InvalidInvitation");
             return;
           case "INVITE_ALREADY_DECLINED":

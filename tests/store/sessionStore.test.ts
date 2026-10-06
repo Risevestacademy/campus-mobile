@@ -5,6 +5,9 @@ import { useSessionStore } from "@store/session";
 jest.mock("@core/auth/tokenStorage", () => ({
   getAuthTokens: jest.fn(),
   clearAuthTokens: jest.fn().mockResolvedValue(undefined),
+  isRefreshTokenExpired: jest.fn().mockResolvedValue(false),
+  getHasInvite: jest.fn().mockResolvedValue(false),
+  setHasInvite: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe("useSessionStore - clearSession", () => {
@@ -62,6 +65,31 @@ describe("useSessionStore - hydrate", () => {
     await useSessionStore.getState().hydrate();
 
     expect(useSessionStore.getState().status).toBe("authenticated");
+  });
+
+  it("restores hasInvite state from storage during hydration", async () => {
+    const futureDate = new Date(Date.now() + 3600 * 1000).toISOString();
+    tokenStorage.getAuthTokens.mockResolvedValue({
+      accessToken: "valid-access",
+      refreshToken: "valid-refresh",
+      refreshExpiresAt: futureDate,
+    });
+    tokenStorage.isRefreshTokenExpired.mockResolvedValue(false);
+    tokenStorage.getHasInvite.mockResolvedValue(true);
+
+    await useSessionStore.getState().hydrate();
+
+    expect(useSessionStore.getState().status).toBe("authenticated");
+    expect(useSessionStore.getState().hasInvite).toBe(true);
+  });
+
+  it("clears hasInvite state when clearHasInvite is called", async () => {
+    useSessionStore.setState({ status: "authenticated", hasInvite: true });
+
+    await useSessionStore.getState().clearHasInvite();
+
+    expect(useSessionStore.getState().hasInvite).toBe(false);
+    expect(tokenStorage.setHasInvite).toHaveBeenCalledWith(false);
   });
 
   it("triggers clearSession and sets unauthenticated when tokens are missing", async () => {

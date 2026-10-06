@@ -54,6 +54,7 @@ function SignInScreen() {
         const e = error as ApiError;
         // If code is invite accepted, log the user in
         if (e.code === "INVITE_ALREADY_ACCEPTED") {
+          await useSessionStore.getState().clearHasInvite();
           router.replace("/(tabs)/(campus)");
           return;
         } else if (e.code === "INVITE_ALREADY_DECLINED") {

@@ -24,16 +24,23 @@ describe("Index", () => {
     expect(screen.getByText("redirect:/SignIn")).toBeTruthy();
   });
 
-  it("redirects to campus tabs when authenticated", async () => {
-    useSessionStore.setState({ status: "authenticated" });
+  it("redirects to campus tabs when authenticated without pending invite", async () => {
+    useSessionStore.setState({ status: "authenticated", hasInvite: false });
     await render(<Index />);
 
     expect(screen.getByText("redirect:/(tabs)/(campus)")).toBeTruthy();
   });
 
+  it("redirects to CreatePassword when authenticated with pending invite", async () => {
+    useSessionStore.setState({ status: "authenticated", hasInvite: true });
+    await render(<Index />);
+
+    expect(screen.getByText("redirect:/(auth)/CreatePassword")).toBeTruthy();
+  });
+
   it("renders null and does not redirect while status is loading", async () => {
     useSessionStore.setState({ status: "loading" });
-    const { toJSON } = render(<Index />);
+    const { toJSON } = await render(<Index />);
 
     expect(toJSON()).toBeNull();
   });

@@ -9,7 +9,10 @@ export default function Index() {
     return null;
   }
 
-  if (status === "authenticated" && !hasInvite) {
+  if (status === "authenticated") {
+    if (hasInvite) {
+      return <Redirect href="/(auth)/CreatePassword" />;
+    }
     return <Redirect href="/(tabs)/(campus)" />;
   }
 
