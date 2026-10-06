@@ -47,7 +47,7 @@ export default function InvitationScreen() {
         console.error(e);
         // If code is invite accepted, log the user in
         if (e.code === "INVITE_ALREADY_ACCEPTED") {
-          // router.replace("/(tabs)/(campus)");
+          router.replace("/(tabs)/(campus)");
           return;
         } else if (e.code === "INVITE_ALREADY_DECLINED") {
           router.replace("/InvalidInvitation");
