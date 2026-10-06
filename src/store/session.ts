@@ -1,4 +1,5 @@
 import { clearAuthTokens, getAuthTokens } from "@core/auth/tokenStorage";
+import { queryClient } from "@shared/lib/react-query";
 import { create } from "zustand";
 
 export type SessionStatus = "loading" | "authenticated" | "unauthenticated";
@@ -39,6 +40,13 @@ export const useSessionStore = create<SessionStore>((set) => ({
   },
 
   clearSession: async () => {
+    try {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+    } catch (error) {
+      console.error("Failed to cancel queries or clear cache:", error);
+    }
+
     try {
       await clearAuthTokens();
     } catch (error) {
