@@ -38,10 +38,10 @@ describe("Index", () => {
     expect(screen.getByText("redirect:/(auth)/CreatePassword")).toBeTruthy();
   });
 
-  it("renders null and does not redirect while status is loading", async () => {
+  it("redirects to SignIn while status is loading so the loader mounts", async () => {
     useSessionStore.setState({ status: "loading" });
-    const { toJSON } = await render(<Index />);
+    await render(<Index />);
 
-    expect(toJSON()).toBeNull();
+    expect(screen.getByText("redirect:/SignIn")).toBeTruthy();
   });
 });

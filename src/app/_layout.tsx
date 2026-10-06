@@ -28,11 +28,18 @@ registerSessionExpirationHandler((reason) => {
 
 export default function RootLayout() {
   const contentStyle = useResolveClassNames("bg-bg-band");
+  const status = useSessionStore((state) => state.status);
+  const hasInvite = useSessionStore((state) => state.hasInvite);
   const hydrate = useSessionStore((state) => state.hydrate);
 
   React.useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  const isReady = status !== "loading";
+  const canAccessAuth =
+    status === "loading" || status === "unauthenticated" || hasInvite;
+  const canAccessApp = isReady && status === "authenticated" && !hasInvite;
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -45,7 +52,14 @@ export default function RootLayout() {
               contentStyle,
               animation: "fade",
             }}
-          />
+          >
+            <Stack.Protected guard={canAccessAuth}>
+              <Stack.Screen name="(auth)" />
+            </Stack.Protected>
+            <Stack.Protected guard={canAccessApp}>
+              <Stack.Screen name="(tabs)" />
+            </Stack.Protected>
+          </Stack>
           <Toast />
         </KeyboardProvider>
       </SafeAreaProvider>
