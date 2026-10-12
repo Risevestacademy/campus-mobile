@@ -5,7 +5,7 @@ import { CampusHeader, HappeningAroundYou, Spaces } from "../components";
 
 export function CampusScreen() {
   return (
-    <SafeArea className="p-0" edges={[]}>
+    <SafeArea className="bg-bg-band p-0">
       <CampusHeader />
       <ScrollView
         contentContainerClassName="py-5 gap-5"

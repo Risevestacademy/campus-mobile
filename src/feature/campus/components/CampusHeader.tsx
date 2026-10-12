@@ -59,3 +59,23 @@ export function CampusHeader() {
     </View>
   );
 }
+
+const IconOverlay = ({
+  children,
+  badge,
+}: {
+  children: React.ReactNode;
+  badge?: number;
+}) => (
+  <View className="size-11 items-center justify-center rounded-full bg-overlay-white-15">
+    {children}
+
+    {badge && (
+      <View className="absolute -top-1 right-px h-4.5 items-center justify-center rounded-full bg-action-accent px-1">
+        <Text variant="overline" className="text-text-on-accent">
+          {badge}
+        </Text>
+      </View>
+    )}
+  </View>
+);
