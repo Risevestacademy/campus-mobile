@@ -1,6 +1,6 @@
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { BottomSheet } from "@shared/components";
-import { Button, Row, Text } from "@shared/components/atoms";
+import { Button, MultiAvatar, Row, Text } from "@shared/components/atoms";
 import { AudioLines, MicOff, VideoOff } from "lucide-react-native";
 import React from "react";
 import { View } from "react-native";
@@ -13,7 +13,9 @@ export type MeetingJoinData = {
   meetingId: string;
   title: string;
   hostName?: string;
+  location: string;
   startsAt?: Date;
+  participants: { imageUrl?: string; name: string }[];
 };
 
 type MeetingJoinContextValue = {
@@ -58,7 +60,7 @@ export function MeetingJoinProvider({
       {children}
       <BottomSheet ref={ref} onDismiss={handleDismiss}>
         {/* the ui is set based on the  */}
-        {data && <MeetingJoinView onClose={close} />}
+        {data && <MeetingJoinView data={data} onClose={close} />}
       </BottomSheet>
     </MeetingJoinModalContext.Provider>
   );
@@ -78,10 +80,40 @@ function IconRow({ text, icon }: { text: string; icon: typeof StyledMicOff }) {
   );
 }
 
-function MeetingJoinView({ onClose }: { onClose?: () => void }) {
+function MeetingJoinView({
+  data,
+  onClose,
+}: {
+  onClose?: () => void;
+  data: MeetingJoinData;
+}) {
   return (
     <View className="gap-4">
-      <View className="gap-3 rounded-xl bg-bg-ink-card p-4 dark:border dark:border-bg-raised-cool"></View>
+      <View className="gap-3 rounded-xl bg-bg-ink-card p-4 dark:border dark:border-bg-raised-cool">
+        <Row gap="sm">
+          <MultiAvatar
+            size={40}
+            placeholderClassName="text-text-on-dark font-h6 text-[18px]"
+            ringClassName="border-text-on-accent"
+            participants={data.participants.map((e) => ({
+              placeholder: e.name[0],
+              imageUrl: e.imageUrl,
+            }))}
+          />
+          <View>
+            <Text>{data.title}</Text>
+            <Row>
+              <StyledAudioLines
+                colorClassName="accent-text-turquoise-bright"
+                size={14}
+              />
+              <Text className="text-text-turquoise-bright" variant="caption">
+                {data.location}
+              </Text>
+            </Row>
+          </View>
+        </Row>
+      </View>
       <View className="gap-2">
         <IconRow
           text={"You join muted. Unmute when you’re ready."}

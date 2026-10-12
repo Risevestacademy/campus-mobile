@@ -52,7 +52,7 @@ export function CampusHeader() {
           size={14}
         />
         <Text variant="body-sm" className="text-text-rail">
-          You’re at your desk{" "}
+          You’re at your desk
         </Text>
       </View>
       <LiveMeeting />

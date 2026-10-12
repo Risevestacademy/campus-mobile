@@ -4,6 +4,7 @@ export * from "./Button";
 export * from "./Card";
 export * from "./Divider";
 export * from "./Modal";
+export * from "./MultiAvatar";
 export * from "./Pill";
 export * from "./Row";
 export * from "./StatusDot";

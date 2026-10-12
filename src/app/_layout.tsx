@@ -4,6 +4,7 @@ import { registerSessionExpirationHandler } from "@core/api";
 import config from "@core/config";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Toast } from "@shared/components/atoms";
+import { MeetingJoinProvider } from "@shared/hooks/ui/useMeetingJoin";
 import { queryClient } from "@shared/lib/react-query";
 import { useSessionStore } from "@store/session";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -48,24 +49,26 @@ export default function RootLayout() {
       <SafeAreaProvider style={{ flex: 1 }}>
         <GestureHandlerRootView>
           <BottomSheetModalProvider>
-            <KeyboardProvider>
-              <StatusBar style={"dark"} />
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle,
-                  animation: "fade",
-                }}
-              >
-                <Stack.Protected guard={canAccessAuth}>
-                  <Stack.Screen name="(auth)" />
-                </Stack.Protected>
-                <Stack.Protected guard={canAccessApp}>
-                  <Stack.Screen name="(tabs)" />
-                </Stack.Protected>
-              </Stack>
-              <Toast />
-            </KeyboardProvider>
+            <MeetingJoinProvider>
+              <KeyboardProvider>
+                <StatusBar style={"dark"} />
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle,
+                    animation: "fade",
+                  }}
+                >
+                  <Stack.Protected guard={canAccessAuth}>
+                    <Stack.Screen name="(auth)" />
+                  </Stack.Protected>
+                  <Stack.Protected guard={canAccessApp}>
+                    <Stack.Screen name="(tabs)" />
+                  </Stack.Protected>
+                </Stack>
+                <Toast />
+              </KeyboardProvider>
+            </MeetingJoinProvider>
           </BottomSheetModalProvider>
         </GestureHandlerRootView>
       </SafeAreaProvider>
