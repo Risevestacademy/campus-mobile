@@ -1,6 +1,7 @@
 import { Avatar, Text } from "@shared/components/atoms";
 import { Skeleton } from "@shared/components/Skeleton";
 import { useMe } from "@shared/hooks/useMe";
+import { MessageCircleWarning, SearchIcon } from "lucide-react-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -37,7 +38,35 @@ export function CampusHeader() {
             <ActivityToggle />
           </Skeleton>
         </View>
+        <View className="flex grow flex-row gap-3">
+          <IconOverlay>
+            <SearchIcon width={20} height={20} color="#F7F7F7" />
+          </IconOverlay>
+          <IconOverlay>
+            <MessageCircleWarning height={20} width={20} color="#F7F7F7" />
+          </IconOverlay>
+        </View>
       </View>
     </View>
   );
 }
+
+const IconOverlay = ({
+  children,
+  badge,
+}: {
+  children: React.ReactNode;
+  badge?: number;
+}) => (
+  <View className="size-11 items-center justify-center rounded-full bg-overlay-white-15">
+    {children}
+
+    {badge && (
+      <View className="absolute -top-1 right-px h-4.5 items-center justify-center rounded-full bg-action-accent px-1">
+        <Text variant="overline" className="text-text-on-accent">
+          {badge}
+        </Text>
+      </View>
+    )}
+  </View>
+);
