@@ -1,3 +1,4 @@
-export { HappeningAroundYou } from "./AroundYou";
-export { CampusHeader } from "./CampusHeader";
-export { Spaces } from "./Spaces";
+export * from "./AroundYou";
+export * from "./CampusHeader";
+export * from "./Spaces";
+export * from "./SpacesListView";
