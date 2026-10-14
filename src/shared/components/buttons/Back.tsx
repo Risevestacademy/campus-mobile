@@ -17,7 +17,7 @@ export function Back() {
   return (
     <Pressable
       onPress={back}
-      className="size-10 bg-overlay-white-50/50 dark:bg-overlay-white-15/14"
+      className="size-10 items-center justify-center rounded-full bg-overlay-white-50/50 dark:bg-overlay-white-15/40"
     >
       <StyledChevronLeft colorClassName="accent-text-primary" />
     </Pressable>

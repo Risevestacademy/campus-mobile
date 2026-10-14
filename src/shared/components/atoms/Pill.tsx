@@ -51,12 +51,12 @@ export const pillContainerVariants = cva(
       {
         color: "brand",
         variant: "solid",
-        className: "bg-action-primary rounded-full",
+        className: "bg-bg-card rounded-full",
       },
       {
         color: "brand",
         variant: "subtle",
-        className: "bg-bg-hover",
+        className: "bg-overlay-white-15",
       },
 
       // Warning
@@ -128,8 +128,8 @@ export const pillTextVariants = cva("font-label text-center", {
     { color: "neutral", variant: "subtle", className: "text-text-secondary" },
 
     // Brand
-    { color: "brand", variant: "solid", className: "text-text-on-dark" },
-    { color: "brand", variant: "subtle", className: "text-text-brand" },
+    { color: "brand", variant: "solid", className: "text-text-brand" },
+    { color: "brand", variant: "subtle", className: "text-text-on-dark" },
 
     // Warning
     {
