@@ -7,6 +7,9 @@ module.exports = {
     "^@design-system/(.*)$": "<rootDir>/src/design-system/$1",
     "^@features/(.*)$": "<rootDir>/src/feature/$1",
     "^@shared/(.*)$": "<rootDir>/src/shared/$1",
+    // Jest resolves the ESM "react-native" export condition, which it can't parse.
+    "^lucide-react-native$":
+      "<rootDir>/node_modules/lucide-react-native/dist/cjs/lucide-react-native.js",
   },
   preset: "jest-expo",
   testMatch: [
@@ -14,7 +17,7 @@ module.exports = {
     "<rootDir>/tests/**/*.test.{ts,tsx}",
   ],
   transformIgnorePatterns: [
-    "node_modules/(?!(?:.pnpm/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|uniwind|phosphor-react-native))",
+    "node_modules/(?!(?:.pnpm/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|uniwind|phosphor-react-native|moti))",
   ],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
 };
