@@ -26,7 +26,7 @@ export class AuthService {
         accessExpiresAt: data.expiresAt,
         refreshExpiresAt: data.refreshExpiresAt,
       });
-      useSessionStore.getState().setAuthenticated(data.inviteId !== null);
+      void useSessionStore.getState().setAuthenticated(data.inviteId !== null);
     }
 
     return data;
