@@ -1,5 +1,5 @@
 import { SpaceInfoScreen } from "@features/campus";
 
-export function SpaceIndex() {
+export default function SpaceIndex() {
   return <SpaceInfoScreen />;
 }

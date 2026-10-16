@@ -1,11 +1,12 @@
 import { Card, Divider, Row, Text } from "@shared/components/atoms";
-import { ChevronRight, User } from "lucide-react-native";
+import { ChevronRight, DoorClosed, User } from "lucide-react-native";
 import React from "react";
 import { FlatList, View } from "react-native";
 import { withUniwind } from "uniwind";
 
 const StyledChevronRight = withUniwind(ChevronRight);
 const StyledUser = withUniwind(User);
+const StyledDoorClosed = withUniwind(DoorClosed);
 
 const SECTION_CONFIG: Record<
   SpaceType,
@@ -80,7 +81,10 @@ function SpaceSeperatedCard({
                   {e.participants}
                 </Text>
               </View>
-              <StyledChevronRight colorClassName="accent-text-muted" />
+              <StyledChevronRight
+                colorClassName="accent-text-muted"
+                size={16}
+              />
             </Row>
           )}
         />
@@ -115,6 +119,15 @@ export function SpacesListView({ data }: SpacesListViewProps) {
       contentContainerClassName="pb-10"
       ListEmptyComponent={() => <View></View>}
       ItemSeparatorComponent={<View className="h-3" />}
+      ListFooterComponentClassName="mt-4"
+      ListFooterComponent={
+        <Row>
+          <StyledDoorClosed colorClassName="accent-text-muted" size={14} />
+          <Text variant="caption" color="muted">
+            Tap a free room to start or schedule a meeting
+          </Text>
+        </Row>
+      }
       renderItem={({ item, index }) => {
         return (
           <SpaceSeperatedCard
