@@ -10,12 +10,12 @@ import { Space, SpacesListView } from "../components";
 
 const StyledSearch = withUniwind(Search);
 
-type FilterSlug = "all" | "live" | "availiable" | "occupied" | "open" | "quiet";
+type FilterSlug = "all" | "live" | "available" | "occupied" | "open" | "quiet";
 
 const LABELS: { text: string; slug: FilterSlug }[] = [
   { text: "All", slug: "all" },
   { text: "Live now", slug: "live" },
-  { text: "Availiable", slug: "availiable" },
+  { text: "Available", slug: "available" },
   { text: "Has people", slug: "occupied" },
   { text: "Open", slug: "open" },
   { text: "Quiet", slug: "quiet" },

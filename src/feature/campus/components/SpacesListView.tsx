@@ -1,4 +1,5 @@
 import { Card, Divider, Row, Text } from "@shared/components/atoms";
+import { cn } from "@shared/utils/style";
 import { ChevronRight, DoorClosed, User } from "lucide-react-native";
 import React from "react";
 import { FlatList, View } from "react-native";
@@ -49,7 +50,7 @@ function SpaceSeperatedCard({
   return (
     <View className="gap-3">
       <Row>
-        <View className={`size-2 rounded-full ${colorClassname}`} />
+        <View className={cn("size-2 rounded-full", colorClassname)} />
         <Text variant="overline" color="secondary">
           {title}
         </Text>
@@ -66,7 +67,7 @@ function SpaceSeperatedCard({
           data={spaces}
           renderItem={({ item: e, index: i }) => (
             <Row key={i} className="px-4 py-3">
-              <View className={`${colorClassname} h-9 w-1 rounded-full`} />
+              <View className={cn("h-9 w-1 rounded-full", colorClassname)} />
               <View className="flex-1 gap-0.5">
                 <Row>
                   <Text variant="label">{e.title}</Text>

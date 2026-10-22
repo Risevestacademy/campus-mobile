@@ -1,4 +1,5 @@
 import { Row, Text } from "@shared/components/atoms";
+import { cn } from "@shared/utils/style";
 import { ClassValue } from "clsx";
 import { Link } from "expo-router";
 import { FileText, Laptop, Presentation, UserRound } from "lucide-react-native";
@@ -28,7 +29,10 @@ export function SpaceCard({
 }: SpaceProp) {
   return (
     <View
-      className={`${bgColorClassName} flex-1 items-stretch justify-center gap-3 rounded-lg p-4 dark:bg-bg-card`}
+      className={cn(
+        "flex-1 items-stretch justify-center gap-3 rounded-lg p-4 dark:bg-bg-card",
+        bgColorClassName,
+      )}
     >
       <Row justify="between" align="center">
         <View className="size-8.5 items-center justify-center rounded-lg bg-bg-card">

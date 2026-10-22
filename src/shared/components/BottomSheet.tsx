@@ -5,6 +5,7 @@ import {
   type BottomSheetModalProps,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { cn } from "@shared/utils/style";
 import React, { forwardRef } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -42,7 +43,7 @@ export const BottomSheet = forwardRef<BottomSheetModal, SheetProps>(
         {...props}
       >
         <StyledBottomSheetView
-          className={`gap-4 px-6 ${contentClassName}`}
+          className={cn("gap-4 px-6", contentClassName)}
           style={{ paddingBottom: bottom + 8 }}
         >
           {children}

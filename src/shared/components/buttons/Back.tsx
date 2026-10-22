@@ -17,7 +17,9 @@ export function Back() {
   return (
     <Pressable
       onPress={back}
-      className="size-10 items-center justify-center rounded-full bg-overlay-white-50/50 dark:bg-overlay-white-15/40"
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+      className="size-11 items-center justify-center rounded-full bg-overlay-white-50/50 dark:bg-overlay-white-15/40"
     >
       <StyledChevronLeft colorClassName="accent-text-primary" />
     </Pressable>

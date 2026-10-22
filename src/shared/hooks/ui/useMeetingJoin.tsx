@@ -1,6 +1,7 @@
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { BottomSheet } from "@shared/components";
 import { Button, MultiAvatar, Row, Text } from "@shared/components/atoms";
+import { useRouter } from "expo-router";
 import { AudioLines, MicOff, VideoOff } from "lucide-react-native";
 import React from "react";
 import { View } from "react-native";
@@ -35,10 +36,13 @@ export function MeetingJoinProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const ref = React.useRef<BottomSheetModal>(null);
+  const joining = React.useRef(false);
   const [data, setData] = React.useState<MeetingJoinData | null>(null);
 
   const open = React.useCallback((next: MeetingJoinData) => {
+    joining.current = false;
     setData(next);
     ref.current?.present();
   }, []);
@@ -47,8 +51,25 @@ export function MeetingJoinProvider({
     ref.current?.dismiss();
   }, []);
 
+  // Guarded so a double tap during the dismiss animation can't push the room twice
+  const join = React.useCallback(
+    (meeting: MeetingJoinData) => {
+      if (joining.current) return;
+      joining.current = true;
+      ref.current?.dismiss();
+      router.push({
+        pathname: "/(tabs)/(campus)/space/[id]",
+        params: { id: meeting.meetingId },
+      });
+    },
+    [router],
+  );
+
   // Clear data after the sheet finishes closing, so content doesn't vanish mid-animation
-  const handleDismiss = React.useCallback(() => setData(null), []);
+  const handleDismiss = React.useCallback(() => {
+    joining.current = false;
+    setData(null);
+  }, []);
 
   const value = React.useMemo(
     () => ({ open, close, data }),
@@ -60,7 +81,13 @@ export function MeetingJoinProvider({
       {children}
       <BottomSheet ref={ref} onDismiss={handleDismiss}>
         {/* the ui is set based on the  */}
-        {data && <MeetingJoinView data={data} onClose={close} />}
+        {data && (
+          <MeetingJoinView
+            data={data}
+            onClose={close}
+            onJoin={() => join(data)}
+          />
+        )}
       </BottomSheet>
     </MeetingJoinModalContext.Provider>
   );
@@ -83,8 +110,10 @@ function IconRow({ text, icon }: { text: string; icon: typeof StyledMicOff }) {
 function MeetingJoinView({
   data,
   onClose,
+  onJoin,
 }: {
   onClose?: () => void;
+  onJoin?: () => void;
   data: MeetingJoinData;
 }) {
   return (
@@ -136,7 +165,7 @@ function MeetingJoinView({
             className="flex-1"
             onPress={onClose}
           />
-          <Button className="flex-1">
+          <Button className="flex-1" onPress={onJoin}>
             <StyledAudioLines colorClassName="accent-text-on-dark" size={16} />
             <Text className="text-text-on-dark">Join</Text>
           </Button>

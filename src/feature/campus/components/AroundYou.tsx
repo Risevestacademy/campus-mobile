@@ -23,7 +23,7 @@ export function HappeningAroundYou({ location }: HappeningAroundYouProps) {
 
   const showMeeting = (participant: { name: string; imageUrl?: string }[]) => {
     open({
-      meetingId: "",
+      meetingId: "main-hallway",
       title: formatParticipantPresentation(participant.map((e) => e.name)),
       hostName: "",
       startsAt: new Date(),

@@ -1,4 +1,5 @@
 import { Text } from "@shared/components/atoms";
+import { cn } from "@shared/utils/style";
 import { View } from "react-native";
 
 const PARTICIPANTS = [
@@ -26,9 +27,13 @@ export function MeetingParticipants({ sideText }: { sideText: string }) {
         {PARTICIPANTS.map(({ letter, className, textClassName }, index) => (
           <View
             key={letter}
-            className={`size-6 items-center justify-center rounded-full border-2 border-bg-card dark:border-0 ${className} ${index > 0 ? "-ml-2" : ""}`}
+            className={cn(
+              "size-6 items-center justify-center rounded-full border-2 border-bg-card dark:border-0",
+              className,
+              index > 0 && "-ml-2",
+            )}
           >
-            <Text className={`font-caption text-caption ${textClassName}`}>
+            <Text className={cn("font-caption text-caption", textClassName)}>
               {letter}
             </Text>
           </View>

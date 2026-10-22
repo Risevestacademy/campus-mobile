@@ -2,6 +2,7 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { BottomSheet } from "@shared/components";
 import { StatusDot, Text } from "@shared/components/atoms";
 import { ActivityStatus } from "@shared/types";
+import { cn } from "@shared/utils/style";
 import { ChevronRight, Clock } from "lucide-react-native";
 import { CaretDownIcon } from "phosphor-react-native";
 import React, { useRef } from "react";
@@ -112,7 +113,12 @@ function ActivitySelector({
       {options.map((e, i) => (
         <Pressable
           key={i}
-          className={`flex-row items-center gap-3 rounded-lg p-3 ${selected === e.status ? "border-[0.5px] border-status-success" : "bg-bg-raised-cool"}`}
+          className={cn(
+            "flex-row items-center gap-3 rounded-lg p-3",
+            selected === e.status
+              ? "border-[0.5px] border-status-success"
+              : "bg-bg-raised-cool",
+          )}
           onPress={() => {
             if (!onSelect) return;
             onSelect(e.status);
@@ -128,7 +134,12 @@ function ActivitySelector({
             </Text>
           </View>
           <View
-            className={`size-5 rounded-full border ${selected === e.status ? "border-[6px] border-status-success" : "border-border-strong"}`}
+            className={cn(
+              "size-5 rounded-full border",
+              selected === e.status
+                ? "border-[6px] border-status-success"
+                : "border-border-strong",
+            )}
           />
         </Pressable>
       ))}
