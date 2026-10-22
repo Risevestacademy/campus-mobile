@@ -4,23 +4,30 @@ import { withUniwind } from "uniwind";
 
 import { Text } from "./Text";
 
-type AvatarProps = {
+export type AvatarProps = {
   size?: number;
   imageUrl?: string;
   bg?: string;
   placeholder?: string;
+  placeholderClassName?: string;
 };
 
 const StyledUserIcon = withUniwind(UserIcon);
 
-export function Avatar({ size = 40, imageUrl, bg, placeholder }: AvatarProps) {
+export function Avatar({
+  size = 40,
+  imageUrl,
+  bg,
+  placeholder,
+  placeholderClassName,
+}: AvatarProps) {
   let child;
 
   if (imageUrl) {
     child = <Image source={{ uri: imageUrl }} className="h-full w-full" />;
   } else if (placeholder) {
     child = (
-      <Text variant="overline" color="inverse">
+      <Text variant="overline" color="inverse" className={placeholderClassName}>
         {placeholder}
       </Text>
     );

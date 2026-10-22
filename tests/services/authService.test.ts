@@ -5,6 +5,8 @@ import {
   saveAuthTokens,
 } from "@core/auth/tokenStorage";
 import { AuthService } from "@services/auth";
+import { useSessionStore } from "@store/session";
+import { waitFor } from "@testing-library/react-native";
 import { GoogleOneTapSignIn } from "react-native-nitro-google-signin";
 
 describe("AuthService", () => {
@@ -39,6 +41,42 @@ describe("AuthService", () => {
       const storedTokens = await getAuthTokens();
       expect(storedTokens?.accessToken).toBe("google-access-token");
       expect(storedTokens?.refreshToken).toBe("google-refresh-token");
+    });
+  });
+
+  describe("signInWithGoogle session state", () => {
+    it("does not resolve until the session is marked authenticated", async () => {
+      useSessionStore.setState({ status: "unauthenticated", hasInvite: false });
+      let finishSetAuthenticated!: () => void;
+      const setAuthenticated = jest.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finishSetAuthenticated = resolve;
+          }),
+      );
+      useSessionStore.setState({ setAuthenticated });
+
+      jest.spyOn(client, "POST").mockResolvedValueOnce({
+        data: {
+          accessToken: "acc",
+          refreshToken: "ref",
+          inviteId: "invite-1",
+        },
+        response: new Response(),
+      } as unknown as ReturnType<typeof client.POST>);
+
+      let settled = false;
+      const pending = AuthService.signInWithGoogle("id-token").then(() => {
+        settled = true;
+      });
+
+      await waitFor(() => expect(setAuthenticated).toHaveBeenCalledWith(true));
+      await Promise.resolve();
+      expect(settled).toBe(false);
+
+      finishSetAuthenticated();
+      await pending;
+      expect(settled).toBe(true);
     });
   });
 
