@@ -9,7 +9,7 @@ export function Back() {
   const router = useRouter();
 
   const back = () => {
-    if (!router.canGoBack) return;
+    if (!router.canGoBack()) return;
 
     router.back();
   };

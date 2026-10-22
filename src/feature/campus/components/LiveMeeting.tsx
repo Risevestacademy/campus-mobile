@@ -43,11 +43,7 @@ export function LiveMeeting() {
           variant="secondary"
           onPress={goToDetails}
         />
-        <Button
-          className="flex-1"
-          onPress={showMeeting}
-          onPressIn={showMeeting}
-        >
+        <Button className="flex-1" onPress={showMeeting}>
           <StyledVideo colorClassName="accent-text-on-dark" size={16} />
           <Text className="text-text-on-dark">Join Meeting</Text>
         </Button>
