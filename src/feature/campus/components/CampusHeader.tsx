@@ -1,11 +1,15 @@
 import { Avatar, Text } from "@shared/components/atoms";
 import { Skeleton } from "@shared/components/Skeleton";
 import { useMe } from "@shared/hooks/useMe";
-import { MessageCircleWarning, SearchIcon } from "lucide-react-native";
+import { Navigation } from "lucide-react-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { withUniwind } from "uniwind";
 
 import { ActivityToggle } from "./ActivityToggle";
+import { LiveMeeting } from "./LiveMeeting";
+
+const StyledNavigation = withUniwind(Navigation);
 
 export function CampusHeader() {
   const { top } = useSafeAreaInsets();
@@ -47,6 +51,19 @@ export function CampusHeader() {
           </IconOverlay>
         </View>
       </View>
+      <Text variant="h3" className="pt-7 text-action-accent">
+        18 people on campus now
+      </Text>
+      <View className="flex-row items-center gap-1 pt-1 pb-4">
+        <StyledNavigation
+          colorClassName="accent-text-turquoise-fixed"
+          size={14}
+        />
+        <Text variant="body-sm" className="text-text-rail">
+          You’re at your desk
+        </Text>
+      </View>
+      <LiveMeeting />
     </View>
   );
 }

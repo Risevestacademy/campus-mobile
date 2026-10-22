@@ -3,6 +3,7 @@ import { ScrollView, View } from "react-native";
 import { Avatar } from "./Avatar";
 import { Button } from "./Button";
 import { Divider } from "./Divider";
+import { MultiAvatar } from "./MultiAvatar";
 import { Pill } from "./Pill";
 import { StatusDot } from "./StatusDot";
 import { Text } from "./Text";
@@ -109,6 +110,29 @@ export function AtomsPreview() {
               Image
             </Text>
           </View>
+        </View>
+        <View className="mt-4 gap-3">
+          <MultiAvatar
+            size={40}
+            participants={[
+              { imageUrl: "https://picsum.photos/id/64/200" },
+              { placeholder: "AO", bg: "#2AADA0" },
+              { imageUrl: "https://picsum.photos/id/65/200" },
+              { placeholder: "JA" },
+            ]}
+          />
+          <MultiAvatar
+            size={32}
+            overlap={14}
+            max={3}
+            participants={[
+              { placeholder: "AO" },
+              { placeholder: "JA", bg: "#2AADA0" },
+              { imageUrl: "https://picsum.photos/id/66/200" },
+              { placeholder: "TK" },
+              { placeholder: "MB" },
+            ]}
+          />
         </View>
       </Section>
 
