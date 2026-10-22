@@ -1,5 +1,13 @@
+import { cn } from "@shared/utils/style";
+import { ClassValue } from "clsx";
 import { View } from "react-native";
 
-export function Divider() {
-  return <View className="h-px w-full bg-bg-raised-cool" />;
+type DividerProp = {
+  dividerBgClassName?: ClassValue;
+};
+
+export function Divider({
+  dividerBgClassName = "bg-bg-raised-cool dark:bg-bg-ink-divider",
+}: DividerProp) {
+  return <View className={cn(`h-px w-full`, dividerBgClassName)} />;
 }

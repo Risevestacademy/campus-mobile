@@ -43,6 +43,7 @@ jest.mock("expo-router", () => {
   MockStack.Protected = MockProtected;
 
   return {
+    useRouter: () => ({ push: jest.fn() }),
     Stack: MockStack,
   };
 });
