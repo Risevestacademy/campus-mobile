@@ -1,5 +1,5 @@
-import { View } from "react-native";
+import { ProfileScreen } from "@features/profile";
 
 export default function ProfileIndex() {
-  return <View></View>;
+  return <ProfileScreen />;
 }
