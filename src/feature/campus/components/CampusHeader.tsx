@@ -1,12 +1,11 @@
+import { ActivityToggle, Skeleton } from "@shared/components";
 import { Avatar, Text } from "@shared/components/atoms";
-import { Skeleton } from "@shared/components/Skeleton";
 import { useMe } from "@shared/hooks/useMe";
 import { Navigation } from "lucide-react-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
-import { ActivityToggle } from "./ActivityToggle";
 import { LiveMeeting } from "./LiveMeeting";
 
 const StyledNavigation = withUniwind(Navigation);

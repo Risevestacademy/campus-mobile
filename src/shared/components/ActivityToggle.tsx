@@ -1,5 +1,4 @@
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { BottomSheet } from "@shared/components";
 import { StatusDot, Text } from "@shared/components/atoms";
 import { ActivityStatus } from "@shared/types";
 import { cn } from "@shared/utils/style";
@@ -8,6 +7,8 @@ import { CaretDownIcon } from "phosphor-react-native";
 import React, { useRef } from "react";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
+
+import { BottomSheet } from "./BottomSheet";
 
 const options = [
   {
@@ -40,7 +41,17 @@ const StyledChevronDown = withUniwind(CaretDownIcon);
 const StyledChevronRight = withUniwind(ChevronRight);
 const StyledClock = withUniwind(Clock);
 
-export function ActivityToggle() {
+type ActivityToggleProps = {
+  containerClassName?: string;
+  textClassName?: string;
+  iconColorClassName?: string;
+};
+
+export function ActivityToggle({
+  containerClassName,
+  textClassName,
+  iconColorClassName = "accent-text-on-dark",
+}: ActivityToggleProps) {
   const [activity, setActivity] = React.useState<ActivityStatus>("online");
   const selectedOption = options.find((e) => e.status === activity);
 
@@ -55,15 +66,21 @@ export function ActivityToggle() {
   return (
     <>
       <Pressable
-        className="flex-row items-center gap-1 rounded-full bg-overlay-white-15 px-3 py-0.5"
+        className={cn(
+          "flex-row items-center gap-1 rounded-full bg-overlay-white-15 px-3 py-0.5",
+          containerClassName,
+        )}
         onPress={show}
       >
         <StatusDot status={selectedOption?.status} />
-        <Text className="text-text-on-dark" variant="label">
+        <Text
+          className={cn("flex-1 text-text-on-dark", textClassName)}
+          variant="label"
+        >
           {selectedOption?.short}
         </Text>
         <StyledChevronDown
-          colorClassName="accent-text-on-dark"
+          colorClassName={iconColorClassName}
           size={10}
           weight="bold"
         />
