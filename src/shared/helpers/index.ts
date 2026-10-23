@@ -1,2 +1,2 @@
-export { default as getInitials } from "./getInitials";
 export * from "./meetings";
+export * from "./strings";
