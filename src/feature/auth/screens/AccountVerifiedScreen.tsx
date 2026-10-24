@@ -41,7 +41,7 @@ export default function AccountVerifiedScreen() {
       <View className="gap-4 py-2">
         <Button
           label="Go to Campus"
-          onPress={() => router.push("/(tabs)/(campus)")}
+          onPress={() => router.push("/(app)/(tabs)/(campus)")}
         />
         <Button
           label="View your profile"

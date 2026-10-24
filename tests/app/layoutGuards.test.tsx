@@ -59,45 +59,45 @@ describe("RootLayout Protected Route Guards", () => {
     useSessionStore.setState({ status: "loading", hasInvite: false });
   });
 
-  it("allows access to (auth) with loading state and blocks (tabs) while hydration is in progress", async () => {
+  it("allows access to (auth) with loading state and blocks (app) while hydration is in progress", async () => {
     useSessionStore.setState({ status: "loading", hasInvite: false });
     await render(<RootLayout />);
 
     const authCall = mockProtectedCalls.find((c) => c.name === "(auth)");
-    const appCall = mockProtectedCalls.find((c) => c.name === "(tabs)");
+    const appCall = mockProtectedCalls.find((c) => c.name === "(app)");
 
     expect(authCall?.guard).toBe(true);
     expect(appCall?.guard).toBe(false);
   });
 
-  it("allows access to (auth) and disallows (tabs) when unauthenticated", async () => {
+  it("allows access to (auth) and disallows (app) when unauthenticated", async () => {
     useSessionStore.setState({ status: "unauthenticated", hasInvite: false });
     await render(<RootLayout />);
 
     const authCall = mockProtectedCalls.find((c) => c.name === "(auth)");
-    const appCall = mockProtectedCalls.find((c) => c.name === "(tabs)");
+    const appCall = mockProtectedCalls.find((c) => c.name === "(app)");
 
     expect(authCall?.guard).toBe(true);
     expect(appCall?.guard).toBe(false);
   });
 
-  it("allows access to (auth) and disallows (tabs) when authenticated with pending invite", async () => {
+  it("allows access to (auth) and disallows (app) when authenticated with pending invite", async () => {
     useSessionStore.setState({ status: "authenticated", hasInvite: true });
     await render(<RootLayout />);
 
     const authCall = mockProtectedCalls.find((c) => c.name === "(auth)");
-    const appCall = mockProtectedCalls.find((c) => c.name === "(tabs)");
+    const appCall = mockProtectedCalls.find((c) => c.name === "(app)");
 
     expect(authCall?.guard).toBe(true);
     expect(appCall?.guard).toBe(false);
   });
 
-  it("allows access to (tabs) and disallows (auth) when authenticated with accepted invite", async () => {
+  it("allows access to (app) and disallows (auth) when authenticated with accepted invite", async () => {
     useSessionStore.setState({ status: "authenticated", hasInvite: false });
     await render(<RootLayout />);
 
     const authCall = mockProtectedCalls.find((c) => c.name === "(auth)");
-    const appCall = mockProtectedCalls.find((c) => c.name === "(tabs)");
+    const appCall = mockProtectedCalls.find((c) => c.name === "(app)");
 
     expect(authCall?.guard).toBe(false);
     expect(appCall?.guard).toBe(true);

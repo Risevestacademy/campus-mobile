@@ -85,7 +85,7 @@ export function Spaces() {
       <Row justify="between">
         <Text variant="h5">Spaces</Text>
         {spaces.length > 0 && (
-          <Link asChild href="/(tabs)/(campus)/spaces">
+          <Link asChild href="/(app)/(tabs)/(campus)/spaces">
             <Text color="link" variant="label">
               See all {spaces.length}
             </Text>

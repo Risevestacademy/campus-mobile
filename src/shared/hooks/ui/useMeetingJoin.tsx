@@ -58,7 +58,7 @@ export function MeetingJoinProvider({
       joining.current = true;
       ref.current?.dismiss();
       router.push({
-        pathname: "/(tabs)/(campus)/space/[id]",
+        pathname: "/(app)/(tabs)/(campus)/space/[id]",
         params: { id: meeting.meetingId },
       });
     },
