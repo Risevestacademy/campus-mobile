@@ -16,13 +16,15 @@ export class ProfileService {
     return unwrap<ProfileGetResponse>(client.GET("/v1/users/me"));
   }
 
-  async updateProfile(data?: ProfileUpdateDto): Promise<ProfileUpdateResponse> {
+  static async updateProfile(
+    data?: ProfileUpdateDto,
+  ): Promise<ProfileUpdateResponse> {
     return unwrap<ProfileUpdateResponse>(
       client.PATCH("/v1/users/me", { body: data ?? {} }),
     );
   }
 
-  async viewMemberProfile(id: string): Promise<ProfileViewResponse> {
+  static async viewMemberProfile(id: string): Promise<ProfileViewResponse> {
     return unwrap<ProfileViewResponse>(
       client.GET("/v1/users/{id}/profile", { params: { path: { id } } }),
     );

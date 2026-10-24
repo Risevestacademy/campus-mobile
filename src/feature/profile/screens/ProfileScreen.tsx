@@ -1,24 +1,34 @@
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
+import { useAppearanceStore } from "@store/appearance";
 import {
   Armchair,
   Bell,
   FileText,
   Lock,
   Mic,
-  Moon,
   UserRound,
 } from "lucide-react-native";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { FlatList, ScrollView, View } from "react-native";
+import { useUniwind } from "uniwind";
 
 import {
+  appearanceIcon,
+  AppearanceSheet,
+  appearanceSubtitle,
   DefaultHeader,
   ProfilePinnedProject,
   ProfileSeparatedCard,
 } from "../components";
+import { Project } from "../types";
 
 export function ProfileScreen() {
+  const appearanceSheetRef = useRef<BottomSheetModal>(null);
+  const { theme } = useUniwind();
+  const appearance = useAppearanceStore((state) => state.preference);
+
   const DESK = useMemo(
     () => [
       {
@@ -55,13 +65,14 @@ export function ProfileScreen() {
       },
       {
         title: "Appearance",
-        subtitle: "System",
-        icon: Moon,
+        subtitle: appearanceSubtitle(appearance, theme),
+        icon: appearanceIcon(theme),
+        onPress: () => appearanceSheetRef.current?.present(),
       },
     ],
-    [],
+    [appearance, theme],
   );
-  const projects = [
+  const projects: Omit<Project, "description" | "isPinned">[] = [
     {
       title: "Campus onboarding redesign",
       statusText: "Now: reworking the sign-in screens",
@@ -127,6 +138,7 @@ export function ProfileScreen() {
           <ProfileSeparatedCard data={SETTINGS} />
         </View>
       </ScrollView>
+      <AppearanceSheet ref={appearanceSheetRef} />
     </SafeArea>
   );
 }

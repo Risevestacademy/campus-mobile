@@ -5,27 +5,14 @@ import { ComponentProps } from "react";
 import { View } from "react-native";
 import { withUniwind } from "uniwind";
 
+import type { Project, ProjectLinkType } from "../types";
+
 const StyledPenTool = withUniwind(PenTool);
 const StyledCode = withUniwind(Code);
 const StyledLink = withUniwind(Link);
 const StyledFileText = withUniwind(FileText);
 const StyledClock = withUniwind(Clock);
 const StyledPin = withUniwind(Pin);
-
-type ProjectLinkType = "design" | "repo" | "demo" | "docs";
-
-type ProjectLink = {
-  link: string;
-  type: ProjectLinkType;
-};
-
-type Project = {
-  title: string;
-  description: string;
-  statusText: string;
-  links: ProjectLink[];
-  isPinned: boolean;
-};
 
 type IconType = ComponentProps<typeof StyledLink> & {
   linkType?: ProjectLinkType;

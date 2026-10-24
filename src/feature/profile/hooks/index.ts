@@ -1,5 +1,5 @@
 import { ProfileService } from "@services/profile";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 export function useProfile() {
   const { data, isLoading, refetch, isRefetching, error } = useQuery({
@@ -8,4 +8,12 @@ export function useProfile() {
   });
 
   return { data, isLoading, refetch, isRefetching, error };
+}
+
+export function useUpdateProfile() {
+  const { mutateAsync: update, isPending: isUpdating } = useMutation({
+    mutationFn: ProfileService.updateProfile,
+  });
+
+  return { update, isUpdating };
 }
