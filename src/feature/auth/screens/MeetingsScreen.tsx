@@ -75,7 +75,7 @@ export default function MeetingsScreen() {
       <View className="py-2">
         <Button
           label="Enter App"
-          onPress={() => router.replace("/(tabs)/(campus)")}
+          onPress={() => router.replace("/(app)/(tabs)/(campus)")}
         />
       </View>
     </SafeArea>

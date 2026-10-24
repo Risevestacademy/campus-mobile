@@ -6,6 +6,7 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Toast } from "@shared/components/atoms";
 import { MeetingJoinProvider } from "@shared/hooks/ui/useMeetingJoin";
 import { queryClient } from "@shared/lib/react-query";
+import { useAppearanceStore } from "@store/appearance";
 import { useSessionStore } from "@store/session";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -40,6 +41,7 @@ export default function RootLayout() {
 
   React.useEffect(() => {
     void hydrate();
+    void useAppearanceStore.getState().hydrate();
   }, [hydrate]);
 
   const isReady = status !== "loading";
@@ -71,7 +73,7 @@ export default function RootLayout() {
                       <Stack.Screen name="(auth)" />
                     </Stack.Protected>
                     <Stack.Protected guard={canAccessApp}>
-                      <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="(app)" />
                     </Stack.Protected>
                   </Stack>
                   <Toast />

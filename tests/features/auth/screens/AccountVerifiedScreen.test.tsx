@@ -29,7 +29,7 @@ describe("AccountVerifiedScreen", () => {
 
     await fireEvent.press(screen.getByText("Go to Campus"));
 
-    expect(mockPush).toHaveBeenCalledWith("/(tabs)/(campus)");
+    expect(mockPush).toHaveBeenCalledWith("/(app)/(tabs)/(campus)");
   });
 
   it("navigates to SetupProfile when View your profile is pressed", async () => {

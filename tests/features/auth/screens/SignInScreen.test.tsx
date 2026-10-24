@@ -94,7 +94,7 @@ describe("SignInScreen", () => {
     await fireEvent.press(screen.getByText("Continue with Google"));
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/(tabs)/(campus)");
+      expect(mockReplace).toHaveBeenCalledWith("/(app)/(tabs)/(campus)");
     });
   });
 
@@ -118,7 +118,7 @@ describe("SignInScreen", () => {
     await fireEvent.press(screen.getByText("Continue with Google"));
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/(tabs)/(campus)");
+      expect(mockReplace).toHaveBeenCalledWith("/(app)/(tabs)/(campus)");
     });
   });
 
