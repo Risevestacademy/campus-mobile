@@ -73,7 +73,7 @@ export default function RootLayout() {
                       <Stack.Screen name="(auth)" />
                     </Stack.Protected>
                     <Stack.Protected guard={canAccessApp}>
-                      <Stack.Screen name="(app)" />
+                      <Stack.Screen name="(app)/(tabs)" />
                     </Stack.Protected>
                   </Stack>
                   <Toast />
