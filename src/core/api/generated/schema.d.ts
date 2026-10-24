@@ -305,7 +305,7 @@ export interface paths {
     };
     /**
      * Validate the invite the signed-in account has to answer
-     * @description For a provisional session, the invite it was issued for. For a full-access session — a member, who can be invited to another cohort — the pending invite addressed to the account. Confirms it is addressed to the signed-in account and returns it only while it is still live. Takes no body: the session identifies both the invite and the caller, so nobody can read someone else's offer. Returns 200 only for a live invite, so the decision screen can be rendered as-is. Not a re-send of the admin create-receipt: the token, the shareable link and mentorshipGroupId (no MENTORSHIP_GROUPS table) are withheld. The address under `invitee` is the signed-in account's own, read from its USERS row — the same string as the invited address, because the two must match to get this far. Note this read is not free of writes — a lapsed-but-still-pending invite has its status materialised here, which is what makes the following 403 truthful.
+     * @description For a provisional session, the invite it was issued for. For a full-access session — a member, who can be invited to another cohort — the pending invite addressed to the account. Confirms it is addressed to the signed-in account and returns it only while it is still live. Takes no body: the session identifies both the invite and the caller, so nobody can read someone else's offer. Returns 200 only for a live invite, so the decision screen can be rendered as-is. Not a re-send of the admin create-receipt: the token, the shareable link and mentorshipGroupId are withheld. The address under `invitee` is the signed-in account's own, read from its USERS row — the same string as the invited address, because the two must match to get this far. Note this read is not free of writes — a lapsed-but-still-pending invite has its status materialised here, which is what makes the following 403 truthful.
      */
     get: operations["InvitesController_validateUserInvite"];
     put?: never;
@@ -450,7 +450,7 @@ export interface paths {
     post?: never;
     /**
      * Delete a cohort (admin only)
-     * @description Removes a cohort with nothing attached to it. A cohort that still has tracks, members or invites is refused with a 409.
+     * @description Removes a cohort with nothing attached to it. A cohort that still has tracks, members, invites or mentorship groups is refused with a 409.
      */
     delete: operations["CohortsController_remove"];
     options?: never;
@@ -716,6 +716,120 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/cohorts/{cohortId}/mentorship-groups": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List a cohort's mentorship groups (admin only)
+     * @description Every group in the cohort, by name, a page at a time, each with its mentor and all of its current students. A student who has left or whose membership ended is not listed.
+     */
+    get: operations["MentorshipGroupsController_list"];
+    put?: never;
+    /**
+     * Create a mentorship group (admin only)
+     * @description Creates an empty pod in a cohort: one mentor and a name, optionally a description. Students are added separately.
+     *
+     *     The mentor is a cohort membership, not a user: mentorMemberId is the `id` the roster returns. It must be a live mentor of this cohort. Names are unique per cohort, ignoring case. A mentor leads at most one group per cohort.
+     */
+    post: operations["MentorshipGroupsController_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/cohorts/{cohortId}/mentorship-groups/{groupId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a mentorship group (admin only)
+     * @description One group, with its mentor and current students. The group must belong to the cohort in the URL.
+     */
+    get: operations["MentorshipGroupsController_get"];
+    put?: never;
+    post?: never;
+    /**
+     * Delete a mentorship group (admin only)
+     * @description Removes the group and its student links. The students stay in the cohort, and settled invites keep their row but lose the group id. The group must belong to the cohort in the URL. A group that a pending invite still names is refused with a 409: revoke the invite first.
+     */
+    delete: operations["MentorshipGroupsController_remove"];
+    options?: never;
+    head?: never;
+    /**
+     * Rename or edit a mentorship group (admin only)
+     * @description A partial edit: only the fields present are written. name is trimmed and must be unique in the cohort, ignoring case. description accepts null to clear it. Changing the mentor has its own route.
+     */
+    patch: operations["MentorshipGroupsController_update"];
+    trace?: never;
+  };
+  "/v1/cohorts/{cohortId}/mentorship-groups/{groupId}/mentor": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Change a mentorship group's mentor (admin only)
+     * @description Replaces the group’s mentor. The new mentor is a cohort membership: mentorMemberId is the `id` the roster returns, and it must be a live mentor of this cohort. A mentor leads at most one group per cohort.
+     */
+    patch: operations["MentorshipGroupsController_changeMentor"];
+    trace?: never;
+  };
+  "/v1/cohorts/{cohortId}/mentorship-groups/{groupId}/students": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Add a student to a mentorship group (admin only)
+     * @description Adds one live student of the cohort to the group. cohortMemberId is the membership `id` the roster returns, not a user id. A student belongs to at most one group per cohort, and adding them twice is a 409. The response is the updated group.
+     */
+    post: operations["MentorshipGroupsController_addStudent"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/cohorts/{cohortId}/mentorship-groups/{groupId}/students/{cohortMemberId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Remove a student from a mentorship group (admin only)
+     * @description Takes one membership out of the group. It is a 404 if that membership is not in the group, rather than a silent success. The student stays in the cohort.
+     */
+    delete: operations["MentorshipGroupsController_removeStudent"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/users": {
     parameters: {
       query?: never;
@@ -867,6 +981,28 @@ export interface paths {
      *     Anything else answers 404 — no such account, a suspended one, or one the caller shares no cohort with — so a card cannot be used to find out who has an account.
      */
     get: operations["ProfileController_getCard"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/cohorts/{id}/profiles": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List a cohort's people
+     * @description Everybody with a live place in the cohort, with their display name and sprite, for the sidebar: the whole cohort in one response, sorted by display name with unnamed people last. Who of them is online, and where, comes from the world socket.
+     *
+     *     For the cohort's live members and for admins. Suspended accounts are listed for admins only.
+     */
+    get: operations["CohortProfilesController_list"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1048,6 +1184,26 @@ export interface paths {
      *     Setting the status it already has changes nothing and records nothing. A change writes an audit entry naming the admin and the feedback, and nothing of what the feedback says.
      */
     patch: operations["FeedbackController_setStatus"];
+    trace?: never;
+  };
+  "/v1/calls/webhook": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Receive a LiveKit webhook (LiveKit only)
+     * @description Where the LiveKit project sends its webhooks. Signed by LiveKit with the key pair in LIVEKIT_WEBHOOK_API_KEY and LIVEKIT_WEBHOOK_API_SECRET; the signature is checked against the raw body. Records when a space’s call opens and closes, who joins and leaves it, and whether they turn their camera on. Events for any other room are acknowledged and ignored.
+     */
+    post: operations["CallsController_receive"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
 }
@@ -2177,6 +2333,96 @@ export interface components {
       endDate?: string | null;
       status?: components["schemas"]["CohortStatus"];
     };
+    CreateMentorshipGroupDto: {
+      /**
+       * @description Unique within the cohort, whatever its case.
+       * @example Pod A
+       */
+      name: string;
+      /**
+       * @description The cohort membership of the mentor. Must be a live mentor of this cohort.
+       * @example 77777777-7777-4777-8777-777777777777
+       */
+      mentorMemberId: string;
+      /** @example Mentors the backend track. */
+      description?: string | null;
+    };
+    MentorshipGroupMentorDto: {
+      /**
+       * @description The cohort membership, not the person.
+       * @example 77777777-7777-4777-8777-777777777777
+       */
+      cohortMemberId: string;
+      user: components["schemas"]["RosterUserDto"];
+    };
+    MentorshipGroupStudentDto: {
+      /**
+       * @description The cohort membership, not the person.
+       * @example 99999999-9999-4999-8999-999999999999
+       */
+      cohortMemberId: string;
+      /**
+       * Format: date-time
+       * @example 2026-10-20T12:00:00.000Z
+       */
+      joinedAt: string;
+      user: components["schemas"]["RosterUserDto"];
+    };
+    MentorshipGroupResponseDto: {
+      /** @example aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa */
+      id: string;
+      /** @example 11111111-1111-4111-8111-111111111111 */
+      cohortId: string;
+      /** @example Pod A */
+      name: string;
+      /** @example Mentors the backend track. */
+      description: string | null;
+      mentor: components["schemas"]["MentorshipGroupMentorDto"];
+      /** @description Current students, by name. */
+      students: components["schemas"]["MentorshipGroupStudentDto"][];
+      /**
+       * Format: date-time
+       * @example 2026-10-20T12:00:00.000Z
+       */
+      createdAt: string;
+      /**
+       * Format: date-time
+       * @example 2026-10-20T12:00:00.000Z
+       */
+      updatedAt: string;
+    };
+    PaginatedMentorshipGroupResponseDto: {
+      /** @description The page of items. */
+      items: components["schemas"]["MentorshipGroupResponseDto"][];
+      /** @description Pagination metadata. */
+      meta: components["schemas"]["PaginationMetaDto"];
+    };
+    UpdateMentorshipGroupDto: {
+      /**
+       * @description Unique within the cohort, whatever its case.
+       * @example Pod A
+       */
+      name?: string;
+      /**
+       * @description null clears it.
+       * @example Mentors the backend track.
+       */
+      description?: string | null;
+    };
+    ChangeMentorDto: {
+      /**
+       * @description The cohort membership of the new mentor. Must be a live mentor of this cohort.
+       * @example 77777777-7777-4777-8777-777777777777
+       */
+      mentorMemberId: string;
+    };
+    AddStudentDto: {
+      /**
+       * @description The cohort membership of the student. Must be a live student of this cohort.
+       * @example 99999999-9999-4999-8999-999999999999
+       */
+      cohortMemberId: string;
+    };
     UserMembershipCohortDto: {
       /** @example 11111111-1111-4111-8111-111111111111 */
       id: string;
@@ -2386,6 +2632,23 @@ export interface components {
       /** @description The cohorts the viewer shares with this person, most recently joined first. An admin, and the person themselves, see every live one. */
       memberships: components["schemas"]["ProfileCardMembershipDto"][];
     };
+    CohortProfileDto: {
+      /** @example 22222222-2222-4222-8222-222222222222 */
+      id: string;
+      /** @example Ada L. */
+      displayName: string | null;
+      /**
+       * @description Null when they have picked none, or picked one that is no longer offered.
+       * @example null
+       * @enum {string|null}
+       */
+      spriteKey:
+        | "placeholder-1"
+        | "placeholder-2"
+        | "placeholder-3"
+        | "placeholder-4"
+        | null;
+    };
     /** @enum {string} */
     AuditAction:
       | "membership_revived"
@@ -2412,7 +2675,13 @@ export interface components {
       | "feedback_resolved"
       | "feedback_reopened"
       | "space_membership_granted"
-      | "space_membership_ended";
+      | "space_membership_ended"
+      | "mentorship_group_created"
+      | "mentorship_group_updated"
+      | "mentorship_group_mentor_changed"
+      | "mentorship_group_student_added"
+      | "mentorship_group_student_removed"
+      | "mentorship_group_deleted";
     /** @enum {string} */
     AuditSubjectType:
       | "cohort_member"
@@ -2423,7 +2692,8 @@ export interface components {
       | "track"
       | "map"
       | "feedback"
-      | "space_membership";
+      | "space_membership"
+      | "mentorship_group";
     AuditLogEntryDto: {
       /** Format: uuid */
       id: string;
@@ -3103,7 +3373,7 @@ export interface operations {
           "application/json": components["schemas"]["InviteResponseDto"];
         };
       };
-      /** @description A malformed body, or a shape the INVITES CHECK constraints would reject. Mirrored in InvitesService.assertValidShape so the caller sees which pairing rule was broken rather than a constraint name. Note that { email } alone is no longer accepted: every invite but an admin one names a cohort, since an invite naming neither accepts into nothing. */
+      /** @description A malformed body, or a shape the INVITES CHECK constraints would reject. Mirrored in InvitesService.assertValidShape so the caller sees which pairing rule was broken rather than a constraint name. Note that { email } alone is no longer accepted: every invite but an admin one names a cohort, since an invite naming neither accepts into nothing. mentorshipGroupId is only for a student invite, and the group must belong to the same cohort. */
       400: {
         headers: {
           [name: string]: unknown;
@@ -3130,7 +3400,7 @@ export interface operations {
           "application/json": components["schemas"]["ApiErrorResponseDto"];
         };
       };
-      /** @description A referenced cohort or cohort track does not exist. A track that exists but belongs to a different cohort is a 400 instead — the reference is well-formed, it is just the wrong pairing. */
+      /** @description A referenced cohort, cohort track or mentorship group does not exist. A track or group that exists but belongs to a different cohort is a 400 instead — the reference is well-formed, it is just the wrong pairing. */
       404: {
         headers: {
           [name: string]: unknown;
@@ -4038,7 +4308,7 @@ export interface operations {
           "application/json": components["schemas"]["ApiErrorResponseDto"];
         };
       };
-      /** @description The cohort still has tracks, members or invites. */
+      /** @description The cohort still has tracks, members, invites or mentorship groups. */
       409: {
         headers: {
           [name: string]: unknown;
@@ -4823,6 +5093,535 @@ export interface operations {
       };
     };
   };
+  MentorshipGroupsController_list: {
+    parameters: {
+      query?: {
+        /** @description Page to fetch, 1-based, up to 10000. */
+        page?: number;
+        /** @description Number of items per page. */
+        perPage?: number;
+      };
+      header?: never;
+      path: {
+        cohortId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Paginated list. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaginatedMentorshipGroupResponseDto"];
+        };
+      };
+      /** @description cohortId is not a UUID, or a page parameter is invalid. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No cohort has this id. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  MentorshipGroupsController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cohortId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateMentorshipGroupDto"];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MentorshipGroupResponseDto"];
+        };
+      };
+      /** @description A malformed body, a blank or too-long name, or a mentor/student from another cohort or with the wrong role. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The cohort or the mentor membership does not exist. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The name is already used in this cohort, or the mentor already leads a group there. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  MentorshipGroupsController_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cohortId: string;
+        groupId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MentorshipGroupResponseDto"];
+        };
+      };
+      /** @description cohortId or groupId is not a UUID. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The cohort does not exist, or it has no such group. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  MentorshipGroupsController_remove: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cohortId: string;
+        groupId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The group was deleted. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description cohortId or groupId is not a UUID. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The cohort does not exist, or it has no such group. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description A pending invite still names the group. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  MentorshipGroupsController_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cohortId: string;
+        groupId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateMentorshipGroupDto"];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MentorshipGroupResponseDto"];
+        };
+      };
+      /** @description A malformed field, a blank name, or a group that does not belong here. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The cohort or group does not exist. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Another group in the cohort has that name. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  MentorshipGroupsController_changeMentor: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cohortId: string;
+        groupId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangeMentorDto"];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MentorshipGroupResponseDto"];
+        };
+      };
+      /** @description A malformed body, or a membership that is not a mentor of this cohort. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The cohort, group or mentor membership does not exist. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The mentor membership has ended, or the mentor already leads another group in this cohort. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  MentorshipGroupsController_addStudent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cohortId: string;
+        groupId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AddStudentDto"];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MentorshipGroupResponseDto"];
+        };
+      };
+      /** @description A malformed body, or a membership that is not a student of this cohort. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The cohort, group or student membership does not exist. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The student is already in this group, is in another group in the cohort, or their membership is no longer live. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  MentorshipGroupsController_removeStudent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cohortId: string;
+        groupId: string;
+        /** @description The cohort membership, not the user. */
+        cohortMemberId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The student was removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description cohortId, groupId or cohortMemberId is not a UUID. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The cohort or group does not exist, or the student is not in the group. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
   UsersController_list: {
     parameters: {
       query?: {
@@ -5207,6 +6006,63 @@ export interface operations {
         };
       };
       /** @description No profile the caller may see under this id. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  CohortProfilesController_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CohortProfileDto"][];
+        };
+      };
+      /** @description The cohort id is not a UUID. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable full-access session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The caller holds no live place in this cohort and is not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No cohort with that id (admins only; others get 403). */
       404: {
         headers: {
           [name: string]: unknown;
@@ -5757,6 +6613,42 @@ export interface operations {
       };
       /** @description No feedback has this id, or it is a report that names the admin asking. */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  CallsController_receive: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Received. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The signature is missing, or does not match the body. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No webhook key pair is configured here. */
+      503: {
         headers: {
           [name: string]: unknown;
         };
