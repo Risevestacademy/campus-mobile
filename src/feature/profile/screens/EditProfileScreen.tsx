@@ -65,7 +65,7 @@ export function EditProfileScreen() {
   }, [isUpdating, rotation]);
 
   return (
-    <SafeArea>
+    <SafeArea className="px-0">
       <HeaderWithBack
         title="Edit profile"
         action={
@@ -91,7 +91,7 @@ export function EditProfileScreen() {
           </Pressable>
         }
       />
-      <ScrollView contentContainerClassName="gap-4 items-stretch">
+      <ScrollView contentContainerClassName="px-5 gap-4 items-stretch">
         <View className="items-center gap-2 self-center pt-5">
           <Avatar
             size={88}

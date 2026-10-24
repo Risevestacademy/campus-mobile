@@ -77,7 +77,7 @@ type HeaderWithBackProps = {
 export function HeaderWithBack({ title, action }: HeaderWithBackProps) {
   const router = useRouter();
   return (
-    <View className="py-2">
+    <View className="border-b border-b-border-default p-4">
       <Row gap="sm">
         <Pressable onPress={() => router.back()}>
           <StyledChevronLeft colorClassName="accent-text-on-dark" size={24} />
