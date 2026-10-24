@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react-native";
 import React from "react";
 
-import SpaceIndex from "../../src/app/(tabs)/(campus)/space/[id]/index";
-import Spaces from "../../src/app/(tabs)/(campus)/spaces";
+import SpaceIndex from "../../src/app/(app)/(tabs)/(campus)/space/[id]/index";
+import Spaces from "../../src/app/(app)/(tabs)/(campus)/spaces";
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn(), canGoBack: () => true }),
