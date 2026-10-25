@@ -132,6 +132,14 @@ function refreshOnce(): Promise<string | null> {
   return refreshPromise;
 }
 
+/**
+ * Refreshes the session outside a request, e.g. when the world socket closes
+ * with `session_expired`. Shares the in-flight refresh with the middleware.
+ */
+export async function refreshSession(): Promise<boolean> {
+  return (await refreshOnce()) !== null;
+}
+
 export const authMiddleware: Middleware = {
   async onRequest({ request }) {
     if (isPublicPath(request.url)) {
