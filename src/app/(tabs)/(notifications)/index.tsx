@@ -1,5 +1,5 @@
-import { View } from "react-native";
+import { NoticesScreen } from "@features/notices";
 
 export default function NotificationsIndex() {
-  return <View></View>;
+  return <NoticesScreen />;
 }
