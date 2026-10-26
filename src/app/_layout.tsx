@@ -1,10 +1,13 @@
 import "../global.css";
 
-import { registerSessionExpirationHandler } from "@core/api";
+import { refreshSession, registerSessionExpirationHandler } from "@core/api";
+import { getAuthTokens } from "@core/auth/tokenStorage";
 import config from "@core/config";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Toast } from "@shared/components/atoms";
+import { WebSocketProvider } from "@shared/components/providers/ws";
 import { MeetingJoinProvider } from "@shared/hooks/ui/useMeetingJoin";
+import { useMe } from "@shared/hooks/useMe";
 import { queryClient } from "@shared/lib/react-query";
 import { useSessionStore } from "@store/session";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -32,6 +35,26 @@ registerSessionExpirationHandler((reason) => {
   void useSessionStore.getState().clearSession(reason);
 });
 
+const getAccessToken = async () => (await getAuthTokens())?.accessToken ?? null;
+
+function WorldSocketProvider({ children }: { children: React.ReactNode }) {
+  const status = useSessionStore((state) => state.status);
+  const { data: me } = useMe({ enabled: status === "authenticated" });
+  const cohortId = me?.membership?.cohortId ?? null;
+
+  return (
+    <WebSocketProvider
+      url={config.worldUrl}
+      cohortId={cohortId}
+      origin={config.webOrigin}
+      getAccessToken={getAccessToken}
+      refreshSession={refreshSession}
+    >
+      {children}
+    </WebSocketProvider>
+  );
+}
+
 export default function RootLayout() {
   const contentStyle = useResolveClassNames("bg-bg-band");
   const status = useSessionStore((state) => state.status);
@@ -49,38 +72,40 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider style={{ flex: 1 }}>
-        <SafeAreaListener
-          onChange={({ insets }) => {
-            Uniwind.updateInsets(insets);
-          }}
-        >
-          <GestureHandlerRootView>
-            <BottomSheetModalProvider>
-              <MeetingJoinProvider>
-                <KeyboardProvider>
-                  <StatusBar style={"dark"} />
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      contentStyle,
-                      animation: "fade",
-                    }}
-                  >
-                    <Stack.Protected guard={canAccessAuth}>
-                      <Stack.Screen name="(auth)" />
-                    </Stack.Protected>
-                    <Stack.Protected guard={canAccessApp}>
-                      <Stack.Screen name="(tabs)" />
-                    </Stack.Protected>
-                  </Stack>
-                  <Toast />
-                </KeyboardProvider>
-              </MeetingJoinProvider>
-            </BottomSheetModalProvider>
-          </GestureHandlerRootView>
-        </SafeAreaListener>
-      </SafeAreaProvider>
+      <WorldSocketProvider>
+        <SafeAreaProvider style={{ flex: 1 }}>
+          <SafeAreaListener
+            onChange={({ insets }) => {
+              Uniwind.updateInsets(insets);
+            }}
+          >
+            <GestureHandlerRootView>
+              <BottomSheetModalProvider>
+                <MeetingJoinProvider>
+                  <KeyboardProvider>
+                    <StatusBar style={"dark"} />
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        contentStyle,
+                        animation: "fade",
+                      }}
+                    >
+                      <Stack.Protected guard={canAccessAuth}>
+                        <Stack.Screen name="(auth)" />
+                      </Stack.Protected>
+                      <Stack.Protected guard={canAccessApp}>
+                        <Stack.Screen name="(tabs)" />
+                      </Stack.Protected>
+                    </Stack>
+                    <Toast />
+                  </KeyboardProvider>
+                </MeetingJoinProvider>
+              </BottomSheetModalProvider>
+            </GestureHandlerRootView>
+          </SafeAreaListener>
+        </SafeAreaProvider>
+      </WorldSocketProvider>
     </QueryClientProvider>
   );
 }

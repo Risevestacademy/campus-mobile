@@ -1,6 +1,7 @@
-import { Avatar, Text } from "@shared/components/atoms";
+import { Avatar, StatusDot, Text } from "@shared/components/atoms";
 import { Skeleton } from "@shared/components/Skeleton";
 import { useMe } from "@shared/hooks/useMe";
+import { Status } from "@shared/lib/generated/world-protocol";
 import { Navigation } from "lucide-react-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,9 +10,21 @@ import { withUniwind } from "uniwind";
 import { ActivityToggle } from "./ActivityToggle";
 import { LiveMeeting } from "./LiveMeeting";
 
+type CampusHeaderProps = {
+  status?: Status;
+  onStatusChange?: (status: Status) => void;
+  noOfParticipants?: number;
+  location?: string;
+};
+
 const StyledNavigation = withUniwind(Navigation);
 
-export function CampusHeader() {
+export function CampusHeader({
+  status,
+  onStatusChange,
+  noOfParticipants = 0,
+  location,
+}: CampusHeaderProps) {
   const { top } = useSafeAreaInsets();
   const { data: me, isLoading } = useMe();
 
@@ -29,7 +42,10 @@ export function CampusHeader() {
             />
           </Skeleton>
           <Skeleton isLoading={isLoading} radius="round">
-            <View className="absolute right-0 bottom-0 size-3 rounded-full border-2 border-bg-band bg-status-success"></View>
+            <StatusDot
+              status={status}
+              className="absolute right-0 bottom-0 size-3 border-2 border-bg-band"
+            />
           </Skeleton>
         </View>
         <View className="items-start gap-2">
@@ -39,12 +55,13 @@ export function CampusHeader() {
             </Text>
           </Skeleton>
           <Skeleton isLoading={isLoading} radius={16}>
-            <ActivityToggle />
+            <ActivityToggle status={status} onChange={onStatusChange} />
           </Skeleton>
         </View>
       </View>
       <Text variant="h3" className="pt-7 text-action-accent">
-        18 people on campus now
+        {noOfParticipants} {`${noOfParticipants === 1 ? "person" : "people"}`}{" "}
+        on campus now
       </Text>
       <View className="flex-row items-center gap-1 pt-1 pb-4">
         <StyledNavigation
@@ -52,7 +69,7 @@ export function CampusHeader() {
           size={14}
         />
         <Text variant="body-sm" className="text-text-rail">
-          You’re at your desk
+          You’re at {location}
         </Text>
       </View>
       <LiveMeeting />
