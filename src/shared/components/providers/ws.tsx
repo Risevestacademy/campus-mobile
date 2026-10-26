@@ -1,8 +1,10 @@
-import { getSessionCookieHeader } from "@shared/lib/sessionCookie";
 import {
+  type ClientMessage,
   closeAction,
   createWebSocket,
   parseFrame,
+  parseServerMessage,
+  type ServerMessageListener,
   WebSocketContext,
   type WebSocketState,
   withCohort,
@@ -17,7 +19,7 @@ export const MAX_RETRY_DELAY_MS = 30_000;
 // Client-side code for a connection lost without a close frame.
 const ABNORMAL_CLOSURE = 1006;
 
-type ConnectionState = Omit<WebSocketState, "reconnect">;
+type ConnectionState = Omit<WebSocketState, "reconnect" | "send" | "subscribe">;
 
 const IDLE: ConnectionState = {
   socket: null,
@@ -42,13 +44,22 @@ function retryDelay(attempt: number): number {
 export function WebSocketProvider({
   url,
   cohortId,
+  origin,
+  getAccessToken,
   refreshSession,
   children,
 }: {
   url: string;
   /** world admits a socket to one cohort; nothing connects without one. */
   cohortId: string | null;
-  /** Refreshes the session cookie; resolves true when it succeeded. */
+  /**
+   * Sent as `Origin`. RN otherwise derives one from `url`, which world refuses
+   * with `origin_not_allowed`.
+   */
+  origin?: string;
+  /** The current access token, sent as a bearer token on the upgrade. */
+  getAccessToken: () => Promise<string | null>;
+  /** Refreshes the session; resolves true when it succeeded. */
   refreshSession: () => Promise<boolean>;
   children: React.ReactNode;
 }) {
@@ -58,6 +69,10 @@ export function WebSocketProvider({
   // Bumped by `reconnect` to restart the effect after replaced/refused.
   const [generation, setGeneration] = React.useState(0);
   const onRefresh = React.useEffectEvent(() => refreshSession());
+  // Outlives sockets, so subscribers attached before a socket opens get its
+  // first frames too.
+  const listeners = React.useRef(new Set<ServerMessageListener>());
+  const readToken = React.useEffectEvent(() => getAccessToken());
 
   React.useEffect(() => {
     if (status !== "authenticated" || !cohortId) return;
@@ -75,10 +90,13 @@ export function WebSocketProvider({
     // iOS suspends backgrounded apps, leaving sockets that look open but are
     // dead. Drop the connection in the background and reopen on return.
     let paused = AppState.currentState === "background";
+    // Bumped by each connect and by teardown, so a token read that resolves
+    // after a newer attempt (or after teardown) is dropped.
+    let dial = 0;
 
     const scheduleRetry = () => {
       if (disposed || paused || stopped) return;
-      retryTimer = setTimeout(connect, retryDelay(attempt));
+      retryTimer = setTimeout(() => void connect(), retryDelay(attempt));
       attempt += 1;
     };
 
@@ -107,21 +125,26 @@ export function WebSocketProvider({
             return;
           }
           refreshed = true;
-          if (!paused) connect();
+          if (!paused) void connect();
         });
     };
 
-    const connect = () => {
-      // The cookie can land after the session flips to authenticated
-      // (or be missing after a cold start), so keep polling for it.
+    const connect = async () => {
+      const current = ++dial;
+      // The token is saved after the session flips to authenticated, so it
+      // can be missing for a moment; keep polling for it.
       let next: WebSocket;
       try {
-        const cookie = getSessionCookieHeader(url);
-        if (!cookie) {
+        const token = await readToken();
+        if (current !== dial || disposed || paused || stopped) return;
+        if (!token) {
           scheduleRetry();
           return;
         }
-        next = createWebSocket(socketUrl, { Cookie: cookie });
+        next = createWebSocket(socketUrl, {
+          Authorization: `Bearer ${token}`,
+          ...(origin ? { Origin: origin } : {}),
+        });
       } catch (error) {
         // connect also runs from timers and listeners, where a throw would
         // escape as an unhandled error. Treat it as one more failed attempt.
@@ -189,6 +212,17 @@ export function WebSocketProvider({
       // addEventListener, so consumers setting onmessage can't break it.
       next.addEventListener("message", (event) => {
         awaitingReply = false;
+        const message = parseServerMessage(event.data);
+        if (message) {
+          for (const listener of listeners.current) {
+            try {
+              listener(message);
+            } catch (error) {
+              // One bad subscriber mustn't stop the heartbeat or the others.
+              console.error("World message listener failed:", error);
+            }
+          }
+        }
         const frame = parseFrame(event.data);
         if (frame?.type === "welcome") {
           // Admitted: a later session_expired deserves a fresh refresh.
@@ -201,6 +235,7 @@ export function WebSocketProvider({
     };
 
     const teardown = () => {
+      dial += 1;
       clearTimeout(retryTimer);
       retryTimer = undefined;
       if (!ws) return;
@@ -219,11 +254,11 @@ export function WebSocketProvider({
       } else if (state === "active" && paused) {
         paused = false;
         attempt = 0;
-        if (!stopped) connect();
+        if (!stopped) void connect();
       }
     });
 
-    if (!paused) connect();
+    if (!paused) void connect();
 
     return () => {
       disposed = true;
@@ -231,14 +266,31 @@ export function WebSocketProvider({
       teardown();
       setConnection(CONNECTING);
     };
-  }, [status, url, cohortId, generation]);
+  }, [status, url, origin, cohortId, generation]);
 
   const reconnect = React.useCallback(() => setGeneration((g) => g + 1), []);
   const enabled = status === "authenticated" && cohortId !== null;
 
+  const current = enabled ? connection : IDLE;
+  const send = React.useCallback(
+    (message: ClientMessage) => {
+      const socket = current.socket;
+      if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+      socket.send(JSON.stringify(message));
+      return true;
+    },
+    [current.socket],
+  );
+  const subscribe = React.useCallback((listener: ServerMessageListener) => {
+    listeners.current.add(listener);
+    return () => {
+      listeners.current.delete(listener);
+    };
+  }, []);
+
   const value = React.useMemo<WebSocketState>(
-    () => ({ ...(enabled ? connection : IDLE), reconnect }),
-    [enabled, connection, reconnect],
+    () => ({ ...current, reconnect, send, subscribe }),
+    [current, reconnect, send, subscribe],
   );
 
   return (
