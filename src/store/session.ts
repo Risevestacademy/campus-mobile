@@ -5,9 +5,7 @@ import {
   isRefreshTokenExpired,
   setHasInvite,
 } from "@core/auth/tokenStorage";
-import config from "@core/config";
 import { queryClient } from "@shared/lib/react-query";
-import { clearSessionCookie } from "@shared/lib/sessionCookie";
 import { create } from "zustand";
 
 export type SessionStatus = "loading" | "authenticated" | "unauthenticated";
@@ -89,12 +87,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       await clearAuthTokens();
     } catch (error) {
       console.error("Failed to clear auth tokens:", error);
-    }
-
-    try {
-      await clearSessionCookie(config.apiBaseUrl);
-    } catch (error) {
-      console.error("Failed to clear session cookie:", error);
     }
 
     set({
