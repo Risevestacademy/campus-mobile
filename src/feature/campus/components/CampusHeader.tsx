@@ -42,6 +42,14 @@ export function CampusHeader() {
             <ActivityToggle />
           </Skeleton>
         </View>
+        <View className="flex grow flex-row gap-3">
+          <IconOverlay>
+            <SearchIcon width={20} height={20} color="#F7F7F7" />
+          </IconOverlay>
+          <IconOverlay>
+            <MessageCircleWarning height={20} width={20} color="#F7F7F7" />
+          </IconOverlay>
+        </View>
       </View>
       <Text variant="h3" className="pt-7 text-action-accent">
         18 people on campus now
