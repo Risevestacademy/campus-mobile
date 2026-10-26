@@ -8,8 +8,10 @@ import { Toast } from "@shared/components/atoms";
 import { WebSocketProvider } from "@shared/components/providers/ws";
 import { MeetingJoinProvider } from "@shared/hooks/ui/useMeetingJoin";
 import { useMe } from "@shared/hooks/useMe";
+import { useWs } from "@shared/hooks/useWs";
 import { queryClient } from "@shared/lib/react-query";
 import { useSessionStore } from "@store/session";
+import { useWorldStore } from "@store/world";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -35,6 +37,22 @@ registerSessionExpirationHandler((reason) => {
   void useSessionStore.getState().clearSession(reason);
 });
 
+/** Feeds every world message into the world store for as long as the app runs. */
+function WorldSync() {
+  const { subscribe, status } = useWs();
+
+  React.useEffect(() => subscribe(useWorldStore.getState().apply), [subscribe]);
+
+  React.useEffect(() => {
+    const world = useWorldStore.getState();
+    // idle: signed out or no cohort, so nothing on screen should survive.
+    if (status === "idle") world.reset();
+    else if (status !== "open") world.markStale();
+  }, [status]);
+
+  return null;
+}
+
 const getAccessToken = async () => (await getAuthTokens())?.accessToken ?? null;
 
 function WorldSocketProvider({ children }: { children: React.ReactNode }) {
@@ -50,6 +68,7 @@ function WorldSocketProvider({ children }: { children: React.ReactNode }) {
       getAccessToken={getAccessToken}
       refreshSession={refreshSession}
     >
+      <WorldSync />
       {children}
     </WebSocketProvider>
   );

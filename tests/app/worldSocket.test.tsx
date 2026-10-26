@@ -1,5 +1,6 @@
 import { useSessionStore } from "@store/session";
-import { render } from "@testing-library/react-native";
+import { useWorldStore } from "@store/world";
+import { act, render } from "@testing-library/react-native";
 import React from "react";
 
 import RootLayout from "../../src/app/_layout";
@@ -33,6 +34,23 @@ jest.mock("@shared/components/providers/ws", () => ({
   },
 }));
 
+const mockWs = {
+  status: "idle" as string,
+  listener: null as ((message: unknown) => void) | null,
+};
+
+jest.mock("@shared/hooks/useWs", () => ({
+  useWs: () => ({
+    status: mockWs.status,
+    subscribe: (listener: (message: unknown) => void) => {
+      mockWs.listener = listener;
+      return () => {
+        mockWs.listener = null;
+      };
+    },
+  }),
+}));
+
 const mockUseMe = jest.fn();
 
 jest.mock("@shared/hooks/useMe", () => ({
@@ -43,6 +61,9 @@ describe("RootLayout world socket", () => {
   beforeEach(() => {
     mockProviderProps.mockClear();
     mockUseMe.mockReset();
+    mockWs.status = "idle";
+    mockWs.listener = null;
+    useWorldStore.getState().reset();
     // Real hydrate finds no stored tokens and signs the session out.
     useSessionStore.setState({ hydrate: async () => {} });
   });
@@ -83,5 +104,51 @@ describe("RootLayout world socket", () => {
     expect(mockProviderProps).toHaveBeenLastCalledWith(
       expect.objectContaining({ cohortId: null }),
     );
+  });
+
+  it("feeds world messages into the world store", async () => {
+    useSessionStore.setState({ status: "authenticated", hasInvite: false });
+    mockUseMe.mockReturnValue({ data: { membership: { cohortId: "c" } } });
+    mockWs.status = "open";
+
+    await render(<RootLayout />);
+    await act(() => {
+      mockWs.listener?.({ type: "welcome", userId: "me" });
+      mockWs.listener?.({
+        type: "snapshot",
+        players: [{ userId: "me", status: "busy", spaceKey: "_default" }],
+      });
+    });
+
+    expect(useWorldStore.getState()).toMatchObject({
+      ready: true,
+      selfId: "me",
+    });
+    expect(Object.keys(useWorldStore.getState().players)).toEqual(["me"]);
+  });
+
+  it("clears the world store when the socket goes idle", async () => {
+    useSessionStore.setState({ status: "unauthenticated", hasInvite: false });
+    mockUseMe.mockReturnValue({ data: undefined });
+    useWorldStore.setState({
+      ready: true,
+      selfId: "me",
+      players: {
+        me: {
+          userId: "me",
+          displayName: null,
+          status: "available",
+          spaceKey: "_default",
+        },
+      },
+    });
+
+    await render(<RootLayout />);
+
+    expect(useWorldStore.getState()).toMatchObject({
+      ready: false,
+      selfId: null,
+      players: {},
+    });
   });
 });

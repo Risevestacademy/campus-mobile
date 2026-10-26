@@ -59,6 +59,10 @@ jest.mock("@shared/components/providers/ws", () => ({
   WebSocketProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+jest.mock("@shared/hooks/useWs", () => ({
+  useWs: () => ({ status: "idle", subscribe: () => () => {} }),
+}));
+
 jest.mock("@shared/hooks/useMe", () => ({
   useMe: () => ({ data: undefined }),
 }));
