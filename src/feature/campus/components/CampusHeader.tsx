@@ -2,7 +2,7 @@ import { Avatar, StatusDot, Text } from "@shared/components/atoms";
 import { Skeleton } from "@shared/components/Skeleton";
 import { useMe } from "@shared/hooks/useMe";
 import { Status } from "@shared/lib/generated/world-protocol";
-import { Navigation } from "lucide-react-native";
+import { MessageCircleWarning, Navigation, Search } from "lucide-react-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
@@ -18,6 +18,8 @@ type CampusHeaderProps = {
 };
 
 const StyledNavigation = withUniwind(Navigation);
+const StyledSearch = withUniwind(Search);
+const StyledMessageCirceWarning = withUniwind(MessageCircleWarning);
 
 export function CampusHeader({
   status,
@@ -60,10 +62,13 @@ export function CampusHeader({
         </View>
         <View className="flex grow flex-row gap-3">
           <IconOverlay>
-            <SearchIcon width={20} height={20} color="#F7F7F7" />
+            <StyledSearch size={20} colorClassName="accent-text-on-dark" />
           </IconOverlay>
           <IconOverlay>
-            <MessageCircleWarning height={20} width={20} color="#F7F7F7" />
+            <StyledMessageCirceWarning
+              size={20}
+              colorClassName="accent-text-on-dark"
+            />
           </IconOverlay>
         </View>
       </View>
