@@ -36,7 +36,7 @@ export function WeekStrip({
             // })}
             className={cn(
               "flex-1 items-center gap-1 rounded-lg py-2",
-              selected ? "bg-ice-50" : "bg-overlay-white-10",
+              selected ? "bg-ice-50 dark:bg-cobalt-500" : "bg-overlay-white-10",
             )}
           >
             <Text

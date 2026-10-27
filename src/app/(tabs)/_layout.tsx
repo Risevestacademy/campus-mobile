@@ -112,7 +112,7 @@ export default function TabsLayout() {
           />
         ),
       }}
-      initialRouteName={__DEV__ ? "(calendar)" : undefined}
+      // initialRouteName={__DEV__ ? "(calendar)" : undefined}
     >
       <Tabs.Screen
         name="(campus)"
