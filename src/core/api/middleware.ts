@@ -140,6 +140,17 @@ export async function refreshSession(): Promise<boolean> {
   return (await refreshOnce()) !== null;
 }
 
+/**
+ * The access token, refreshed first when it has expired, as requests get it.
+ * Null when signed out or the refresh failed.
+ */
+export async function getFreshAccessToken(): Promise<string | null> {
+  const accessToken = (await getAuthTokens())?.accessToken;
+  if (!accessToken) return null;
+  if (await isAccessTokenExpired()) return refreshOnce();
+  return accessToken;
+}
+
 export const authMiddleware: Middleware = {
   async onRequest({ request }) {
     if (isPublicPath(request.url)) {
