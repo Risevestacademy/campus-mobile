@@ -1,17 +1,13 @@
 import "../global.css";
 
-import { refreshSession, registerSessionExpirationHandler } from "@core/api";
-import { getAuthTokens } from "@core/auth/tokenStorage";
+import { registerSessionExpirationHandler } from "@core/api";
 import config from "@core/config";
+import { RealtimeProvider } from "@core/realtime";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Toast } from "@shared/components/atoms";
-import { WebSocketProvider } from "@shared/components/providers/ws";
 import { MeetingJoinProvider } from "@shared/hooks/ui/useMeetingJoin";
-import { useMe } from "@shared/hooks/useMe";
-import { useWs } from "@shared/hooks/useWs";
 import { queryClient } from "@shared/lib/react-query";
 import { useSessionStore } from "@store/session";
-import { useWorldStore } from "@store/world";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -37,43 +33,6 @@ registerSessionExpirationHandler((reason) => {
   void useSessionStore.getState().clearSession(reason);
 });
 
-/** Feeds every world message into the world store for as long as the app runs. */
-function WorldSync() {
-  const { subscribe, status } = useWs();
-
-  React.useEffect(() => subscribe(useWorldStore.getState().apply), [subscribe]);
-
-  React.useEffect(() => {
-    const world = useWorldStore.getState();
-    // idle: signed out or no cohort, so nothing on screen should survive.
-    if (status === "idle") world.reset();
-    else if (status !== "open") world.markStale();
-  }, [status]);
-
-  return null;
-}
-
-const getAccessToken = async () => (await getAuthTokens())?.accessToken ?? null;
-
-function WorldSocketProvider({ children }: { children: React.ReactNode }) {
-  const status = useSessionStore((state) => state.status);
-  const { data: me } = useMe({ enabled: status === "authenticated" });
-  const cohortId = me?.membership?.cohortId ?? null;
-
-  return (
-    <WebSocketProvider
-      url={config.worldUrl}
-      cohortId={cohortId}
-      origin={config.webOrigin}
-      getAccessToken={getAccessToken}
-      refreshSession={refreshSession}
-    >
-      <WorldSync />
-      {children}
-    </WebSocketProvider>
-  );
-}
-
 export default function RootLayout() {
   const contentStyle = useResolveClassNames("bg-bg-band");
   const status = useSessionStore((state) => state.status);
@@ -91,7 +50,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <WorldSocketProvider>
+      <RealtimeProvider>
         <SafeAreaProvider style={{ flex: 1 }}>
           <SafeAreaListener
             onChange={({ insets }) => {
@@ -124,7 +83,7 @@ export default function RootLayout() {
             </GestureHandlerRootView>
           </SafeAreaListener>
         </SafeAreaProvider>
-      </WorldSocketProvider>
+      </RealtimeProvider>
     </QueryClientProvider>
   );
 }
