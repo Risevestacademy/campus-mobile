@@ -127,13 +127,4 @@ describe("useWorldStore", () => {
 
     expect(state()).toMatchObject({ ready: false, selfId: null, players: {} });
   });
-
-  it("shows your own status change before the server confirms it", () => {
-    apply({ type: "welcome", userId: "me" } as ServerMessage);
-    apply(snapshot(avatar("me")));
-
-    useWorldStore.getState().setOwnStatus("busy");
-
-    expect(state().players.me?.status).toBe("busy");
-  });
 });

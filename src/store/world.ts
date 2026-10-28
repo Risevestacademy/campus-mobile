@@ -1,8 +1,7 @@
-import type { Avatar, Status } from "@shared/lib/generated/world-protocol";
+import type { Avatar } from "@shared/lib/generated/world-protocol";
 import type { ServerMessage } from "@shared/lib/ws";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
-import { useShallow } from "zustand/react/shallow";
 
 /**
  * Who is on campus, kept from `snapshot` plus the deltas after it. Positions
@@ -94,11 +93,6 @@ export const useWorldStore = create(
       set((state) => applyWorldMessage(state, message)),
     /** Keeps the last list on screen until the next snapshot replaces it. */
     markStale: () => set({ ready: false }),
-    /** Shows a status change before the server's `statusChanged` echo. */
-    setOwnStatus: (status: Status) =>
-      set((state) =>
-        state.selfId ? patch(state, state.selfId, { status }) : state,
-      ),
     reset: () => set(initialState),
   })),
 );
@@ -111,11 +105,4 @@ export const useWorldReady = () => useWorldStore((state) => state.ready);
 export const useMyStatus = () =>
   useWorldStore((state) =>
     state.selfId ? state.players[state.selfId]?.status : undefined,
-  );
-
-export const usePeopleIn = (spaceKey: string) =>
-  useWorldStore(
-    useShallow((state) =>
-      Object.values(state.players).filter((p) => p.spaceKey === spaceKey),
-    ),
   );

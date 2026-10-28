@@ -11,20 +11,22 @@ import { ActivityToggle } from "./ActivityToggle";
 import { LiveMeeting } from "./LiveMeeting";
 
 type CampusHeaderProps = {
+  /** Undefined until world reports it. */
   status?: Status;
   onStatusChange?: (status: Status) => void;
+  /** Undefined while there's no current count to show. */
   noOfParticipants?: number;
   location?: string;
 };
 
 const StyledNavigation = withUniwind(Navigation);
 const StyledSearch = withUniwind(Search);
-const StyledMessageCirceWarning = withUniwind(MessageCircleWarning);
+const StyledMessageCircleWarning = withUniwind(MessageCircleWarning);
 
 export function CampusHeader({
   status,
   onStatusChange,
-  noOfParticipants = 0,
+  noOfParticipants,
   location,
 }: CampusHeaderProps) {
   const { top } = useSafeAreaInsets();
@@ -43,7 +45,7 @@ export function CampusHeader({
               placeholder={displayName[0] ?? ""}
             />
           </Skeleton>
-          <Skeleton isLoading={isLoading} radius="round">
+          <Skeleton isLoading={isLoading || !status} radius="round">
             <StatusDot
               status={status}
               className="absolute right-0 bottom-0 size-3 border-2 border-bg-band"
@@ -56,7 +58,7 @@ export function CampusHeader({
               Hi, {me?.user.firstName}
             </Text>
           </Skeleton>
-          <Skeleton isLoading={isLoading} radius={16}>
+          <Skeleton isLoading={isLoading || !status} radius={16}>
             <ActivityToggle status={status} onChange={onStatusChange} />
           </Skeleton>
         </View>
@@ -65,26 +67,34 @@ export function CampusHeader({
             <StyledSearch size={20} colorClassName="accent-text-on-dark" />
           </IconOverlay>
           <IconOverlay>
-            <StyledMessageCirceWarning
+            <StyledMessageCircleWarning
               size={20}
               colorClassName="accent-text-on-dark"
             />
           </IconOverlay>
         </View>
       </View>
-      <Text variant="h3" className="pt-7 text-action-accent">
-        {noOfParticipants} {`${noOfParticipants === 1 ? "person" : "people"}`}{" "}
-        on campus now
-      </Text>
-      <View className="flex-row items-center gap-1 pt-1 pb-4">
-        <StyledNavigation
-          colorClassName="accent-text-turquoise-fixed"
-          size={14}
-        />
-        <Text variant="body-sm" className="text-text-rail">
-          You’re at {location}
-        </Text>
+      <View className="items-start pt-7">
+        <Skeleton isLoading={noOfParticipants === undefined} radius={16}>
+          <Text variant="h3" className="text-action-accent">
+            {noOfParticipants ?? 0}{" "}
+            {noOfParticipants === 1 ? "person" : "people"} on campus now
+          </Text>
+        </Skeleton>
       </View>
+      {location ? (
+        <View className="flex-row items-center gap-1 pt-1 pb-4">
+          <StyledNavigation
+            colorClassName="accent-text-turquoise-fixed"
+            size={14}
+          />
+          <Text variant="body-sm" className="text-text-rail">
+            You’re at {location}
+          </Text>
+        </View>
+      ) : (
+        <View className="pb-4" />
+      )}
       <LiveMeeting />
     </View>
   );

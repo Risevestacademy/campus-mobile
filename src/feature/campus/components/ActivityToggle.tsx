@@ -40,9 +40,10 @@ const StyledChevronRight = withUniwind(ChevronRight);
 const StyledClock = withUniwind(Clock);
 
 export function ActivityToggle({
-  status = "away",
+  status,
   onChange,
 }: {
+  /** Undefined until world reports it; the toggle can't be opened then. */
   status?: ActivityStatus;
   onChange?: (status: ActivityStatus) => void;
 }) {
@@ -61,6 +62,7 @@ export function ActivityToggle({
       <Pressable
         className="flex-row items-center gap-1 rounded-full bg-overlay-white-15 px-3 py-0.5"
         onPress={show}
+        disabled={!status}
       >
         <StatusDot status={selectedOption?.status} />
         <Text className="text-text-on-dark" variant="label">
