@@ -1,16 +1,33 @@
 import { ActivityToggle, Skeleton } from "@shared/components";
-import { Avatar, Text } from "@shared/components/atoms";
+import { Avatar, StatusDot, Text } from "@shared/components/atoms";
 import { useMe } from "@shared/hooks/useMe";
-import { Navigation } from "lucide-react-native";
+import { Status } from "@shared/lib/generated/world-protocol";
+import { MessageCircleWarning, Navigation, Search } from "lucide-react-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
 import { LiveMeeting } from "./LiveMeeting";
 
-const StyledNavigation = withUniwind(Navigation);
+type CampusHeaderProps = {
+  /** Undefined until world reports it. */
+  status?: Status;
+  onStatusChange?: (status: Status) => void;
+  /** Undefined while there's no current count to show. */
+  noOfParticipants?: number;
+  location?: string;
+};
 
-export function CampusHeader() {
+const StyledNavigation = withUniwind(Navigation);
+const StyledSearch = withUniwind(Search);
+const StyledMessageCircleWarning = withUniwind(MessageCircleWarning);
+
+export function CampusHeader({
+  status,
+  onStatusChange,
+  noOfParticipants,
+  location,
+}: CampusHeaderProps) {
   const { top } = useSafeAreaInsets();
   const { data: me, isLoading } = useMe();
 
@@ -27,8 +44,11 @@ export function CampusHeader() {
               placeholder={displayName[0] ?? ""}
             />
           </Skeleton>
-          <Skeleton isLoading={isLoading} radius="round">
-            <View className="absolute right-0 bottom-0 size-3 rounded-full border-2 border-bg-band bg-status-success"></View>
+          <Skeleton isLoading={isLoading || !status} radius="round">
+            <StatusDot
+              status={status}
+              className="absolute right-0 bottom-0 size-3 border-2 border-bg-band"
+            />
           </Skeleton>
         </View>
         <View className="items-start gap-2">
@@ -37,31 +57,43 @@ export function CampusHeader() {
               Hi, {me?.user.firstName}
             </Text>
           </Skeleton>
-          <Skeleton isLoading={isLoading} radius={16}>
-            <ActivityToggle />
+          <Skeleton isLoading={isLoading || !status} radius={16}>
+            <ActivityToggle status={status} onChange={onStatusChange} />
           </Skeleton>
         </View>
         <View className="flex grow flex-row gap-3">
           <IconOverlay>
-            <SearchIcon width={20} height={20} color="#F7F7F7" />
+            <StyledSearch size={20} colorClassName="accent-text-on-dark" />
           </IconOverlay>
           <IconOverlay>
-            <MessageCircleWarning height={20} width={20} color="#F7F7F7" />
+            <StyledMessageCircleWarning
+              size={20}
+              colorClassName="accent-text-on-dark"
+            />
           </IconOverlay>
         </View>
       </View>
-      <Text variant="h3" className="pt-7 text-action-accent">
-        18 people on campus now
-      </Text>
-      <View className="flex-row items-center gap-1 pt-1 pb-4">
-        <StyledNavigation
-          colorClassName="accent-text-turquoise-fixed"
-          size={14}
-        />
-        <Text variant="body-sm" className="text-text-rail">
-          You’re at your desk
-        </Text>
+      <View className="items-start pt-7">
+        <Skeleton isLoading={noOfParticipants === undefined} radius={16}>
+          <Text variant="h3" className="text-action-accent">
+            {noOfParticipants ?? 0}{" "}
+            {noOfParticipants === 1 ? "person" : "people"} on campus now
+          </Text>
+        </Skeleton>
       </View>
+      {location ? (
+        <View className="flex-row items-center gap-1 pt-1 pb-4">
+          <StyledNavigation
+            colorClassName="accent-text-turquoise-fixed"
+            size={14}
+          />
+          <Text variant="body-sm" className="text-text-rail">
+            You’re at {location}
+          </Text>
+        </View>
+      ) : (
+        <View className="pb-4" />
+      )}
       <LiveMeeting />
     </View>
   );

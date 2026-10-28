@@ -4,17 +4,22 @@ import { ActivityStatus } from "@shared/types";
 import { cn } from "@shared/utils/style";
 import { ChevronRight, Clock } from "lucide-react-native";
 import { CaretDownIcon } from "phosphor-react-native";
-import React, { useRef } from "react";
+import { useRef } from "react";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
 
 import { BottomSheet } from "./BottomSheet";
 
-const options = [
+const options: {
+  short: string;
+  long: string;
+  status: ActivityStatus;
+  description: string;
+}[] = [
   {
     short: "Available",
     long: "Available",
-    status: "online",
+    status: "available",
     description: "Waves, messages and nearby audio come through",
   },
   {
@@ -22,12 +27,6 @@ const options = [
     long: "Busy",
     status: "busy",
     description: "Messages only. Nearby audio stays off",
-  },
-  {
-    short: "Offline",
-    long: "Do not disturb",
-    status: "offline",
-    description: "Nothing comes through until you switch back",
   },
   {
     short: "Away",
@@ -42,24 +41,28 @@ const StyledChevronRight = withUniwind(ChevronRight);
 const StyledClock = withUniwind(Clock);
 
 type ActivityToggleProps = {
+  /** Undefined until world reports it; the toggle can't be opened then. */
+  status?: ActivityStatus;
+  onChange?: (status: ActivityStatus) => void;
   containerClassName?: string;
   textClassName?: string;
   iconColorClassName?: string;
 };
 
 export function ActivityToggle({
+  status,
+  onChange,
   containerClassName,
   textClassName,
   iconColorClassName = "accent-text-on-dark",
 }: ActivityToggleProps) {
-  const [activity, setActivity] = React.useState<ActivityStatus>("online");
-  const selectedOption = options.find((e) => e.status === activity);
+  const selectedOption = options.find((e) => e.status === status);
 
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const show = () => bottomSheetRef.current?.present();
 
-  const select = (status: ActivityStatus) => {
-    setActivity(status);
+  const select = (next: ActivityStatus) => {
+    if (next !== status) onChange?.(next);
     bottomSheetRef.current?.dismiss();
   };
 
@@ -71,6 +74,7 @@ export function ActivityToggle({
           containerClassName,
         )}
         onPress={show}
+        disabled={!status}
       >
         <StatusDot status={selectedOption?.status} />
         <Text
@@ -92,7 +96,7 @@ export function ActivityToggle({
             Where you are updates on its own. This sets who can reach you.
           </Text>
         </View>
-        <ActivitySelector onSelect={select} selected={activity} />
+        <ActivitySelector onSelect={select} selected={status} />
         <View className="flex-row items-center justify-between">
           <Text>Clear after</Text>
           <Pressable className="flex-row items-center gap-1">
@@ -120,7 +124,7 @@ export function ActivityToggle({
 
 function ActivitySelector({
   onSelect,
-  selected = "online",
+  selected,
 }: {
   onSelect?: (a: ActivityStatus) => void;
   selected?: ActivityStatus;

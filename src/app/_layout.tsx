@@ -2,6 +2,7 @@ import "../global.css";
 
 import { registerSessionExpirationHandler } from "@core/api";
 import config from "@core/config";
+import { RealtimeProvider } from "@core/realtime";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Toast } from "@shared/components/atoms";
 import { MeetingJoinProvider } from "@shared/hooks/ui/useMeetingJoin";
@@ -51,38 +52,40 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider style={{ flex: 1 }}>
-        <SafeAreaListener
-          onChange={({ insets }) => {
-            Uniwind.updateInsets(insets);
-          }}
-        >
-          <GestureHandlerRootView>
-            <BottomSheetModalProvider>
-              <MeetingJoinProvider>
-                <KeyboardProvider>
-                  <StatusBar style={"dark"} />
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      contentStyle,
-                      animation: "fade",
-                    }}
-                  >
-                    <Stack.Protected guard={canAccessAuth}>
-                      <Stack.Screen name="(auth)" />
-                    </Stack.Protected>
-                    <Stack.Protected guard={canAccessApp}>
-                      <Stack.Screen name="(app)" />
-                    </Stack.Protected>
-                  </Stack>
-                  <Toast />
-                </KeyboardProvider>
-              </MeetingJoinProvider>
-            </BottomSheetModalProvider>
-          </GestureHandlerRootView>
-        </SafeAreaListener>
-      </SafeAreaProvider>
+      <RealtimeProvider>
+        <SafeAreaProvider style={{ flex: 1 }}>
+          <SafeAreaListener
+            onChange={({ insets }) => {
+              Uniwind.updateInsets(insets);
+            }}
+          >
+            <GestureHandlerRootView>
+              <BottomSheetModalProvider>
+                <MeetingJoinProvider>
+                  <KeyboardProvider>
+                    <StatusBar style={"dark"} />
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        contentStyle,
+                        animation: "fade",
+                      }}
+                    >
+                      <Stack.Protected guard={canAccessAuth}>
+                        <Stack.Screen name="(auth)" />
+                      </Stack.Protected>
+                      <Stack.Protected guard={canAccessApp}>
+                        <Stack.Screen name="(app)" />
+                      </Stack.Protected>
+                    </Stack>
+                    <Toast />
+                  </KeyboardProvider>
+                </MeetingJoinProvider>
+              </BottomSheetModalProvider>
+            </GestureHandlerRootView>
+          </SafeAreaListener>
+        </SafeAreaProvider>
+      </RealtimeProvider>
     </QueryClientProvider>
   );
 }

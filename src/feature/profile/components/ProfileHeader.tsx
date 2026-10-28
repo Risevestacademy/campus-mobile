@@ -1,3 +1,4 @@
+import { useAvailability } from "@core/realtime";
 import { ActivityToggle } from "@shared/components";
 import { Avatar, Row, Text } from "@shared/components/atoms";
 import { capitalize, getInitials } from "@shared/helpers";
@@ -16,6 +17,7 @@ const StyledChevronLeft = withUniwind(ChevronLeft);
 export function DefaultHeader() {
   const { data: userData } = useMe();
   const { data: profileData } = useProfile();
+  const { status, setStatus } = useAvailability();
   const router = useRouter();
 
   const profile = userData?.user;
@@ -70,6 +72,8 @@ export function DefaultHeader() {
         </View>
       </Row>
       <ActivityToggle
+        status={status}
+        onChange={setStatus}
         containerClassName="px-3 py-2 gap-2 bg-bg-card"
         iconColorClassName="accent-text-muted"
         textClassName="text-text-primary"

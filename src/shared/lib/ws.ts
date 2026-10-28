@@ -1,10 +1,14 @@
 import { createContext } from "react";
 
 import type {
+  ClientMessage,
   CloseReason,
-  PongMessage,
-  WelcomeMessage,
+  ServerMessage,
 } from "./generated/world-protocol";
+
+export type { ClientMessage, ServerMessage };
+
+export type ServerMessageListener = (message: ServerMessage) => void;
 
 /**
  * idle: signed out or no cohort, so nothing to connect to.
@@ -24,6 +28,13 @@ export type WebSocketState = {
   closeReason: string | null;
   /** Start over after `replaced` or `refused`. */
   reconnect: () => void;
+  /** Sends when open; returns false (and drops it) otherwise. */
+  send: (message: ClientMessage) => boolean;
+  /**
+   * Every server frame, from the first one on each socket. Works before the
+   * socket opens, so `welcome` and `snapshot` aren't missed. Returns unsubscribe.
+   */
+  subscribe: (listener: ServerMessageListener) => () => void;
 };
 
 // `undefined` means "no provider above".
@@ -89,21 +100,14 @@ export function createWebSocket(
   return new NativeWebSocket(url, null, { headers });
 }
 
-type HeartbeatFrame =
-  Pick<WelcomeMessage, "type" | "heartbeatSeconds"> | PongMessage;
-
-/** Reads only the frames the provider itself acts on. */
-export function parseFrame(data: unknown): HeartbeatFrame | null {
+/** Any JSON object with a string `type`; the shape is world's to guarantee. */
+export function parseServerMessage(data: unknown): ServerMessage | null {
   if (typeof data !== "string") return null;
   try {
     const frame: unknown = JSON.parse(data);
     if (typeof frame !== "object" || frame === null) return null;
-    const { type, heartbeatSeconds } = frame as Record<string, unknown>;
-    if (type === "pong") return { type };
-    if (type === "welcome" && typeof heartbeatSeconds === "number") {
-      return { type, heartbeatSeconds };
-    }
-    return null;
+    if (typeof (frame as { type?: unknown }).type !== "string") return null;
+    return frame as ServerMessage;
   } catch {
     return null;
   }

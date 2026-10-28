@@ -1122,6 +1122,56 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/spaces": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List spaces (admin only)
+     * @description Every live space, by name. Retired spaces are left out; GET /v1/spaces/{id} still reads one by id.
+     *
+     *     `needsKind=true` narrows the list to spaces with no kind set: the queue of spaces the map drew and no admin has set up yet.
+     */
+    get: operations["SpacesController_list"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/spaces/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a space (admin only)
+     * @description One space and its settings. A retired space is still readable: retiring keeps the row, and its history points at it.
+     */
+    get: operations["SpacesController_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Update a space’s settings (admin only)
+     * @description A partial edit: only the fields present are written. An edit that moves nothing returns the space as it is and writes no audit entry.
+     *
+     *     The key, the map and the map’s default flag cannot be changed. A request naming one is refused by name rather than having it silently ignored.
+     *
+     *     The database refuses the combinations a space may not be: a default space that is not `normal`, a capacity below 1, or a second town hall or notice board. Each comes back with the rule it broke. A successful edit writes an audit entry naming the admin and every changed field, with its old and new value, in the same transaction as the row.
+     */
+    patch: operations["SpacesController_update"];
+    trace?: never;
+  };
   "/v1/feedback": {
     parameters: {
       query?: never;
@@ -1200,6 +1250,114 @@ export interface paths {
      * @description Where the LiveKit project sends its webhooks. Signed by LiveKit with the key pair in LIVEKIT_WEBHOOK_API_KEY and LIVEKIT_WEBHOOK_API_SECRET; the signature is checked against the raw body. Records when a space’s call opens and closes, who joins and leaves it, and whether they turn their camera on. Events for any other room are acknowledged and ignored.
      */
     post: operations["CallsController_receive"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/calendar/connect": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Connect my Google Calendar (web)
+     * @description Open as a top-level navigation with a live session cookie: refresh first if the access token is close to running out, since the callback needs the same session. Redirects to Google’s consent screen for read-only calendar access. The Google account must be the one the member signs in to campus with.
+     */
+    get: operations["CalendarController_connect"];
+    put?: never;
+    /**
+     * Connect my Google Calendar (native app)
+     * @description The app asks Google’s SDK for calendar access and posts the server auth code it receives. Replaces any calendar connection already held.
+     */
+    post: operations["CalendarController_connectFromApp"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/calendar/connect/callback": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Complete connecting my Google Calendar (web)
+     * @description Where Google returns the member. Needs the session that started the connection. Every outcome is a redirect into the web app.
+     */
+    get: operations["CalendarController_callback"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/calendar/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * My Google Calendar events
+     * @description Read from Google when asked, never stored here. Read-only: campus cannot create or change events. Without a connected calendar the answer is still 200, with `connected: false`.
+     */
+    get: operations["CalendarController_events"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/calendar": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Disconnect my Google Calendar
+     * @description Stops using the calendar access campus holds and revokes it at Google, which also takes campus off the member’s Google account connections. If Google does not confirm the revocation, campus keeps trying, unused, until it does. Works while the calendar is switched off.
+     */
+    delete: operations["CalendarController_disconnect"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/dashboard": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Dashboard figures (admin only)
+     * @description Live members, in total and by cohort role, and invites still waiting for an answer: across the campus, or in one cohort with `cohortId`. A live membership has not ended, is an active student or another role, and has not run out (a guest’s visit).
+     *
+     *     A suspended account still counts as a member, as it does on the roster, though world never lets it in: so members can include people who can never show as online.
+     *
+     *     Who is online now is not here: world answers that, at `GET /admin/online`, taking `cohortId` too. For a cohort that does not exist this route answers 404, while world, which does not know which cohorts exist, answers `{ "online": 0 }`.
+     */
+    get: operations["DashboardController_figures"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2676,6 +2834,7 @@ export interface components {
       | "feedback_reopened"
       | "space_membership_granted"
       | "space_membership_ended"
+      | "space_updated"
       | "mentorship_group_created"
       | "mentorship_group_updated"
       | "mentorship_group_mentor_changed"
@@ -2691,6 +2850,7 @@ export interface components {
       | "cohort_track"
       | "track"
       | "map"
+      | "space"
       | "feedback"
       | "space_membership"
       | "mentorship_group";
@@ -2918,6 +3078,100 @@ export interface components {
       live: boolean;
     };
     /** @enum {string} */
+    SpaceAccess: "normal" | "designated";
+    /** @enum {string} */
+    AudioMode: "proximity" | "boundary";
+    SpaceResponseDto: {
+      /** Format: uuid */
+      id: string;
+      /**
+       * Format: uuid
+       * @description The map that drew this space.
+       */
+      mapId: string;
+      /**
+       * @description The object’s name in Tiled, unique on its map.
+       * @example library
+       */
+      key: string;
+      /** @example Library */
+      name: string;
+      /** @description Null when no admin has said what the space is yet. */
+      kind: components["schemas"]["SpaceKind"] | null;
+      /** @description Whether this is its map’s default space: the one for tiles inside no drawn space. */
+      isMapDefault: boolean;
+      access: components["schemas"]["SpaceAccess"];
+      audioMode: components["schemas"]["AudioMode"];
+      /**
+       * @description Null means no limit.
+       * @example 25
+       */
+      capacity: number | null;
+      /**
+       * @description In tiles, or null when it is unset.
+       * @example 8.50
+       */
+      audibleRadius: string | null;
+      /**
+       * @description In tiles, or null when it is unset.
+       * @example 10.00
+       */
+      subscribeRadius: string | null;
+      /** @example 1.20 */
+      hysteresisFactor: string;
+      /**
+       * Format: date-time
+       * @description Set when the space is no longer on its map.
+       */
+      retiredAt: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    PaginatedSpaceResponseDto: {
+      /** @description The page of items. */
+      items: components["schemas"]["SpaceResponseDto"][];
+      /** @description Pagination metadata. */
+      meta: components["schemas"]["PaginationMetaDto"];
+    };
+    UpdateSpaceDto: {
+      /** @example Reading Room */
+      name?: string;
+      /** @description Null puts the space back in the queue: no kind, and nobody but admins may enter it. */
+      kind?: components["schemas"]["SpaceKind"] | null;
+      /** @description `normal` admits anybody in the campus; `designated` admits whoever the space’s list names. The default space stays normal. */
+      access?: components["schemas"]["SpaceAccess"];
+      /** @description `proximity` fades voices by distance; `boundary` lets everybody in the space hear everybody. */
+      audioMode?: components["schemas"]["AudioMode"];
+      /**
+       * @description Null means no limit. At least 1 and at most 2147483647 when set.
+       * @example 25
+       */
+      capacity?: number | null;
+      /**
+       * @description How far a voice carries, in tiles. Null leaves it unset. At least 0. The database stores two decimal places.
+       * @example 8.5
+       */
+      audibleRadius?: number | null;
+      /**
+       * @description The radius the media server subscribes people by, in tiles. Null leaves it unset. At least 0. The database stores two decimal places.
+       * @example 10
+       */
+      subscribeRadius?: number | null;
+      /**
+       * @description How much further than subscribeRadius somebody must go before they are unsubscribed. Must be greater than 0. The database stores two decimal places.
+       * @example 1.2
+       */
+      hysteresisFactor?: number;
+      /** @description The object’s name in Tiled. Read-only: sending it is refused, because renaming it there makes it a different space. */
+      key?: string;
+      /** @description Read-only: a space belongs to the map that drew it. */
+      mapId?: string;
+      /** @description Read-only: whether a space is its map’s default is set by the map, not here. */
+      isMapDefault?: boolean;
+    };
+    /** @enum {string} */
     FeedbackType: "bug" | "idea" | "report";
     FeedbackContextDto: {
       /**
@@ -3062,6 +3316,92 @@ export interface components {
     };
     UpdateFeedbackStatusDto: {
       status: components["schemas"]["FeedbackStatus"];
+    };
+    CalendarAppConnectDto: {
+      /** @description The server auth code Google’s SDK gave the app for `calendar.events.readonly` and `openid`, with offline access and force-refresh-token on, for the web client (GOOGLE_CLIENT_ID). */
+      serverAuthCode: string;
+    };
+    CalendarEventDto: {
+      /** @example 7cbh8rpc10lrc0ckih9tafss99_20261027T090000Z */
+      id: string;
+      /**
+       * @description Null for an event with no title.
+       * @example Backend standup
+       */
+      title: string | null;
+      /**
+       * @description A timestamp with the zone Google gave it, or a date (`2026-10-27`) for an all-day event.
+       * @example 2026-10-27T10:00:00+01:00
+       */
+      start: string;
+      /**
+       * @description Like `start`. For an all-day event, the day after the last one.
+       * @example 2026-10-27T10:30:00+01:00
+       */
+      end: string;
+      /** @example false */
+      allDay: boolean;
+      /**
+       * @example confirmed
+       * @enum {string}
+       */
+      status: "confirmed" | "tentative";
+      /**
+       * @description The member’s answer to the invitation. Null when they are the only person on it.
+       * @example accepted
+       * @enum {string|null}
+       */
+      response: "accepted" | "tentative" | "declined" | "needsAction" | null;
+      /** @example Room 2 */
+      location: string | null;
+      /** @example https://meet.google.com/abc-defg-hij */
+      meetingUrl: string | null;
+      /**
+       * @description The event in Google Calendar.
+       * @example https://www.google.com/calendar/event?eid=N2NiaDhycGMxMGxy
+       */
+      url: string | null;
+    };
+    CalendarEventsDto: {
+      /**
+       * @description False when the member has not connected their calendar, or Google has withdrawn access: offer GET /v1/calendar/connect (a native app: POST /v1/calendar/connect).
+       * @example true
+       */
+      connected: boolean;
+      /** @description From the member’s primary calendar, soonest first, recurring events as one entry per occurrence. Cancelled events are left out. */
+      events: components["schemas"]["CalendarEventDto"][];
+      /**
+       * @description True when the window held more than the 1,000 events campus reads: `events` are the first 1,000. Ask for a shorter window.
+       * @example false
+       */
+      truncated: boolean;
+    };
+    MembersByRoleDto: {
+      /** @example 30 */
+      student: number;
+      /** @example 2 */
+      professor: number;
+      /** @example 4 */
+      mentor: number;
+      /** @example 3 */
+      guest: number;
+    };
+    MemberFiguresDto: {
+      /**
+       * @description People with a live membership, suspended accounts included, as on the roster. Across the campus, somebody in two cohorts counts once.
+       * @example 38
+       */
+      total: number;
+      /** @description People with a live membership in each cohort role. Across the campus, somebody holding two roles counts under both, so these can add up to more than `total`. */
+      byRole: components["schemas"]["MembersByRoleDto"];
+    };
+    DashboardFiguresDto: {
+      members: components["schemas"]["MemberFiguresDto"];
+      /**
+       * @description Invites still waiting for an answer: pending and not yet expired. Across the campus this includes admin invites, which name no cohort.
+       * @example 7
+       */
+      pendingInvites: number;
     };
   };
   responses: never;
@@ -6398,6 +6738,187 @@ export interface operations {
       };
     };
   };
+  SpacesController_list: {
+    parameters: {
+      query?: {
+        /** @description Page to fetch, 1-based, up to 10000. */
+        page?: number;
+        /** @description Number of items per page. */
+        perPage?: number;
+        /** @description Only live spaces with no kind set: the queue of spaces waiting to be set up. */
+        needsKind?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Paginated list. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaginatedSpaceResponseDto"];
+        };
+      };
+      /** @description A page or `needsKind` is malformed. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  SpacesController_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SpaceResponseDto"];
+        };
+      };
+      /** @description The id is not a UUID. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No space with that id. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  SpacesController_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateSpaceDto"];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SpaceResponseDto"];
+        };
+      };
+      /** @description A malformed field, a null where one is not allowed, an immutable field (`key`, `mapId`, `isMapDefault`), a default space that is not normal, a capacity below 1 or above 2147483647, a negative audio radius, or a hysteresis factor that is not positive. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No space with that id. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The campus already has a town hall or a notice board, and this space is being made one. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
   FeedbackController_list: {
     parameters: {
       query?: {
@@ -6649,6 +7170,252 @@ export interface operations {
       };
       /** @description No webhook key pair is configured here. */
       503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  CalendarController_connect: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description To Google; on failure to APP_PUBLIC_URL/campus?calendar=<outcome>, where outcome is one of connected, invalid_state, expired_state, denied, missing_code, exchange_failed, wrong_account, not_granted, no_refresh_token, unauthorized, not_available, unavailable, invalid_request, rate_limited, server_error. */
+      302: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CalendarController_connectFromApp: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CalendarAppConnectDto"];
+      };
+    };
+    responses: {
+      /** @description Connected. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description INVALID_ARGUMENT, with `details.reason`: exchange_failed (Google did not accept the code), wrong_account (another Google account than the member signs in with), not_granted (calendar access unticked) or no_refresh_token (asked without offline access or force-refresh-token). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No full-access session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Google Calendar is switched off on this deployment. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Google did not answer in time. Worth trying again shortly. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  CalendarController_callback: {
+    parameters: {
+      query?: {
+        /** @description Authorization code from Google. */
+        code?: string;
+        /** @description The state issued by GET /v1/calendar/connect. */
+        state?: string;
+        /** @description Set when the member declined at Google. */
+        error?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description To APP_PUBLIC_URL/campus?calendar=<outcome>, where outcome is one of connected, invalid_state, expired_state, denied, missing_code, exchange_failed, wrong_account, not_granted, no_refresh_token, unauthorized, not_available, unavailable, invalid_request, rate_limited, server_error. */
+      302: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CalendarController_events: {
+    parameters: {
+      query?: {
+        /** @description Events that end after this. A bare date is midnight UTC. Left out, now. */
+        from?: string;
+        /** @description Events that start before this. At most 62 days after `from`. Left out, 7 days after `from`. */
+        to?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CalendarEventsDto"];
+        };
+      };
+      /** @description `from` or `to` is not a date or a zoned timestamp, `to` is not after `from`, or they are more than 62 days apart. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No full-access session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Google Calendar is switched off on this deployment. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Google did not answer in time. Worth trying again shortly. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  CalendarController_disconnect: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Forgotten, or there was none. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No full-access session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  DashboardController_figures: {
+    parameters: {
+      query?: {
+        /** @description One cohort’s figures. Left out, the whole campus. */
+        cohortId?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DashboardFiguresDto"];
+        };
+      };
+      /** @description `cohortId` is not a UUID. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No cohort has that id. */
+      404: {
         headers: {
           [name: string]: unknown;
         };

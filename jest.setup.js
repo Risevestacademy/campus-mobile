@@ -39,14 +39,6 @@ jest.mock("react-native-nitro-google-signin", () => ({
   ),
 }));
 
-jest.mock("react-native-nitro-cookies", () => ({
-  __esModule: true,
-  default: {
-    getSync: jest.fn(() => ({})),
-    clearByName: jest.fn().mockResolvedValue(true),
-  },
-}));
-
 const mockSecureStoreMap = new Map();
 
 jest.mock("expo-secure-store", () => ({
@@ -70,6 +62,8 @@ jest.mock("expo-constants", () => ({
         appConfig: {
           env: "development",
           apiBaseUrl: "http://localhost:3000",
+          worldUrl: "wss://localhost:3001/socket",
+          webOrigin: "https://localhost:3000",
           googleIosClientId: "mock-ios-client-id",
           googleWebClientId: "mock-web-client-id",
         },

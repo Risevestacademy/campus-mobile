@@ -1,5 +1,6 @@
 import {
   authMiddleware,
+  getFreshAccessToken,
   registerSessionExpirationHandler,
 } from "@core/api/middleware";
 import {
@@ -316,6 +317,48 @@ describe("authMiddleware", () => {
       } as OnResponseParams);
 
       expect(handlerSpy).toHaveBeenCalledWith("expired");
+    });
+  });
+
+  describe("getFreshAccessToken", () => {
+    it("returns null when signed out", async () => {
+      await expect(getFreshAccessToken()).resolves.toBeNull();
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("returns a token that hasn't expired without refreshing", async () => {
+      await saveAuthTokens({
+        accessToken: "live-access-token",
+        accessExpiresAt: "2030-01-01T00:00:00Z",
+      });
+
+      await expect(getFreshAccessToken()).resolves.toBe("live-access-token");
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("refreshes an expired token first", async () => {
+      await saveAuthTokens({
+        accessToken: "stale-access-token",
+        refreshToken: "valid-refresh-token",
+        accessExpiresAt: "2020-01-01T00:00:00Z",
+      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            accessToken: "new-access-token",
+            refreshToken: "new-refresh-token",
+            expiresAt: "2030-10-03T00:00:00Z",
+            refreshExpiresAt: "2030-10-10T00:00:00Z",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+      await expect(getFreshAccessToken()).resolves.toBe("new-access-token");
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:3000/v1/auth/refresh",
+        expect.objectContaining({ method: "POST" }),
+      );
     });
   });
 });

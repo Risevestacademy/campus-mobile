@@ -24,7 +24,7 @@ export default function AccountVerifiedScreen() {
         </View>
 
         <View className="mt-4 flex-row items-center gap-2">
-          <StatusDot status="online" />
+          <StatusDot status="available" />
           <Text className="font-caption text-caption text-text-secondary">
             Connected successfully
           </Text>
