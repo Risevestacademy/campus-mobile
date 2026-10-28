@@ -1,4 +1,12 @@
-import { Avatar, Card, Row, Text, TextField } from "@shared/components/atoms";
+import { isApiError } from "@core/api/error";
+import {
+  Avatar,
+  Card,
+  Row,
+  Text,
+  TextField,
+  toast,
+} from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { capitalize, getInitials } from "@shared/helpers";
 import { useMe } from "@shared/hooks/useMe";
@@ -22,11 +30,12 @@ const StyledLock = withUniwind(Lock);
 const StyledLoaderCircle = withUniwind(LoaderCircle);
 
 export function EditProfileScreen() {
-  const { data, refetch } = useProfile();
+  const { data } = useProfile();
   const { update, isUpdating } = useUpdateProfile();
   const draft = useProfileUpdateStore((state) => state.draft);
   const setField = useProfileUpdateStore((state) => state.setField);
   const hydrate = useProfileUpdateStore((state) => state.hydrate);
+  const getChanges = useProfileUpdateStore((state) => state.getChanges);
   const reset = useProfileUpdateStore((state) => state.reset);
   const hasChanges = useHasProfileChanges();
   const { data: me } = useMe();
@@ -41,10 +50,17 @@ export function EditProfileScreen() {
   // Unsaved edits are discarded when leaving the screen
   React.useEffect(() => reset, [reset]);
 
+  // Only changed fields: an untouched empty field would fail validation.
   const updateProfile = async () => {
-    const data = await update(draft);
-    hydrate(data);
-    void refetch();
+    try {
+      hydrate(await update(getChanges()));
+    } catch (error) {
+      toast.error(
+        isApiError(error) && error.message
+          ? error.message
+          : "Couldn't save your profile. Try again.",
+      );
+    }
   };
   const rotation = useSharedValue(0);
 
@@ -70,9 +86,15 @@ export function EditProfileScreen() {
         title="Edit profile"
         action={
           <Pressable
-            disabled={!hasChanges}
+            onPress={updateProfile}
+            disabled={!hasChanges || isUpdating}
             accessibilityRole="button"
-            accessibilityState={{ disabled: !hasChanges }}
+            accessibilityLabel="Save profile"
+            accessibilityState={{
+              disabled: !hasChanges || isUpdating,
+              busy: isUpdating,
+            }}
+            hitSlop={12}
           >
             {isUpdating ? (
               <Animated.View style={spinStyle}>
@@ -83,7 +105,7 @@ export function EditProfileScreen() {
               </Animated.View>
             ) : (
               hasChanges && (
-                <Text onPress={updateProfile} variant="label" color="link">
+                <Text variant="label" color="link">
                   Save
                 </Text>
               )

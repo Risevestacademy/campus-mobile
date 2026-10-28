@@ -22,6 +22,14 @@ export function DefaultHeader() {
   const activeMembership = profileData?.memberships.find(
     (e) => e.cohort.id === userData?.membership?.cohortId,
   );
+  // Parts are missing until memberships load, and track is null for staff.
+  const membershipLine = [
+    capitalize(activeMembership?.role ?? ""),
+    activeMembership?.track?.name,
+    activeMembership?.cohort.name,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <View className="gap-3 bg-bg-band p-5 pt-safe-offset-5">
@@ -54,10 +62,11 @@ export function DefaultHeader() {
           <Text className="text-text-on-dark" variant="h5">
             {profile?.displayName}
           </Text>
-          <Text
-            className="text-text-on-dark"
-            variant="caption"
-          >{`${capitalize(activeMembership?.role ?? "")} · ${activeMembership?.track?.name} · ${activeMembership?.cohort.name}`}</Text>
+          {membershipLine ? (
+            <Text className="text-text-on-dark" variant="caption">
+              {membershipLine}
+            </Text>
+          ) : null}
         </View>
       </Row>
       <ActivityToggle
