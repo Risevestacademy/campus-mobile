@@ -3,8 +3,8 @@ import {
   MAX_RETRY_DELAY_MS,
   WebSocketProvider,
 } from "@shared/components/providers/ws";
-import { useWs, useWsMessage } from "@shared/hooks/useWs";
-import type { ServerMessageOf, WebSocketState } from "@shared/lib/ws";
+import { useWs } from "@shared/hooks/useWs";
+import type { ServerMessage, WebSocketState } from "@shared/lib/ws";
 import { useSessionStore } from "@store/session";
 import { act, render } from "@testing-library/react-native";
 import React from "react";
@@ -64,8 +64,11 @@ class MockWebSocket {
   }
 
   receive(frame: object) {
-    const event = { data: JSON.stringify(frame) };
-    this.messageListeners.forEach((listener) => listener(event));
+    this.receiveRaw(JSON.stringify(frame));
+  }
+
+  receiveRaw(data: unknown) {
+    this.messageListeners.forEach((listener) => listener({ data }));
   }
 }
 
@@ -851,10 +854,11 @@ describe("WebSocketProvider close codes", () => {
 });
 
 describe("WebSocketProvider messages", () => {
-  const onSnapshot = jest.fn<void, [ServerMessageOf<"snapshot">]>();
+  const onMessage = jest.fn<void, [ServerMessage]>();
 
-  function SnapshotListener() {
-    useWsMessage("snapshot", onSnapshot);
+  function Listener() {
+    const { subscribe } = useWs();
+    React.useEffect(() => subscribe(onMessage), [subscribe]);
     return null;
   }
 
@@ -868,13 +872,17 @@ describe("WebSocketProvider messages", () => {
 
   beforeEach(() => {
     MockWebSocket.instances = [];
-    onSnapshot.mockClear();
+    onMessage.mockReset();
     getAccessToken.mockResolvedValue("abc123");
     useSessionStore.setState({ status: "authenticated", hasInvite: false });
   });
 
-  async function renderWithListener() {
-    await render(
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function tree({ listening = true } = {}) {
+    return (
       <WebSocketProvider
         url={WS_URL}
         cohortId={COHORT_ID}
@@ -882,9 +890,13 @@ describe("WebSocketProvider messages", () => {
         refreshSession={refreshSession}
       >
         <Consumer />
-        <SnapshotListener />
-      </WebSocketProvider>,
+        {listening && <Listener />}
+      </WebSocketProvider>
     );
+  }
+
+  async function renderWithListener() {
+    return render(tree());
   }
 
   const snapshot = {
@@ -905,21 +917,33 @@ describe("WebSocketProvider messages", () => {
       socket.receive(snapshot);
     });
 
-    expect(onSnapshot).toHaveBeenCalledWith(snapshot);
+    expect(onMessage).toHaveBeenCalledWith(snapshot);
   });
 
-  it("only calls a listener for its own type", async () => {
+  it("stops delivering once the listener unsubscribes", async () => {
+    const view = await renderWithListener();
+    await act(() => lastSocket().open());
+
+    await view.rerender(tree({ listening: false }));
+    await act(() => lastSocket().receive(snapshot));
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+    expect(onMessage).not.toHaveBeenCalled();
+  });
+
+  it("ignores frames that aren't messages", async () => {
     await renderWithListener();
     await act(() => lastSocket().open());
 
-    await act(() => lastSocket().receive({ type: "left", userId: "u1" }));
+    await act(() => lastSocket().receiveRaw("not json"));
+    await act(() => lastSocket().receiveRaw(JSON.stringify({ no: "type" })));
 
-    expect(onSnapshot).not.toHaveBeenCalled();
+    expect(onMessage).not.toHaveBeenCalled();
   });
 
   it("keeps delivering after one listener throws", async () => {
     jest.spyOn(console, "error").mockImplementation(() => {});
-    onSnapshot.mockImplementationOnce(() => {
+    onMessage.mockImplementationOnce(() => {
       throw new Error("boom");
     });
     await renderWithListener();
@@ -928,8 +952,7 @@ describe("WebSocketProvider messages", () => {
     await act(() => lastSocket().receive(snapshot));
     await act(() => lastSocket().receive(snapshot));
 
-    expect(onSnapshot).toHaveBeenCalledTimes(2);
-    jest.restoreAllMocks();
+    expect(onMessage).toHaveBeenCalledTimes(2);
   });
 
   it("sends typed client messages once open", async () => {

@@ -2,7 +2,6 @@ import {
   type ClientMessage,
   closeAction,
   createWebSocket,
-  parseFrame,
   parseServerMessage,
   type ServerMessageListener,
   WebSocketContext,
@@ -213,21 +212,23 @@ export function WebSocketProvider({
       next.addEventListener("message", (event) => {
         awaitingReply = false;
         const message = parseServerMessage(event.data);
-        if (message) {
-          for (const listener of listeners.current) {
-            try {
-              listener(message);
-            } catch (error) {
-              // One bad subscriber mustn't stop the heartbeat or the others.
-              console.error("World message listener failed:", error);
-            }
+        if (!message) return;
+        for (const listener of listeners.current) {
+          try {
+            listener(message);
+          } catch (error) {
+            // One bad subscriber mustn't stop the heartbeat or the others.
+            console.error("World message listener failed:", error);
           }
         }
-        const frame = parseFrame(event.data);
-        if (frame?.type === "welcome") {
+        // Parsing only checks `type`, so check the interval before trusting it.
+        if (
+          message.type === "welcome" &&
+          typeof message.heartbeatSeconds === "number"
+        ) {
           // Admitted: a later session_expired deserves a fresh refresh.
           refreshed = false;
-          startHeartbeat(frame.heartbeatSeconds);
+          startHeartbeat(message.heartbeatSeconds);
         }
       });
       // RN fires onerror before onclose, so onclose alone drives retries.

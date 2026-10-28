@@ -3,20 +3,10 @@ import { createContext } from "react";
 import type {
   ClientMessage,
   CloseReason,
-  PongMessage,
   ServerMessage,
-  WelcomeMessage,
 } from "./generated/world-protocol";
 
 export type { ClientMessage, ServerMessage };
-
-export type ServerMessageType = ServerMessage["type"];
-
-/** The server message whose `type` is `T`, e.g. `ServerMessageOf<"snapshot">`. */
-export type ServerMessageOf<T extends ServerMessageType> = Extract<
-  ServerMessage,
-  { type: T }
->;
 
 export type ServerMessageListener = (message: ServerMessage) => void;
 
@@ -110,9 +100,6 @@ export function createWebSocket(
   return new NativeWebSocket(url, null, { headers });
 }
 
-type HeartbeatFrame =
-  Pick<WelcomeMessage, "type" | "heartbeatSeconds"> | PongMessage;
-
 /** Any JSON object with a string `type`; the shape is world's to guarantee. */
 export function parseServerMessage(data: unknown): ServerMessage | null {
   if (typeof data !== "string") return null;
@@ -121,23 +108,6 @@ export function parseServerMessage(data: unknown): ServerMessage | null {
     if (typeof frame !== "object" || frame === null) return null;
     if (typeof (frame as { type?: unknown }).type !== "string") return null;
     return frame as ServerMessage;
-  } catch {
-    return null;
-  }
-}
-
-/** Reads only the frames the provider itself acts on. */
-export function parseFrame(data: unknown): HeartbeatFrame | null {
-  if (typeof data !== "string") return null;
-  try {
-    const frame: unknown = JSON.parse(data);
-    if (typeof frame !== "object" || frame === null) return null;
-    const { type, heartbeatSeconds } = frame as Record<string, unknown>;
-    if (type === "pong") return { type };
-    if (type === "welcome" && typeof heartbeatSeconds === "number") {
-      return { type, heartbeatSeconds };
-    }
-    return null;
   } catch {
     return null;
   }
