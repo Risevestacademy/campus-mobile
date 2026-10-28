@@ -102,6 +102,12 @@ export const useCampusCount = () =>
 
 export const useWorldReady = () => useWorldStore((state) => state.ready);
 
+/** The key of the space you're standing in, as world sends it. */
+export const useMySpaceKey = () =>
+  useWorldStore((state) =>
+    state.selfId ? state.players[state.selfId]?.spaceKey : undefined,
+  );
+
 export const useMyStatus = () =>
   useWorldStore((state) =>
     state.selfId ? state.players[state.selfId]?.status : undefined,
