@@ -52,7 +52,7 @@ describe("useMeetingJoin", () => {
 
     expect(mockPush).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/(tabs)/(campus)/space/[id]",
+      pathname: "/(app)/(tabs)/(campus)/space/[id]",
       params: { id: "design-foundations" },
     });
   });

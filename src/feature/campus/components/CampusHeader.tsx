@@ -1,5 +1,5 @@
+import { ActivityToggle, Skeleton } from "@shared/components";
 import { Avatar, StatusDot, Text } from "@shared/components/atoms";
-import { Skeleton } from "@shared/components/Skeleton";
 import { useMe } from "@shared/hooks/useMe";
 import { Status } from "@shared/lib/generated/world-protocol";
 import { MessageCircleWarning, Navigation, Search } from "lucide-react-native";
@@ -7,7 +7,6 @@ import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
-import { ActivityToggle } from "./ActivityToggle";
 import { LiveMeeting } from "./LiveMeeting";
 
 type CampusHeaderProps = {

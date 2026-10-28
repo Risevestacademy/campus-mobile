@@ -47,7 +47,7 @@ function SignInScreen() {
           return;
         }
 
-        router.replace("/(tabs)/(campus)");
+        router.replace("/(app)/(tabs)/(campus)");
       }
     } catch (error) {
       if (isApiError(error)) {
@@ -55,7 +55,7 @@ function SignInScreen() {
         // If code is invite accepted, log the user in
         if (e.code === "INVITE_ALREADY_ACCEPTED") {
           await useSessionStore.getState().clearHasInvite();
-          router.replace("/(tabs)/(campus)");
+          router.replace("/(app)/(tabs)/(campus)");
           return;
         } else if (e.code === "INVITE_ALREADY_DECLINED") {
           router.replace("/InvalidInvitation");
@@ -67,7 +67,7 @@ function SignInScreen() {
   };
 
   if (status === "authenticated" && !hasInvite) {
-    return <Redirect href="/(tabs)/(campus)" />;
+    return <Redirect href="/(app)/(tabs)/(campus)" />;
   }
 
   return (
