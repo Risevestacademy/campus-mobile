@@ -9,9 +9,18 @@ jest.mock("react-native-worklets", () =>
   require("react-native-worklets/lib/module/mock"),
 );
 
-jest.mock("react-native-reanimated", () =>
-  require("react-native-reanimated/lib/module/mock"),
-);
+jest.mock("react-native-reanimated", () => {
+  const mock = require("react-native-reanimated/lib/module/mock");
+  // The mock imports these enums from reanimated itself, which resolves back
+  // to this mock, so they arrive undefined. Moti and interpolate need them.
+  mock.Extrapolation = {
+    IDENTITY: "identity",
+    CLAMP: "clamp",
+    EXTEND: "extend",
+  };
+  mock.ReduceMotion = { System: "system", Always: "always", Never: "never" };
+  return mock;
+});
 
 jest.mock("@gorhom/bottom-sheet", () => require("@gorhom/bottom-sheet/mock"));
 

@@ -1,29 +1,61 @@
 import { useAvailability } from "@core/realtime";
 import SafeArea from "@shared/components/safearea/SafeArea";
-import { useCampusCount, useWorldReady } from "@store/world";
-import { ScrollView } from "react-native";
+import { useCampusCount, useMySpaceKey, useWorldReady } from "@store/world";
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import { CampusHeader, HappeningAroundYou, Spaces } from "../components";
+import {
+  CampusHeaderBar,
+  CampusHeaderHero,
+  HappeningAroundYou,
+  LiveMeeting,
+  Spaces,
+} from "../components";
+import { useCollapsingHeader } from "../hooks";
 
 export function CampusScreen() {
   const ready = useWorldReady();
   const userCount = useCampusCount();
+  const spaceKey = useMySpaceKey();
   const { status, setStatus } = useAvailability();
+  const header = useCollapsingHeader();
+
+  const noOfParticipants = ready ? userCount : undefined;
+  const location = ready ? spaceKey : undefined;
 
   return (
     <SafeArea className="p-0" edges={[]}>
-      <CampusHeader
-        status={status}
-        onStatusChange={setStatus}
-        noOfParticipants={ready ? userCount : undefined}
-      />
-      <ScrollView
-        contentContainerClassName="py-5 gap-5"
+      <Animated.ScrollView
+        onScroll={header.onScroll}
+        scrollEventThrottle={16}
+        // Content starts under the pinned bar.
+        contentContainerStyle={{ paddingTop: header.barHeight }}
+        contentContainerClassName="gap-5 pb-5"
         showsVerticalScrollIndicator={false}
       >
+        <CampusHeaderHero
+          noOfParticipants={noOfParticipants}
+          location={location}
+          progress={header.progress}
+          onSummaryLayout={header.onSummaryLayout}
+        />
+        <View className="px-6">
+          <LiveMeeting />
+        </View>
         <HappeningAroundYou location="Main Hallway" />
         <Spaces />
-      </ScrollView>
+      </Animated.ScrollView>
+      <CampusHeaderBar
+        status={status}
+        onStatusChange={setStatus}
+        noOfParticipants={noOfParticipants}
+        location={location}
+        scrollY={header.scrollY}
+        summaryY={header.summaryY}
+        progress={header.progress}
+        collapsed={header.collapsed}
+        onLayout={header.onBarLayout}
+      />
     </SafeArea>
   );
 }
