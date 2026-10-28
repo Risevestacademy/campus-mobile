@@ -1,5 +1,6 @@
 export * from "./client";
 export {
+  getFreshAccessToken,
   refreshSession,
   registerSessionExpirationHandler,
   type SessionExpirationHandler,

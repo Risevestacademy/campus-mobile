@@ -53,10 +53,29 @@ jest.mock("uniwind", () => ({
   useResolveClassNames: () => ({}),
 }));
 
+// The guards don't depend on the socket or the profile; the real ones would
+// open a socket and fetch /me, leaving retries running after the tests end.
+jest.mock("@shared/components/providers/ws", () => ({
+  WebSocketProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock("@shared/hooks/useWs", () => ({
+  useWs: () => ({ status: "idle", subscribe: () => () => {} }),
+}));
+
+jest.mock("@shared/hooks/useMe", () => ({
+  useMe: () => ({ data: undefined }),
+}));
+
 describe("RootLayout Protected Route Guards", () => {
   beforeEach(() => {
     mockProtectedCalls.length = 0;
-    useSessionStore.setState({ status: "loading", hasInvite: false });
+    // Real hydrate finds no stored tokens and signs the session out mid-test.
+    useSessionStore.setState({
+      status: "loading",
+      hasInvite: false,
+      hydrate: async () => {},
+    });
   });
 
   it("allows access to (auth) with loading state and blocks (tabs) while hydration is in progress", async () => {
