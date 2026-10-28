@@ -76,7 +76,7 @@ export function DefaultHeader() {
         onChange={setStatus}
         containerClassName="px-3 py-2 gap-2 bg-bg-card"
         iconColorClassName="accent-text-muted"
-        textClassName="text-text-primary"
+        textClassName="flex-1 text-text-primary"
       />
     </View>
   );

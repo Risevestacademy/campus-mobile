@@ -2,7 +2,7 @@ import { cn } from "@shared/utils/style";
 import { cva, type VariantProps } from "class-variance-authority";
 import { View, type ViewProps } from "react-native";
 
-export const statusDotVariants = cva("size-2 rounded-full", {
+export const statusDotVariants = cva("size-2 shrink-0 rounded-full", {
   variants: {
     status: {
       available: "bg-status-success",
