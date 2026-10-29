@@ -1,6 +1,6 @@
 import { useAvailability } from "@core/realtime";
 import SafeArea from "@shared/components/safearea/SafeArea";
-import { useCampusCount, useMySpaceKey, useWorldReady } from "@store/world";
+import { useCampusCount, useMySpace, useWorldReady } from "@store/world";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -16,7 +16,7 @@ import { useCollapsingHeader } from "../hooks";
 export function CampusScreen() {
   const ready = useWorldReady();
   const userCount = useCampusCount();
-  const spaceKey = useMySpaceKey();
+  const spaceKey = useMySpace();
   const { status, setStatus } = useAvailability();
   const header = useCollapsingHeader();
 
@@ -35,7 +35,7 @@ export function CampusScreen() {
       >
         <CampusHeaderHero
           noOfParticipants={noOfParticipants}
-          location={location}
+          location={location?.name}
           progress={header.progress}
           onSummaryLayout={header.onSummaryLayout}
         />
@@ -49,7 +49,7 @@ export function CampusScreen() {
         status={status}
         onStatusChange={setStatus}
         noOfParticipants={noOfParticipants}
-        location={location}
+        location={location?.name}
         scrollY={header.scrollY}
         summaryY={header.summaryY}
         progress={header.progress}

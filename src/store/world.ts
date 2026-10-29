@@ -1,4 +1,4 @@
-import type { Avatar } from "@shared/lib/generated/world-protocol";
+import type { Avatar, SpaceName } from "@shared/lib/generated/world-protocol";
 import type { ServerMessage } from "@shared/lib/ws";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
@@ -18,12 +18,14 @@ export type WorldState = {
   ready: boolean;
   selfId: string | null;
   players: Record<string, Presence>;
+  spaces: Record<string, SpaceName>;
 };
 
 const initialState: WorldState = {
   ready: false,
   selfId: null,
   players: {},
+  spaces: {},
 };
 
 function toPresence({ userId, displayName, status, spaceKey }: Avatar) {
@@ -58,6 +60,7 @@ export function applyWorldMessage(
         players: Object.fromEntries(
           message.players.map((p) => [p.userId, toPresence(p)]),
         ),
+        spaces: Object.fromEntries(message.spaces.map((s) => [s.spaceKey, s])),
       };
     case "joined":
       return {
@@ -102,11 +105,14 @@ export const useCampusCount = () =>
 
 export const useWorldReady = () => useWorldStore((state) => state.ready);
 
-/** The key of the space you're standing in, as world sends it. */
-export const useMySpaceKey = () =>
-  useWorldStore((state) =>
-    state.selfId ? state.players[state.selfId]?.spaceKey : undefined,
-  );
+export const useMySpace = () =>
+  useWorldStore((state) => {
+    const key = state.selfId
+      ? state.players[state.selfId]?.spaceKey
+      : undefined;
+    if (!key) return undefined;
+    return state.spaces[key];
+  });
 
 export const useMyStatus = () =>
   useWorldStore((state) =>
