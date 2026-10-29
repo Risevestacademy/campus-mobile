@@ -1,8 +1,7 @@
 import { type CalendarEventsQuery, CalendarService } from "@services/calendar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export * from "./useDayEvents";
-export * from "./useWeekEvents";
+import { requestCalendarAuthCode } from "../helpers/requestCalendarAuthCode";
 
 const calendarKeys = {
   all: ["calendar"] as const,
@@ -34,6 +33,30 @@ export function useConnectCalendar() {
   });
 
   return { connectCalendar: mutateAsync, isConnecting: isPending };
+}
+
+/**
+ * The whole connect flow: Google's consent for read-only calendar access,
+ * then handing the auth code to the API. `connect` resolves false when the
+ * member backs out of Google's screens.
+ */
+export function useConnectGoogleCalendar() {
+  const queryClient = useQueryClient();
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: async () => {
+      const serverAuthCode = await requestCalendarAuthCode();
+      if (!serverAuthCode) return false;
+      await CalendarService.connect(serverAuthCode);
+      return true;
+    },
+    onSuccess: (connected) => {
+      if (connected) {
+        return queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+      }
+    },
+  });
+
+  return { connect: mutateAsync, isConnecting: isPending };
 }
 
 export function useDisconnectCalendar() {

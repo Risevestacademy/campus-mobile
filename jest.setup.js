@@ -39,7 +39,14 @@ jest.mock("react-native-nitro-google-signin", () => ({
     }),
     createAccount: jest.fn(),
     presentExplicitSignIn: jest.fn(),
+    getCurrentUser: jest.fn(() => null),
+    requestScopes: jest.fn(),
   },
+  statusCodes: { SIGN_IN_CANCELLED: "SIGN_IN_CANCELLED" },
+  isErrorWithCode: jest.fn(
+    (error) =>
+      typeof error?.code === "string" && typeof error?.message === "string",
+  ),
   isSuccessResponse: jest.fn(
     (res) => res && (res.status === "success" || res.type === "success"),
   ),

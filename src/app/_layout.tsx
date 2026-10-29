@@ -1,7 +1,7 @@
 import "../global.css";
 
 import { registerSessionExpirationHandler } from "@core/api";
-import config from "@core/config";
+import { GOOGLE_SIGN_IN_CONFIG } from "@core/auth/googleSignIn";
 import { RealtimeProvider } from "@core/realtime";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Toast } from "@shared/components/atoms";
@@ -25,10 +25,7 @@ import { Uniwind, useResolveClassNames } from "uniwind";
 
 LogBox.ignoreLogs(["SafeAreaView has been deprecated"]);
 
-GoogleOneTapSignIn.configure({
-  webClientId: config.googleWebClientId,
-  iosClientId: config.googleIosClientId,
-});
+GoogleOneTapSignIn.configure(GOOGLE_SIGN_IN_CONFIG);
 
 registerSessionExpirationHandler((reason) => {
   void useSessionStore.getState().clearSession(reason);

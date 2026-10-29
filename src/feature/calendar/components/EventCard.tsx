@@ -20,8 +20,8 @@ export function EventCard({ event, onJoin, onRemind }: EventCardProps) {
   return (
     <View className="flex-row items-center gap-3 rounded-xl border border-border-default bg-bg-card p-3">
       <TimeBlock
-        start={formatTime(event.start)}
-        end={formatTime(event.end)}
+        start={event.allDay ? "All day" : formatTime(event.start)}
+        end={event.allDay ? "" : formatTime(event.end)}
         kind={event.kind}
       />
 
