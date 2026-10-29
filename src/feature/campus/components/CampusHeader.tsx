@@ -149,8 +149,8 @@ export function CampusHeaderBar({
         barHeight.set(event.nativeEvent.layout.height);
         onLayout?.(event);
       }}
-      className="absolute inset-x-0 top-0 z-10 bg-bg-band px-6 pb-3"
-      style={{ paddingTop: top + 16 }}
+      className="absolute inset-x-0 top-0 z-10 bg-bg-band px-6"
+      style={{ paddingTop: top + 16, paddingBottom: 8 }}
     >
       <View
         onLayout={(event) => {
@@ -272,9 +272,12 @@ export function CampusHeaderHero({
   noOfParticipants,
   location,
   progress,
+  onLayout,
   onSummaryLayout,
 }: CampusSummaryProps & {
   progress: SharedValue<number>;
+  /** Its height sets how far the collapse runs. */
+  onLayout?: (event: LayoutChangeEvent) => void;
   onSummaryLayout?: (event: LayoutChangeEvent) => void;
 }) {
   const ready = noOfParticipants !== undefined;
@@ -284,10 +287,10 @@ export function CampusHeaderHero({
   }));
 
   return (
-    <View className="bg-bg-band px-6 py-4">
+    <View onLayout={onLayout} className="bg-bg-band px-6 pt-7 pb-4">
       {/* Pulling down past the top shows band colour, not the page behind. */}
       <View className="absolute inset-x-0 -top-100 h-100 bg-bg-band" />
-      {/* Measured: its top is where the copy starts, its height the collapse. */}
+      {/* Measured: its top is where the travelling copy starts. */}
       <Animated.View
         onLayout={onSummaryLayout}
         style={summaryStyle}

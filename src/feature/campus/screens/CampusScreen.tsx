@@ -26,10 +26,9 @@ export function CampusScreen() {
   return (
     <SafeArea className="p-0" edges={[]}>
       <Animated.ScrollView
-        onScroll={header.onScroll}
-        scrollEventThrottle={16}
-        // Content starts under the pinned bar.
-        contentContainerStyle={{ paddingTop: header.barHeight }}
+        {...header.scrollProps}
+        // Nothing to collapse into until the socket has sent the first snapshot.
+        scrollEnabled={ready}
         contentContainerClassName="gap-5 pb-5"
         showsVerticalScrollIndicator={false}
       >
@@ -37,6 +36,7 @@ export function CampusScreen() {
           noOfParticipants={noOfParticipants}
           location={location?.name}
           progress={header.progress}
+          onLayout={header.onHeroLayout}
           onSummaryLayout={header.onSummaryLayout}
         />
         <View className="px-6">
