@@ -8,11 +8,15 @@ import {
 import { capitalize, formatParticipantPresentation } from "@shared/helpers";
 import { useMeetingJoin } from "@shared/hooks/ui";
 import { type Presence, useAroundMe, useWorldReady } from "@store/world";
-import { AudioLines } from "lucide-react-native";
+import { AudioLines, Hand, Navigation } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
 
+import { useCurrentCall } from "../hooks";
+
 const StyledAudioLines = withUniwind(AudioLines);
+const StyledHand = withUniwind(Hand);
+const StyledNavigation = withUniwind(Navigation);
 
 function nameOf(player: Presence) {
   return player.displayName ?? "Someone";
@@ -26,6 +30,8 @@ export function HappeningAroundYou() {
   const ready = useWorldReady();
   const { space, earshot, inMySpace } = useAroundMe();
   const { open } = useMeetingJoin();
+  // The conversation within earshot is the call shown floating over the app.
+  const inCall = useCurrentCall() !== null;
 
   if (!ready) return null;
 
@@ -50,6 +56,7 @@ export function HappeningAroundYou() {
             id: "earshot",
             participants: earshot.map(nameOf),
             desc: spaceName,
+            inCall,
             onJoin: joinConversation,
           },
         ]
@@ -58,6 +65,8 @@ export function HappeningAroundYou() {
       id: player.userId,
       participants: [nameOf(player)],
       desc: [capitalize(player.status), spaceName].filter(Boolean).join(" · "),
+      // No wave message or way to move there yet: buttons without actions.
+      person: true,
     })),
   ];
 
@@ -96,11 +105,27 @@ type HappeningProps = {
   id: string;
   participants: string[];
   desc?: string;
+  /** You're already in it: shows a disabled "In call" in place of Join. */
+  inCall?: boolean;
   /** Only the conversation within earshot can be joined. */
   onJoin?: () => void;
+  /** Rows for one person, outside the call, get Wave and Navigate. */
+  person?: boolean;
+  onWave?: () => void;
+  onNavigate?: () => void;
 };
 
-function Happening({ participants, desc, onJoin }: HappeningProps) {
+function Happening({
+  participants,
+  desc,
+  inCall,
+  onJoin,
+  person,
+  onWave,
+  onNavigate,
+}: HappeningProps) {
+  const who = formatParticipantPresentation(participants);
+
   return (
     <Row className="border-text-on-accent">
       <MultiAvatar
@@ -116,7 +141,7 @@ function Happening({ participants, desc, onJoin }: HappeningProps) {
           numberOfLines={1}
           className="overflow-hidden text-ellipsis text-text-on-dark"
         >
-          {formatParticipantPresentation(participants)}
+          {who}
         </Text>
         {desc ? (
           <Text
@@ -128,11 +153,24 @@ function Happening({ participants, desc, onJoin }: HappeningProps) {
           </Text>
         ) : null}
       </View>
-      {onJoin ? (
+      {inCall ? (
+        <Row
+          className="gap-1 rounded-full bg-overlay-white-15 px-3 py-1"
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={`In call with ${who}`}
+          accessibilityState={{ disabled: true }}
+        >
+          <StyledAudioLines colorClassName="accent-text-rail" size={14} />
+          <Text className="text-text-rail" variant="label">
+            In call
+          </Text>
+        </Row>
+      ) : onJoin ? (
         <Pressable
           onPress={onJoin}
           accessibilityRole="button"
-          accessibilityLabel={`Join ${formatParticipantPresentation(participants)}`}
+          accessibilityLabel={`Join ${who}`}
         >
           <Row className="gap-1 rounded-full bg-action-primary px-3 py-1">
             <StyledAudioLines colorClassName="accent-text-on-dark" size={14} />
@@ -141,7 +179,37 @@ function Happening({ participants, desc, onJoin }: HappeningProps) {
             </Text>
           </Row>
         </Pressable>
+      ) : person ? (
+        <Row className="gap-2">
+          <RoundButton label={`Wave at ${who}`} onPress={onWave}>
+            <StyledHand colorClassName="accent-text-on-dark" size={18} />
+          </RoundButton>
+          <RoundButton label={`Navigate to ${who}`} onPress={onNavigate}>
+            <StyledNavigation colorClassName="accent-text-on-dark" size={18} />
+          </RoundButton>
+        </Row>
       ) : null}
     </Row>
+  );
+}
+
+function RoundButton({
+  children,
+  label,
+  onPress,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      className="size-9 items-center justify-center rounded-full bg-overlay-white-15/14"
+    >
+      {children}
+    </Pressable>
   );
 }
