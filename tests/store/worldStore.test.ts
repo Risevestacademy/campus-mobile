@@ -172,6 +172,26 @@ describe("useMySpace", () => {
     expect(result.current).toEqual(lounge);
   });
 
+  it("picks up a rename sent after the snapshot", async () => {
+    const { result } = await renderHook(() => useMySpace());
+
+    await act(() => {
+      apply({ type: "welcome", userId: "me" } as ServerMessage);
+      apply(
+        snapshotWithSpaces([library], avatar("me", { spaceKey: "library" })),
+      );
+      apply({
+        type: "spaces",
+        spaces: [{ spaceKey: "library", name: "Reading Room" }],
+      });
+    });
+
+    expect(result.current).toEqual({
+      spaceKey: "library",
+      name: "Reading Room",
+    });
+  });
+
   it("is undefined for a space the snapshot didn't name", async () => {
     const { result } = await renderHook(() => useMySpace());
 

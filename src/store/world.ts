@@ -32,6 +32,10 @@ function toPresence({ userId, displayName, status, spaceKey }: Avatar) {
   return { userId, displayName, status, spaceKey };
 }
 
+function bySpaceKey(spaces: SpaceName[]) {
+  return Object.fromEntries(spaces.map((space) => [space.spaceKey, space]));
+}
+
 /** Ignores unknown users, so a late update can't bring back someone who left. */
 function patch(
   state: WorldState,
@@ -60,7 +64,7 @@ export function applyWorldMessage(
         players: Object.fromEntries(
           message.players.map((p) => [p.userId, toPresence(p)]),
         ),
-        spaces: Object.fromEntries(message.spaces.map((s) => [s.spaceKey, s])),
+        spaces: bySpaceKey(message.spaces),
       };
     case "joined":
       return {
@@ -83,6 +87,8 @@ export function applyWorldMessage(
       return patch(state, message.userId, {
         displayName: message.displayName,
       });
+    case "spaces":
+      return { ...state, spaces: bySpaceKey(message.spaces) };
     case "replaced":
       return initialState;
     default:
