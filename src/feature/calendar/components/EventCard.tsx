@@ -50,16 +50,19 @@ export function EventCard({ event, onJoin, onRemind }: EventCardProps) {
       </View>
 
       {event.live ? (
-        <Button
-          size="sm"
-          className="h-8 rounded-full px-5"
-          onPress={() => onJoin?.(event)}
-        >
-          <Video width={16} height={16} color="#F7F7F7" />
-          <Text variant="label" className="text-text-on-dark">
-            Join
-          </Text>
-        </Button>
+        // In person, or no link given: nothing to join from here.
+        event.meetingUrl ? (
+          <Button
+            size="sm"
+            className="h-8 rounded-full px-5"
+            onPress={() => onJoin?.(event)}
+          >
+            <Video width={16} height={16} color="#F7F7F7" />
+            <Text variant="label" className="text-text-on-dark">
+              Join
+            </Text>
+          </Button>
+        ) : null
       ) : (
         <Button
           variant="secondary"
