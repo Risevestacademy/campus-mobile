@@ -3,14 +3,11 @@ import type { GoogleCalendarEvent } from "@services/calendar";
 import type { CalendarEvent } from "../types";
 import { toDateKey } from "./toDateKey";
 
-/** Maps an event from the API onto what the calendar screen shows. */
-export function fromGoogleEvent(
-  event: GoogleCalendarEvent,
-  now: Date = new Date(),
-): CalendarEvent {
-  const start = new Date(event.start).getTime();
-  const end = new Date(event.end).getTime();
-
+/**
+ * Maps an event from the API onto what the calendar screen shows. Whether it
+ * is live depends on the time, so `useLiveEvents` adds that.
+ */
+export function fromGoogleEvent(event: GoogleCalendarEvent): CalendarEvent {
   return {
     id: event.id,
     title: event.title ?? "(No title)",
@@ -19,8 +16,37 @@ export function fromGoogleEvent(
     location: event.location ?? "",
     allDay: event.allDay,
     meetingUrl: event.meetingUrl,
-    live: !event.allDay && start <= now.getTime() && now.getTime() < end,
   };
+}
+
+/** Running at `now`. All-day events are never live. */
+export function isLive(
+  event: Pick<CalendarEvent, "start" | "end" | "allDay">,
+  now: number,
+) {
+  if (event.allDay) return false;
+  return (
+    new Date(event.start).getTime() <= now &&
+    now < new Date(event.end).getTime()
+  );
+}
+
+/** The next moment any event starts or ends after `now`, if there is one. */
+export function nextLiveChange(
+  events: Pick<CalendarEvent, "start" | "end" | "allDay">[],
+  now: number,
+): number | undefined {
+  let next: number | undefined;
+  for (const event of events) {
+    if (event.allDay) continue;
+    for (const time of [
+      new Date(event.start).getTime(),
+      new Date(event.end).getTime(),
+    ]) {
+      if (time > now && (next === undefined || time < next)) next = time;
+    }
+  }
+  return next;
 }
 
 /**

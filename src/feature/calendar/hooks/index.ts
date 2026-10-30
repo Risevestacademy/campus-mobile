@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { requestCalendarAuthCode } from "../helpers/requestCalendarAuthCode";
 
+export * from "./useLiveEvents";
+
 const calendarKeys = {
   all: ["calendar"] as const,
   events: (query: CalendarEventsQuery) =>

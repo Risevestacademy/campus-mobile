@@ -4,6 +4,8 @@ import {
   getEventsForDay,
   getWeekDays,
   getWeekRange,
+  isLive,
+  nextLiveChange,
 } from "@features/calendar/helpers";
 import type { GoogleCalendarEvent } from "@services/calendar";
 
@@ -44,22 +46,55 @@ describe("fromGoogleEvent", () => {
     expect(event.title).toBe("(No title)");
     expect(event.location).toBe("");
   });
+});
 
-  it("is live only while it is running", () => {
-    const during = new Date("2026-10-27T09:15:00Z");
-    const after = new Date("2026-10-27T09:30:00Z");
+describe("isLive", () => {
+  const event = fromGoogleEvent(googleEvent());
 
-    expect(fromGoogleEvent(googleEvent(), during).live).toBe(true);
-    expect(fromGoogleEvent(googleEvent(), after).live).toBe(false);
+  it("is live from the start up to, not including, the end", () => {
+    expect(isLive(event, Date.parse("2026-10-27T08:59:59Z"))).toBe(false);
+    expect(isLive(event, Date.parse("2026-10-27T09:00:00Z"))).toBe(true);
+    expect(isLive(event, Date.parse("2026-10-27T09:29:59Z"))).toBe(true);
+    expect(isLive(event, Date.parse("2026-10-27T09:30:00Z"))).toBe(false);
   });
 
   it("never marks an all-day event live", () => {
-    const event = fromGoogleEvent(
+    const allDay = fromGoogleEvent(
       googleEvent({ allDay: true, start: "2026-10-27", end: "2026-10-28" }),
-      new Date(2026, 9, 27, 12),
     );
 
-    expect(event.live).toBe(false);
+    expect(isLive(allDay, new Date(2026, 9, 27, 12).getTime())).toBe(false);
+  });
+});
+
+describe("nextLiveChange", () => {
+  const events = [
+    fromGoogleEvent(googleEvent()),
+    fromGoogleEvent(
+      googleEvent({
+        id: "e2",
+        start: "2026-10-27T12:00:00Z",
+        end: "2026-10-27T13:00:00Z",
+      }),
+    ),
+    fromGoogleEvent(
+      googleEvent({ allDay: true, start: "2026-10-27", end: "2026-10-28" }),
+    ),
+  ];
+
+  it("is the soonest start or end still to come", () => {
+    expect(nextLiveChange(events, Date.parse("2026-10-27T08:00:00Z"))).toBe(
+      Date.parse("2026-10-27T09:00:00Z"),
+    );
+    expect(nextLiveChange(events, Date.parse("2026-10-27T09:10:00Z"))).toBe(
+      Date.parse("2026-10-27T09:30:00Z"),
+    );
+  });
+
+  it("is undefined once everything has ended, ignoring all-day events", () => {
+    expect(
+      nextLiveChange(events, Date.parse("2026-10-27T14:00:00Z")),
+    ).toBeUndefined();
   });
 });
 

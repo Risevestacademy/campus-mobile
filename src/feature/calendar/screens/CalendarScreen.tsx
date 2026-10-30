@@ -17,7 +17,7 @@ import {
   getWeekRange,
   toDateKey,
 } from "../helpers";
-import { useCalendarEvents } from "../hooks";
+import { useCalendarEvents, useLiveEvents } from "../hooks";
 import { MOCK_ATTENDANCE_NOTE } from "../mocks/calendar.mock";
 
 function CalendarScreen() {
@@ -27,10 +27,11 @@ function CalendarScreen() {
   const { data, isLoading, isError, refetch, isRefetching } =
     useCalendarEvents(range);
 
-  const events = useMemo(
-    () => (data?.connected ? data.events.map((e) => fromGoogleEvent(e)) : []),
+  const mapped = useMemo(
+    () => (data?.connected ? data.events.map(fromGoogleEvent) : []),
     [data],
   );
+  const events = useLiveEvents(mapped);
   const eventKeys = useMemo(() => new Set(events.map(eventDateKey)), [events]);
 
   const body = (() => {

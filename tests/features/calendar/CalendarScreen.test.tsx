@@ -7,6 +7,9 @@ const mockUseCalendarEvents = jest.fn();
 jest.mock("../../../src/feature/calendar/hooks", () => ({
   useCalendarEvents: () => mockUseCalendarEvents(),
   useConnectGoogleCalendar: () => ({ connect: jest.fn(), isConnecting: false }),
+  useLiveEvents: jest.requireActual(
+    "../../../src/feature/calendar/hooks/useLiveEvents",
+  ).useLiveEvents,
 }));
 
 const today = new Date();
