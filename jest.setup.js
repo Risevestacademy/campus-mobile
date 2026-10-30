@@ -19,6 +19,8 @@ jest.mock("react-native-reanimated", () => {
     EXTEND: "extend",
   };
   mock.ReduceMotion = { System: "system", Always: "always", Never: "never" };
+  // Missing from the library's mock.
+  mock.useReducedMotion = jest.fn(() => false);
   return mock;
 });
 

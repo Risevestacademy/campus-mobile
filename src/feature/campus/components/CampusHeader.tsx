@@ -14,6 +14,7 @@ import Animated, {
   interpolate,
   type SharedValue,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -111,6 +112,9 @@ export function CampusHeaderBar({
 
   // Nothing to fly while the count is loading: the page's skeleton stays.
   const ready = noOfParticipants !== undefined;
+  // Reduce Motion: no travel or shrink. The page's count fades where it is
+  // and the compact one fades in at its place in the bar.
+  const reduceMotion = useReducedMotion();
 
   const displayName = me?.user.displayName ?? "";
   const imageUrl = me?.user.avatarUrl ?? "";
@@ -125,19 +129,28 @@ export function CampusHeaderBar({
     const fromY = barHeight.value + summaryY.value - scrollY.value;
     // …and where the compact count ends up: right of the row, centred on it.
     const toY = row.value.y + (row.value.height - compact.value.height) / 2;
+    const t = reduceMotion ? 1 : p;
     return {
       opacity: ready && p > 0 ? 1 : 0,
       transform: [
-        { translateX: p * (row.value.width - compact.value.width) },
-        { translateY: fromY + (toY - fromY) * p },
+        { translateX: t * (row.value.width - compact.value.width) },
+        { translateY: fromY + (toY - fromY) * t },
       ],
     };
   });
 
-  const fullStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.6], [1, 0], Extrapolation.CLAMP),
-    transform: [{ scale: 1 - 0.4 * progress.value }],
-  }));
+  const fullStyle = useAnimatedStyle(() => {
+    if (reduceMotion) return { opacity: 0 };
+    return {
+      opacity: interpolate(
+        progress.value,
+        [0, 0.6],
+        [1, 0],
+        Extrapolation.CLAMP,
+      ),
+      transform: [{ scale: 1 - 0.4 * progress.value }],
+    };
+  });
 
   const compactStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0.4, 1], [0, 1], Extrapolation.CLAMP),
@@ -281,10 +294,24 @@ export function CampusHeaderHero({
   onSummaryLayout?: (event: LayoutChangeEvent) => void;
 }) {
   const ready = noOfParticipants !== undefined;
+  const reduceMotion = useReducedMotion();
 
-  const summaryStyle = useAnimatedStyle(() => ({
-    opacity: ready && progress.value > 0 ? 0 : 1,
-  }));
+  // Hands over to the bar's travelling copy, or with Reduce Motion fades out
+  // in place, since nothing travels then.
+  const summaryStyle = useAnimatedStyle(() => {
+    if (!ready) return { opacity: 1 };
+    if (reduceMotion) {
+      return {
+        opacity: interpolate(
+          progress.value,
+          [0, 0.5],
+          [1, 0],
+          Extrapolation.CLAMP,
+        ),
+      };
+    }
+    return { opacity: progress.value > 0 ? 0 : 1 };
+  });
 
   return (
     <View onLayout={onLayout} className="bg-bg-band px-6 pt-7 pb-4">

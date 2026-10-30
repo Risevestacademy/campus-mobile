@@ -1,7 +1,7 @@
 import { CampusHeaderBar, CampusHeaderHero } from "@features/campus/components";
 import { render, screen } from "@testing-library/react-native";
 import React from "react";
-import type { SharedValue } from "react-native-reanimated";
+import { type SharedValue, useReducedMotion } from "react-native-reanimated";
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn() }),
@@ -94,6 +94,37 @@ describe("CampusHeaderHero", () => {
     expect(screen.getByText("0 people on campus now")).toBeTruthy();
     expect(screen.getByTestId("campus-header-summary").props.style).toEqual(
       expect.objectContaining({ opacity: 1 }),
+    );
+  });
+
+  describe("with Reduce Motion on", () => {
+    beforeEach(() => {
+      jest.mocked(useReducedMotion).mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      jest.mocked(useReducedMotion).mockReturnValue(false);
+    });
+
+    // The mock's `interpolate` returns undefined, so this checks the hand-off
+    // doesn't happen rather than the exact fade.
+    it("keeps the page's count instead of handing it to the bar", async () => {
+      await render(
+        <CampusHeaderHero noOfParticipants={12} progress={shared(0.25)} />,
+      );
+
+      const { style } = screen.getByTestId("campus-header-summary").props;
+      expect(style.opacity).not.toBe(0);
+    });
+  });
+
+  it("hands the count to the bar as soon as the page scrolls", async () => {
+    await render(
+      <CampusHeaderHero noOfParticipants={12} progress={shared(0.25)} />,
+    );
+
+    expect(screen.getByTestId("campus-header-summary").props.style).toEqual(
+      expect.objectContaining({ opacity: 0 }),
     );
   });
 });
