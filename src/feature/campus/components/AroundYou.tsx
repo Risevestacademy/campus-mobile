@@ -5,46 +5,62 @@ import {
   Row,
   Text,
 } from "@shared/components/atoms";
-import { formatParticipantPresentation } from "@shared/helpers";
+import { capitalize, formatParticipantPresentation } from "@shared/helpers";
 import { useMeetingJoin } from "@shared/hooks/ui";
-import { AudioLines, Hand } from "lucide-react-native";
+import { type Presence, useAroundMe, useWorldReady } from "@store/world";
+import { AudioLines } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
 
-type HappeningAroundYouProps = {
-  location: string;
-};
-
 const StyledAudioLines = withUniwind(AudioLines);
-const StyledHand = withUniwind(Hand);
 
-export function HappeningAroundYou({ location }: HappeningAroundYouProps) {
+function nameOf(player: Presence) {
+  return player.displayName ?? "Someone";
+}
+
+/**
+ * Who is around you on campus: the conversation within earshot, then anyone
+ * else standing in your space. Hidden until world's first snapshot.
+ */
+export function HappeningAroundYou() {
+  const ready = useWorldReady();
+  const { space, earshot, inMySpace } = useAroundMe();
   const { open } = useMeetingJoin();
 
-  const showMeeting = (participant: { name: string; imageUrl?: string }[]) => {
+  if (!ready) return null;
+
+  const spaceName = space?.name ?? "";
+
+  const joinConversation = () => {
+    const participants = earshot.map((player) => ({ name: nameOf(player) }));
     open({
-      meetingId: "main-hallway",
-      title: formatParticipantPresentation(participant.map((e) => e.name)),
+      meetingId: space?.spaceKey ?? "",
+      title: formatParticipantPresentation(participants.map((p) => p.name)),
       hostName: "",
       startsAt: new Date(),
-      participants: participant,
-      location: "Main Hallway",
+      participants,
+      location: spaceName,
     });
   };
 
   const happenings: HappeningProps[] = [
-    {
-      participant: ["Ayobami", "Victor"],
-      desc: "Hallway",
-      action: "join",
-      onAction: (p) => showMeeting(p?.paticipants! ?? []),
-    },
-    {
-      participant: ["Osemen"],
-      desc: "Idle · Project Studio",
-      action: "wave",
-    },
+    ...(earshot.length > 0
+      ? [
+          {
+            id: "earshot",
+            participants: earshot.map(nameOf),
+            desc: spaceName,
+            onJoin: joinConversation,
+          },
+        ]
+      : []),
+    ...inMySpace.map((player) => ({
+      id: player.userId,
+      participants: [nameOf(player)],
+      desc: [capitalize(player.status), spaceName].filter(Boolean).join(" · "),
+    })),
   ];
+
   return (
     <Card className="mx-6 gap-1 bg-bg-ink-card">
       <Row justify="between">
@@ -52,64 +68,46 @@ export function HappeningAroundYou({ location }: HappeningAroundYouProps) {
           AROUND YOU
         </Text>
         <Text className="text-text-rail" variant="caption">
-          {location}
+          {spaceName}
         </Text>
       </Row>
 
-      {happenings.map((e, i) => {
-        const hasDivider = i < happenings.length - 1;
-
-        return (
-          <View key={i}>
-            <Happening {...e} />
-            {hasDivider && (
+      {happenings.length === 0 ? (
+        <Text variant="caption" className="py-2 text-text-rail">
+          Nobody else is here right now.
+        </Text>
+      ) : (
+        happenings.map((happening, i) => (
+          <View key={happening.id}>
+            <Happening {...happening} />
+            {i < happenings.length - 1 && (
               <View className="py-1">
                 <Divider dividerBgClassName="bg-bg-ink-divider" />
               </View>
             )}
           </View>
-        );
-      })}
+        ))
+      )}
     </Card>
   );
 }
 
-type HappeningActionProps = {
-  paticipants?: { name: string; imageUrl?: string }[];
-};
-
 type HappeningProps = {
-  participant: string[];
-  onAction?: (props?: HappeningActionProps) => void;
+  id: string;
+  participants: string[];
   desc?: string;
-  action: "wave" | "join";
+  /** Only the conversation within earshot can be joined. */
+  onJoin?: () => void;
 };
 
-function Happening({ participant, desc, onAction, action }: HappeningProps) {
-  const actionComponent = () => {
-    switch (action) {
-      case "join":
-        return (
-          <Row className="gap-1 rounded-full bg-action-primary px-3 py-1">
-            <StyledAudioLines colorClassName="accent-text-on-dark" size={14} />
-            <Text className="text-text-on-dark" variant="label">
-              Join
-            </Text>
-          </Row>
-        );
-      case "wave":
-        return (
-          <View className="size-9 items-center justify-center rounded-full bg-overlay-white-15/14">
-            <StyledHand colorClassName="accent-text-on-dark" size={20} />
-          </View>
-        );
-    }
-  };
+function Happening({ participants, desc, onJoin }: HappeningProps) {
   return (
     <Row className="border-text-on-accent">
       <MultiAvatar
         size={36}
-        participants={participant.map((e) => ({ placeholder: e[0] }))}
+        participants={participants.map((name) => ({
+          placeholder: name[0] ?? "",
+        }))}
         ringClassName="border-text-on-accent"
       />
       <View className="flex-1">
@@ -118,26 +116,32 @@ function Happening({ participant, desc, onAction, action }: HappeningProps) {
           numberOfLines={1}
           className="overflow-hidden text-ellipsis text-text-on-dark"
         >
-          {formatParticipantPresentation(participant)}
+          {formatParticipantPresentation(participants)}
         </Text>
-        <Text
-          variant="caption"
-          numberOfLines={1}
-          className="overflow-hidden text-ellipsis text-text-rail"
-        >
-          {desc}
-        </Text>
+        {desc ? (
+          <Text
+            variant="caption"
+            numberOfLines={1}
+            className="overflow-hidden text-ellipsis text-text-rail"
+          >
+            {desc}
+          </Text>
+        ) : null}
       </View>
-      <Pressable
-        onPress={() => {
-          if (!onAction) return;
-          return onAction!({
-            paticipants: participant.map((e) => ({ name: e })),
-          });
-        }}
-      >
-        {actionComponent()}
-      </Pressable>
+      {onJoin ? (
+        <Pressable
+          onPress={onJoin}
+          accessibilityRole="button"
+          accessibilityLabel={`Join ${formatParticipantPresentation(participants)}`}
+        >
+          <Row className="gap-1 rounded-full bg-action-primary px-3 py-1">
+            <StyledAudioLines colorClassName="accent-text-on-dark" size={14} />
+            <Text className="text-text-on-dark" variant="label">
+              Join
+            </Text>
+          </Row>
+        </Pressable>
+      ) : null}
     </Row>
   );
 }

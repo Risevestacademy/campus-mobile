@@ -1,7 +1,9 @@
 import type { Avatar, SpaceName } from "@shared/lib/generated/world-protocol";
 import type { ServerMessage } from "@shared/lib/ws";
+import React from "react";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
+import { useShallow } from "zustand/react/shallow";
 
 /**
  * Who is on campus, kept from `snapshot` plus the deltas after it. Positions
@@ -19,6 +21,8 @@ export type WorldState = {
   selfId: string | null;
   players: Record<string, Presence>;
   spaces: Record<string, SpaceName>;
+  /** Who is close enough to hear you, in a proximity space; else empty. */
+  nearby: string[];
 };
 
 const initialState: WorldState = {
@@ -26,6 +30,7 @@ const initialState: WorldState = {
   selfId: null,
   players: {},
   spaces: {},
+  nearby: [],
 };
 
 function toPresence({ userId, displayName, status, spaceKey }: Avatar) {
@@ -54,6 +59,7 @@ export function applyWorldMessage(
   state: WorldState,
   message: ServerMessage,
 ): WorldState {
+  console.warn(message);
   switch (message.type) {
     case "welcome":
       return { ...state, selfId: message.userId };
@@ -65,6 +71,8 @@ export function applyWorldMessage(
           message.players.map((p) => [p.userId, toPresence(p)]),
         ),
         spaces: bySpaceKey(message.spaces),
+        // A new connection: world sends `nearby` again if it applies.
+        nearby: [],
       };
     case "joined":
       return {
@@ -81,8 +89,13 @@ export function applyWorldMessage(
     }
     case "statusChanged":
       return patch(state, message.userId, { status: message.status });
-    case "spaceChanged":
-      return patch(state, message.userId, { spaceKey: message.spaceKey });
+    case "spaceChanged": {
+      const next = patch(state, message.userId, { spaceKey: message.spaceKey });
+      // Earshot belongs to the space you were in; a new one sends its own.
+      return message.userId === state.selfId ? { ...next, nearby: [] } : next;
+    }
+    case "nearby":
+      return { ...state, nearby: message.userIds };
     case "appearance":
       return patch(state, message.userId, {
         displayName: message.displayName,
@@ -124,3 +137,41 @@ export const useMyStatus = () =>
   useWorldStore((state) =>
     state.selfId ? state.players[state.selfId]?.status : undefined,
   );
+
+/**
+ * Who is around you: everyone within earshot as one conversation, and
+ * everyone else standing in your space. You're never in either list.
+ */
+export function useAroundMe() {
+  const { players, nearby, selfId, spaces } = useWorldStore(
+    useShallow((state) => ({
+      players: state.players,
+      nearby: state.nearby,
+      selfId: state.selfId,
+      spaces: state.spaces,
+    })),
+  );
+
+  return React.useMemo(() => {
+    const me = selfId ? players[selfId] : undefined;
+    const earshot = nearby
+      .filter((id) => id !== selfId)
+      .map((id) => players[id])
+      .filter((player): player is Presence => player !== undefined);
+    const heard = new Set(earshot.map((player) => player.userId));
+    const inMySpace = me
+      ? Object.values(players).filter(
+          (player) =>
+            player.userId !== selfId &&
+            player.spaceKey === me.spaceKey &&
+            !heard.has(player.userId),
+        )
+      : [];
+
+    return {
+      space: me ? spaces[me.spaceKey] : undefined,
+      earshot,
+      inMySpace,
+    };
+  }, [players, nearby, selfId, spaces]);
+}

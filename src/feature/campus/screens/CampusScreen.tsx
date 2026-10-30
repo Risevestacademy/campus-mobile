@@ -42,7 +42,7 @@ export function CampusScreen() {
         <View className="px-6">
           <LiveMeeting />
         </View>
-        <HappeningAroundYou location="Main Hallway" />
+        <HappeningAroundYou />
         <Spaces />
       </Animated.ScrollView>
       <CampusHeaderBar

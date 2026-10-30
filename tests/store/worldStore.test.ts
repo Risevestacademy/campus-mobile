@@ -1,6 +1,6 @@
 import type { Avatar, SpaceName } from "@shared/lib/generated/world-protocol";
 import type { ServerMessage } from "@shared/lib/ws";
-import { useMySpace, useWorldStore } from "@store/world";
+import { useAroundMe, useMySpace, useWorldStore } from "@store/world";
 import { act, renderHook } from "@testing-library/react-native";
 
 function avatar(userId: string, overrides: Partial<Avatar> = {}): Avatar {
@@ -209,5 +209,79 @@ describe("useMySpace", () => {
     const { result } = await renderHook(() => useMySpace());
 
     expect(result.current).toBeUndefined();
+  });
+});
+
+describe("useAroundMe", () => {
+  const library = { spaceKey: "library", name: "Library" };
+  const inLibrary = (id: string, overrides: Partial<Avatar> = {}) =>
+    avatar(id, { spaceKey: "library", ...overrides });
+
+  beforeEach(() => {
+    useWorldStore.getState().reset();
+    apply({ type: "welcome", userId: "me" } as ServerMessage);
+    apply(
+      snapshotWithSpaces(
+        [library],
+        inLibrary("me"),
+        inLibrary("ada"),
+        inLibrary("bo", { status: "busy" }),
+        avatar("cy", { spaceKey: "lounge" }),
+      ),
+    );
+  });
+
+  it("lists everyone else in your space while nobody is in earshot", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    expect(result.current.space).toEqual(library);
+    expect(result.current.earshot).toEqual([]);
+    expect(result.current.inMySpace.map((p) => p.userId).sort()).toEqual([
+      "ada",
+      "bo",
+    ]);
+  });
+
+  it("groups whoever is in earshot, leaving you and them out of the rest", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    await act(() => {
+      apply({ type: "nearby", userIds: ["me", "ada"] });
+    });
+
+    expect(result.current.earshot.map((p) => p.userId)).toEqual(["ada"]);
+    expect(result.current.inMySpace.map((p) => p.userId)).toEqual(["bo"]);
+  });
+
+  it("forgets earshot when you move to another space", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    await act(() => {
+      apply({ type: "nearby", userIds: ["ada"] });
+      apply({ type: "spaceChanged", userId: "me", spaceKey: "lounge" });
+    });
+
+    expect(state().nearby).toEqual([]);
+    expect(result.current.earshot).toEqual([]);
+    expect(result.current.inMySpace.map((p) => p.userId)).toEqual(["cy"]);
+  });
+
+  it("keeps earshot when somebody else moves", async () => {
+    await act(() => {
+      apply({ type: "nearby", userIds: ["ada"] });
+      apply({ type: "spaceChanged", userId: "bo", spaceKey: "lounge" });
+    });
+
+    expect(state().nearby).toEqual(["ada"]);
+  });
+
+  it("skips earshot ids world hasn't told us about", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    await act(() => {
+      apply({ type: "nearby", userIds: ["ghost", "ada"] });
+    });
+
+    expect(result.current.earshot.map((p) => p.userId)).toEqual(["ada"]);
   });
 });
