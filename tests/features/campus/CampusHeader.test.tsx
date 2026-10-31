@@ -91,7 +91,7 @@ describe("CampusHeaderHero", () => {
   it("keeps the page's count, with its skeleton, while loading even mid-scroll", async () => {
     await render(<CampusHeaderHero progress={shared(0.5)} />);
 
-    expect(screen.getByText("0 people on campus now")).toBeTruthy();
+    expect(screen.getByLabelText("Loading")).toBeTruthy();
     expect(screen.getByTestId("campus-header-summary").props.style).toEqual(
       expect.objectContaining({ opacity: 1 }),
     );

@@ -180,14 +180,14 @@ export function CampusHeaderBar({
               placeholder={displayName[0] ?? ""}
             />
           </Skeleton>
-          <Skeleton isLoading={isLoading || !status} radius="round">
+          {!isLoading && status ? (
             <StatusDot
               status={status}
               className="absolute right-0 bottom-0 size-3 border-2 border-bg-band"
             />
-          </Skeleton>
+          ) : null}
         </View>
-        <View className="items-start gap-2">
+        <View className="flex-1 items-start gap-2">
           <Skeleton isLoading={isLoading} radius={16} width={200}>
             <Text variant="h6" className="text-[18px] text-text-on-dark">
               Hi, {me?.user.firstName}
@@ -199,7 +199,7 @@ export function CampusHeaderBar({
         </View>
         <Animated.View
           style={actionsStyle}
-          className="flex grow flex-row gap-3"
+          className="flex grow flex-row justify-end gap-3"
           pointerEvents={collapsed ? "none" : "auto"}
           accessibilityElementsHidden={collapsed}
           importantForAccessibility={collapsed ? "no-hide-descendants" : "auto"}
