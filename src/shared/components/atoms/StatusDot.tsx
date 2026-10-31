@@ -25,7 +25,7 @@ export function StatusDot({
   return (
     <View
       {...props}
-      style={[{ borderRadius: 10000 }, style]}
+      style={[style, { borderRadius: 100 }]}
       className={cn(statusDotVariants({ status }), className)}
     />
   );
