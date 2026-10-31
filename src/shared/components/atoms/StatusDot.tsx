@@ -16,8 +16,17 @@ export type StatusDotVariantProps = VariantProps<typeof statusDotVariants>;
 
 export interface StatusDotProps extends ViewProps, StatusDotVariantProps {}
 
-export function StatusDot({ status, className, ...props }: StatusDotProps) {
+export function StatusDot({
+  status,
+  className,
+  style,
+  ...props
+}: StatusDotProps) {
   return (
-    <View {...props} className={cn(statusDotVariants({ status }), className)} />
+    <View
+      {...props}
+      style={[style, { borderRadius: 100 }]}
+      className={cn(statusDotVariants({ status }), className)}
+    />
   );
 }

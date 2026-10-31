@@ -1,3 +1,5 @@
+import { useCurrentCall } from "@features/campus";
+import { FloatingCall } from "@shared/components";
 import { Tabs } from "expo-router";
 import { PlatformPressable } from "expo-router/build/react-navigation";
 import {
@@ -94,60 +96,67 @@ export default function TabsLayout() {
   const inactiveFg = useCSSVariable("--color-text-muted") as string;
   const tabBarStyle = useResolveClassNames("bg-bg-card pt-2 h-20");
   const tabBarLabelStyle = useResolveClassNames("text-label");
+  const call = useCurrentCall();
+  // The call floats 10px above the tab bar, over every tab.
+  const tabBarHeight =
+    typeof tabBarStyle.height === "number" ? tabBarStyle.height : 80;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle,
-        tabBarActiveTintColor: activeFg,
-        tabBarInactiveTintColor: inactiveFg,
-        tabBarLabelStyle,
-        tabBarButton: (props) => (
-          <PlatformPressable
-            {...props}
-            android_ripple={{ color: "transparent" }}
-            pressColor="transparent"
-            pressOpacity={1}
-          />
-        ),
-      }}
-    >
-      <Tabs.Screen
-        name="(campus)"
-        options={{
-          title: "Campus",
-          tabBarIcon: tabIcon(Map),
+    <View className="flex-1">
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle,
+          tabBarActiveTintColor: activeFg,
+          tabBarInactiveTintColor: inactiveFg,
+          tabBarLabelStyle,
+          tabBarButton: (props) => (
+            <PlatformPressable
+              {...props}
+              android_ripple={{ color: "transparent" }}
+              pressColor="transparent"
+              pressOpacity={1}
+            />
+          ),
         }}
-      />
-      <Tabs.Screen
-        name="(messages)"
-        options={{
-          title: "Chat",
-          tabBarIcon: tabIcon(MessageCircle),
-        }}
-      />
-      <Tabs.Screen
-        name="(calendar)"
-        options={{
-          title: "Schedule",
-          tabBarIcon: tabIcon(CalendarCheck2),
-        }}
-      />
-      <Tabs.Screen
-        name="(notifications)"
-        options={{
-          title: "Notices",
-          tabBarIcon: tabIcon(MessageCircleWarning),
-        }}
-      />
-      <Tabs.Screen
-        name="(profile)"
-        options={{
-          title: "Me",
-          tabBarIcon: tabIcon(UserRound),
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="(campus)"
+          options={{
+            title: "Campus",
+            tabBarIcon: tabIcon(Map),
+          }}
+        />
+        <Tabs.Screen
+          name="(messages)"
+          options={{
+            title: "Chat",
+            tabBarIcon: tabIcon(MessageCircle),
+          }}
+        />
+        <Tabs.Screen
+          name="(calendar)"
+          options={{
+            title: "Schedule",
+            tabBarIcon: tabIcon(CalendarCheck2),
+          }}
+        />
+        <Tabs.Screen
+          name="(notifications)"
+          options={{
+            title: "Notices",
+            tabBarIcon: tabIcon(MessageCircleWarning),
+          }}
+        />
+        <Tabs.Screen
+          name="(profile)"
+          options={{
+            title: "Me",
+            tabBarIcon: tabIcon(UserRound),
+          }}
+        />
+      </Tabs>
+      <FloatingCall call={call} bottomOffset={tabBarHeight + 10} />
+    </View>
   );
 }

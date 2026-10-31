@@ -1,7 +1,7 @@
 import "../global.css";
 
 import { registerSessionExpirationHandler } from "@core/api";
-import config from "@core/config";
+import { GOOGLE_SIGN_IN_CONFIG } from "@core/auth/googleSignIn";
 import { RealtimeProvider } from "@core/realtime";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Toast } from "@shared/components/atoms";
@@ -13,7 +13,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
-import { LogBox } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { GoogleOneTapSignIn } from "react-native-nitro-google-signin";
@@ -23,12 +22,7 @@ import {
 } from "react-native-safe-area-context";
 import { Uniwind, useResolveClassNames } from "uniwind";
 
-LogBox.ignoreLogs(["SafeAreaView has been deprecated"]);
-
-GoogleOneTapSignIn.configure({
-  webClientId: config.googleWebClientId,
-  iosClientId: config.googleIosClientId,
-});
+GoogleOneTapSignIn.configure(GOOGLE_SIGN_IN_CONFIG);
 
 registerSessionExpirationHandler((reason) => {
   void useSessionStore.getState().clearSession(reason);

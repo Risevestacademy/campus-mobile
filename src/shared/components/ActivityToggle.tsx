@@ -41,7 +41,6 @@ const StyledChevronRight = withUniwind(ChevronRight);
 const StyledClock = withUniwind(Clock);
 
 type ActivityToggleProps = {
-  /** Undefined until world reports it; the toggle can't be opened then. */
   status?: ActivityStatus;
   onChange?: (status: ActivityStatus) => void;
   containerClassName?: string;
@@ -78,7 +77,7 @@ export function ActivityToggle({
       >
         <StatusDot status={selectedOption?.status} />
         <Text
-          className={cn("flex-1 text-text-on-dark", textClassName)}
+          className={cn("text-text-on-dark", textClassName)}
           variant="label"
         >
           {selectedOption?.short}
