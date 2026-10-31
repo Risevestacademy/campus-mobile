@@ -1,3 +1,4 @@
+import type { CallParticipant } from "@shared/components";
 import {
   Card,
   Divider,
@@ -7,6 +8,7 @@ import {
 } from "@shared/components/atoms";
 import { capitalize, formatParticipantPresentation } from "@shared/helpers";
 import { useMeetingJoin } from "@shared/hooks/ui";
+import { useWs } from "@shared/hooks/useWs";
 import { type Presence, useAroundMe, useWorldReady } from "@store/world";
 import { AudioLines, Hand, Navigation } from "lucide-react-native";
 import { Pressable, View } from "react-native";
@@ -29,9 +31,9 @@ function nameOf(player: Presence) {
 export function HappeningAroundYou() {
   const ready = useWorldReady();
   const { space, earshot, inMySpace } = useAroundMe();
+  const { send } = useWs();
   const { open } = useMeetingJoin();
-  // The conversation within earshot is the call shown floating over the app.
-  const inCall = useCurrentCall() !== null;
+  const call = useCurrentCall();
 
   if (!ready) return null;
 
@@ -54,21 +56,28 @@ export function HappeningAroundYou() {
       ? [
           {
             id: "earshot",
-            participants: earshot.map(nameOf),
+            // The call you're in, you first, as the floating call shows it.
+            participants:
+              call?.participants ??
+              earshot.map((player) => ({ name: nameOf(player) })),
             desc: spaceName,
-            inCall,
+            inCall: call !== null,
             onJoin: joinConversation,
           },
         ]
       : []),
     ...inMySpace.map((player) => ({
+      onNavigate: () => goTo(player.userId),
       id: player.userId,
-      participants: [nameOf(player)],
+      participants: [{ id: player.userId, name: nameOf(player) }],
       desc: [capitalize(player.status), spaceName].filter(Boolean).join(" · "),
-      // No wave message or way to move there yet: buttons without actions.
       person: true,
     })),
   ];
+
+  const goTo = (id: string) => {
+    send({ type: "goTo", userId: id });
+  };
 
   return (
     <Card className="mx-6 gap-1 bg-bg-ink-card">
@@ -103,7 +112,7 @@ export function HappeningAroundYou() {
 
 type HappeningProps = {
   id: string;
-  participants: string[];
+  participants: CallParticipant[];
   desc?: string;
   /** You're already in it: shows a disabled "In call" in place of Join. */
   inCall?: boolean;
@@ -124,16 +133,18 @@ function Happening({
   onWave,
   onNavigate,
 }: HappeningProps) {
-  const who = formatParticipantPresentation(participants);
+  const who = formatParticipantPresentation(participants.map((p) => p.name));
 
   return (
     <Row className="border-text-on-accent">
       <MultiAvatar
         size={36}
-        participants={participants.map((name) => ({
-          placeholder: name[0] ?? "",
+        participants={participants.map((p) => ({
+          id: p.id,
+          imageUrl: p.imageUrl,
+          placeholder: p.initial ?? p.name[0] ?? "",
         }))}
-        ringClassName="border-text-on-accent"
+        ringClassName="border-bg-ink-card border-[2px]"
       />
       <View className="flex-1">
         <Text

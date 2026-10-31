@@ -21,7 +21,9 @@ export type ClientMessage =
   | AnswerEntryRequestMessage
   | SayMessage
   | MuteMessage
-  | RemoveFromSpaceMessage;
+  | RemoveFromSpaceMessage
+  | GoToMessage
+  | StopWalkingMessage;
 /**
  * One tile in screen terms: up is y - 1, right is x + 1.
  *
@@ -61,6 +63,8 @@ export type ServerMessage =
   | EntryRequestEndedMessage
   | SaidMessage
   | StaffActionMessage
+  | WalkingMessage
+  | WalkEndedMessage
   | ReplacedMessage
   | MovedMessage
   | MoveResultMessage
@@ -79,6 +83,20 @@ export type EntryRequestOutcome =
   | "nobody_inside"
   | "not_needed"
   | "cancelled";
+/**
+ * arrived: you are one tile from them, in their space, never on their tile. stopped: you sent `stopWalking` or a `move`. refused: a space you may not enter is in the way, theirs or another, and you stopped beside the first one; `mayAsk` says whether asking to enter it would be taken. gone: they left, or were not here. elsewhere: they are online, but connected to another world server, which a walk cannot reach. no_way: no path reaches a tile beside them in their space: walls, a space with no room beside them, or a chase past the step limit. moved_by_staff: staff removed you from a space mid-walk.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "WalkEndReason".
+ */
+export type WalkEndReason =
+  | "arrived"
+  | "stopped"
+  | "refused"
+  | "gone"
+  | "elsewhere"
+  | "no_way"
+  | "moved_by_staff";
 /**
  * moved: one tile in the direction asked. blocked: the tile is not walkable; they turn to face it without moving. refused: the tile is floor, but in a space they may not enter (designated and not on its list, or locked); they turn to face it without moving, and may ask with `requestEntry`. too_fast: over walking speed; nothing happens, not even the turn.
  *
@@ -252,6 +270,28 @@ export interface RemoveFromSpaceMessage {
    * Whom to remove from the space they stand in.
    */
   userId: string;
+}
+/**
+ * Have the server walk you to somebody, a step per `stepMs`, through the same doors your own steps would be. Each step is a `walking`; the walk ends with one `walkEnded`. Replaces a walk already going. Somebody connected to another world server ends it with `elsewhere`. Yourself is a NOT_ALLOWED error. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "GoToMessage".
+ */
+export interface GoToMessage {
+  type: "goTo";
+  /**
+   * Whom to walk to: in your cohort, on this world server.
+   */
+  userId: string;
+}
+/**
+ * End the walk `goTo` started, answered by `walkEnded` with `stopped`. A `move` ends it too. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "StopWalkingMessage".
+ */
+export interface StopWalkingMessage {
+  type: "stopWalking";
 }
 /**
  * First frame on a socket that was let in.
@@ -676,6 +716,46 @@ export interface Player {
    */
   y: number;
   facing: Direction;
+}
+/**
+ * The server took a step of your `goTo` walk: where you are now. Only to you; everybody else sees it in `moved`.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "WalkingMessage".
+ */
+export interface WalkingMessage {
+  type: "walking";
+  /**
+   * Whom you are walking to.
+   */
+  userId: string;
+  player: Player;
+}
+/**
+ * Your `goTo` walk is over, and why. Only to you. Not sent when the socket closes.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "WalkEndedMessage".
+ */
+export interface WalkEndedMessage {
+  type: "walkEnded";
+  /**
+   * Whom you were walking to.
+   */
+  userId: string;
+  reason: WalkEndReason;
+  /**
+   * Where you stopped.
+   */
+  player: Player;
+  /**
+   * With `refused`, the space you stopped beside.
+   */
+  spaceKey: string | null;
+  /**
+   * With `refused`, whether a `requestEntry` for `spaceKey` would be taken from where you stopped. Offer to ask only when true.
+   */
+  mayAsk: boolean;
 }
 /**
  * This account opened this cohort's campus somewhere else — another device or tab — and that connection has taken its place. Being in another cohort never causes this. The socket closes immediately afterwards with 4000 `entered_elsewhere`. Do NOT reconnect: the two connections would replace each other for as long as both stayed open. Show that they are in this campus elsewhere, and reconnect only when they ask to come back here.

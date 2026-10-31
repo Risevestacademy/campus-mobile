@@ -2,11 +2,17 @@ import { HappeningAroundYou } from "@features/campus/components";
 import type { Avatar } from "@shared/lib/generated/world-protocol";
 import type { ServerMessage } from "@shared/lib/ws";
 import { useWorldStore } from "@store/world";
-import { act, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+}));
+
+const mockSend = jest.fn();
+
+jest.mock("@shared/hooks/useWs", () => ({
+  useWs: () => ({ send: mockSend }),
 }));
 
 jest.mock("@shared/hooks/useMe", () => ({
@@ -45,6 +51,7 @@ function arrive(...others: Avatar[]) {
 
 describe("HappeningAroundYou", () => {
   beforeEach(() => {
+    mockSend.mockClear();
     useWorldStore.getState().reset();
   });
 
@@ -79,11 +86,22 @@ describe("HappeningAroundYou", () => {
 
     await act(() => apply({ type: "nearby", userIds: ["Ada", "Cy"] }));
 
-    const inCall = screen.getByLabelText("In call with Ada & Cy");
+    // You're in the call too, first, as in the floating call.
+    expect(screen.getByText("You, Ada & Cy")).toBeTruthy();
+    const inCall = screen.getByLabelText("In call with You, Ada & Cy");
     expect(inCall.props.accessibilityState).toEqual({ disabled: true });
     expect(screen.queryByText("Join")).toBeNull();
-    expect(screen.queryByLabelText("Wave at Ada & Cy")).toBeNull();
+    expect(screen.queryByLabelText("Wave at You, Ada & Cy")).toBeNull();
     // Bo is in the space but out of earshot: listed on their own.
     expect(screen.getByLabelText("Wave at Bo")).toBeTruthy();
+  });
+
+  it("asks world to take you to someone when you tap Navigate", async () => {
+    arrive(player("Bo"));
+    await render(<HappeningAroundYou />);
+
+    await fireEvent.press(screen.getByLabelText("Navigate to Bo"));
+
+    expect(mockSend).toHaveBeenCalledWith({ type: "goTo", userId: "Bo" });
   });
 });
