@@ -57,7 +57,7 @@ export function OngoingCall({
   return (
     <View
       className={cn(
-        "flex-row items-center gap-2 rounded-full bg-bg-tag p-3",
+        "w-full flex-row items-center gap-2 rounded-full bg-bg-tag p-3",
         className,
       )}
     >
