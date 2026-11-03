@@ -59,7 +59,6 @@ export function applyWorldMessage(
   state: WorldState,
   message: ServerMessage,
 ): WorldState {
-  console.warn(message);
   switch (message.type) {
     case "welcome":
       return { ...state, selfId: message.userId };
