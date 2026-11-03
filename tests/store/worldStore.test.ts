@@ -1,6 +1,7 @@
-import type { Avatar } from "@shared/lib/generated/world-protocol";
+import type { Avatar, SpaceName } from "@shared/lib/generated/world-protocol";
 import type { ServerMessage } from "@shared/lib/ws";
-import { useWorldStore } from "@store/world";
+import { useAroundMe, useMySpace, useWorldStore } from "@store/world";
+import { act, renderHook } from "@testing-library/react-native";
 
 function avatar(userId: string, overrides: Partial<Avatar> = {}): Avatar {
   return {
@@ -18,7 +19,11 @@ function avatar(userId: string, overrides: Partial<Avatar> = {}): Avatar {
 
 // Only the fields the store reads; the map is irrelevant to presence.
 function snapshot(...players: Avatar[]) {
-  return { type: "snapshot", players } as unknown as ServerMessage;
+  return snapshotWithSpaces([], ...players);
+}
+
+function snapshotWithSpaces(spaces: SpaceName[], ...players: Avatar[]) {
+  return { type: "snapshot", players, spaces } as unknown as ServerMessage;
 }
 
 const apply = (message: ServerMessage) =>
@@ -126,5 +131,157 @@ describe("useWorldStore", () => {
     apply({ type: "replaced" });
 
     expect(state()).toMatchObject({ ready: false, selfId: null, players: {} });
+  });
+});
+
+describe("useMySpace", () => {
+  const library = { spaceKey: "library", name: "Library" };
+
+  beforeEach(() => {
+    useWorldStore.getState().reset();
+  });
+
+  it("names the space you're standing in", async () => {
+    const { result } = await renderHook(() => useMySpace());
+
+    await act(() => {
+      apply({ type: "welcome", userId: "me" } as ServerMessage);
+      apply(
+        snapshotWithSpaces([library], avatar("me", { spaceKey: "library" })),
+      );
+    });
+
+    expect(result.current).toEqual(library);
+  });
+
+  it("follows you into another space", async () => {
+    const lounge = { spaceKey: "lounge", name: "Main Lounge" };
+    const { result } = await renderHook(() => useMySpace());
+
+    await act(() => {
+      apply({ type: "welcome", userId: "me" } as ServerMessage);
+      apply(
+        snapshotWithSpaces(
+          [library, lounge],
+          avatar("me", { spaceKey: "library" }),
+        ),
+      );
+      apply({ type: "spaceChanged", userId: "me", spaceKey: "lounge" });
+    });
+
+    expect(result.current).toEqual(lounge);
+  });
+
+  it("picks up a rename sent after the snapshot", async () => {
+    const { result } = await renderHook(() => useMySpace());
+
+    await act(() => {
+      apply({ type: "welcome", userId: "me" } as ServerMessage);
+      apply(
+        snapshotWithSpaces([library], avatar("me", { spaceKey: "library" })),
+      );
+      apply({
+        type: "spaces",
+        spaces: [{ spaceKey: "library", name: "Reading Room" }],
+      });
+    });
+
+    expect(result.current).toEqual({
+      spaceKey: "library",
+      name: "Reading Room",
+    });
+  });
+
+  it("is undefined for a space the snapshot didn't name", async () => {
+    const { result } = await renderHook(() => useMySpace());
+
+    await act(() => {
+      apply({ type: "welcome", userId: "me" } as ServerMessage);
+      apply(snapshotWithSpaces([library], avatar("me")));
+    });
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it("is undefined before world says who you are", async () => {
+    apply(snapshotWithSpaces([library], avatar("me", { spaceKey: "library" })));
+
+    const { result } = await renderHook(() => useMySpace());
+
+    expect(result.current).toBeUndefined();
+  });
+});
+
+describe("useAroundMe", () => {
+  const library = { spaceKey: "library", name: "Library" };
+  const inLibrary = (id: string, overrides: Partial<Avatar> = {}) =>
+    avatar(id, { spaceKey: "library", ...overrides });
+
+  beforeEach(() => {
+    useWorldStore.getState().reset();
+    apply({ type: "welcome", userId: "me" } as ServerMessage);
+    apply(
+      snapshotWithSpaces(
+        [library],
+        inLibrary("me"),
+        inLibrary("ada"),
+        inLibrary("bo", { status: "busy" }),
+        avatar("cy", { spaceKey: "lounge" }),
+      ),
+    );
+  });
+
+  it("lists everyone else in your space while nobody is in earshot", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    expect(result.current.space).toEqual(library);
+    expect(result.current.earshot).toEqual([]);
+    expect(result.current.inMySpace.map((p) => p.userId).sort()).toEqual([
+      "ada",
+      "bo",
+    ]);
+  });
+
+  it("groups whoever is in earshot, leaving you and them out of the rest", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    await act(() => {
+      apply({ type: "nearby", userIds: ["me", "ada"] });
+    });
+
+    expect(result.current.earshot.map((p) => p.userId)).toEqual(["ada"]);
+    expect(result.current.inMySpace.map((p) => p.userId)).toEqual(["bo"]);
+  });
+
+  it("forgets earshot when you move to another space", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    await act(() => {
+      apply({ type: "nearby", userIds: ["ada"] });
+      apply({ type: "spaceChanged", userId: "me", spaceKey: "lounge" });
+    });
+
+    expect(state().nearby).toEqual([]);
+    expect(result.current.earshot).toEqual([]);
+    expect(result.current.inMySpace.map((p) => p.userId)).toEqual(["cy"]);
+  });
+
+  it("keeps earshot when somebody else moves", async () => {
+    await act(() => {
+      apply({ type: "nearby", userIds: ["ada"] });
+      apply({ type: "spaceChanged", userId: "bo", spaceKey: "lounge" });
+    });
+
+    expect(state().nearby).toEqual(["ada"]);
+  });
+
+  it("skips earshot ids world hasn't told us about", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    await act(() => {
+      apply({ type: "nearby", userIds: ["ghost", "ada"] });
+    });
+
+    expect(result.current.earshot.map((p) => p.userId)).toEqual(["ada"]);
   });
 });

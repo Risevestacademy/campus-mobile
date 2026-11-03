@@ -1,16 +1,14 @@
 import { Text } from "@shared/components/atoms";
-import { View } from "react-native";
+import { Linking, View } from "react-native";
 
-import { useDayEvents } from "../hooks";
+import type { CalendarEvent } from "../types";
 import { EventCard } from "./EventCard";
 
 type EventListProps = {
-  selectedKey: string;
+  events: CalendarEvent[];
 };
 
-export function EventList({ selectedKey }: EventListProps) {
-  const events = useDayEvents(selectedKey);
-
+export function EventList({ events }: EventListProps) {
   if (events.length === 0) {
     return (
       <Text variant="body-md" color="muted" className="py-6 text-center">
@@ -19,10 +17,14 @@ export function EventList({ selectedKey }: EventListProps) {
     );
   }
 
+  const join = (event: CalendarEvent) => {
+    if (event.meetingUrl) void Linking.openURL(event.meetingUrl);
+  };
+
   return (
     <View className="gap-3">
       {events.map((event) => (
-        <EventCard key={event.id} event={event} />
+        <EventCard key={event.id} event={event} onJoin={join} />
       ))}
     </View>
   );

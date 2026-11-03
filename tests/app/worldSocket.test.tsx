@@ -117,6 +117,7 @@ describe("RootLayout world socket", () => {
       mockWs.listener?.({
         type: "snapshot",
         players: [{ userId: "me", status: "busy", spaceKey: "_default" }],
+        spaces: [],
       });
     });
 
