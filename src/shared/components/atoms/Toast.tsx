@@ -10,8 +10,8 @@ import {
   Video,
 } from "lucide-react-native";
 import { createContext, type ReactNode, use } from "react";
-import { TouchableOpacity, View } from "react-native";
-import Animated from "react-native-reanimated";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RNDefaultToast, {
   type ToastConfig,
@@ -22,8 +22,10 @@ import { useCSSVariable, withUniwind } from "uniwind";
 
 import { Avatar } from "./Avatar";
 import { Card } from "./Card";
+import { hidePill, showPill, useFeedbackPill } from "./feedbackPill";
 import { Row } from "./Row";
 import { Text } from "./Text";
+import { createToastQueue, useWaitingCount } from "./toastQueue";
 
 const StyledCircleAlert = withUniwind(CircleAlert);
 const StyledCheck = withUniwind(Check);
@@ -74,7 +76,7 @@ type CardContent = {
 };
 
 /** How the toast being shown behaves, set by `show` for its type. */
-type ToastChrome = {
+type ToastDisplay = {
   /** New per toast, so the countdown restarts when one replaces another. */
   id: number;
   /** Shows a countdown bar running out over this long. */
@@ -83,7 +85,7 @@ type ToastChrome = {
   tapToDismiss: boolean;
 };
 
-const ToastChromeContext = createContext<ToastChrome>({
+const ToastDisplayContext = createContext<ToastDisplay>({
   id: 0,
   tapToDismiss: false,
 });
@@ -101,7 +103,8 @@ export type ToastShellProps =
 
 /** The one layout every toast is built from. */
 export function ToastShell(props: ToastShellProps) {
-  const chrome = use(ToastChromeContext);
+  const display = use(ToastDisplayContext);
+  const waiting = useWaitingCount();
 
   if (props.variant === "feedback") {
     return (
@@ -127,53 +130,59 @@ export function ToastShell(props: ToastShellProps) {
   const tone = TONES[props.tone ?? "neutral"];
   const open = props.onPress
     ? dismissing(props.onPress)
-    : chrome.tapToDismiss
+    : display.tapToDismiss
       ? () => void RNDefaultToast.hide()
       : undefined;
 
   return (
-    <Card
-      variant={"elevated"}
-      onPress={open}
-      className={cn(
-        "mx-4 my-2 gap-3 self-stretch overflow-hidden rounded-xl",
-        tone.card,
-      )}
-    >
-      <Row gap="md">
-        {props.prefix}
-        <View className="flex-1 gap-0.5">
-          <Text variant="label" className={tone.title}>
-            {props.title}
-          </Text>
-          {props.subtitle ? (
-            <Text variant="body-sm" className={tone.subtitle}>
-              {props.subtitle}
+    <View className="mx-4 my-2 gap-1.5 self-stretch">
+      <Card
+        variant={"elevated"}
+        onPress={open}
+        className={cn("gap-3 overflow-hidden rounded-xl", tone.card)}
+      >
+        <Row gap="md">
+          {props.prefix}
+          <View className="flex-1 gap-0.5">
+            <Text variant="label" className={tone.title}>
+              {props.title}
             </Text>
+            {props.subtitle ? (
+              <Text variant="body-sm" className={tone.subtitle}>
+                {props.subtitle}
+              </Text>
+            ) : null}
+          </View>
+          {props.variant === "action" ? props.suffix : null}
+          {props.variant === "notice" && props.action ? (
+            <ChevronAction
+              label={props.action.text}
+              onPress={props.action.onPress}
+            />
           ) : null}
-        </View>
-        {props.variant === "action" ? props.suffix : null}
-        {props.variant === "notice" && props.action ? (
-          <ChevronAction
-            label={props.action.text}
-            onPress={props.action.onPress}
+        </Row>
+        {props.variant === "prompt" ? (
+          <Row>
+            <ActionButton type="secondary" {...props.secondary} />
+            <ActionButton type="primary" {...props.primary} />
+          </Row>
+        ) : null}
+        {display.countdownMs ? (
+          <CountdownBar
+            key={display.id}
+            durationMs={display.countdownMs}
+            className={tone.bar}
           />
         ) : null}
-      </Row>
-      {props.variant === "prompt" ? (
-        <Row>
-          <ActionButton type="secondary" {...props.secondary} />
-          <ActionButton type="primary" {...props.primary} />
-        </Row>
+      </Card>
+      {waiting > 0 ? (
+        <View className="self-end rounded-full bg-bg-selected px-3 py-1 shadow-md">
+          <Text variant="caption" className="text-text-on-dark">
+            +{waiting} more
+          </Text>
+        </View>
       ) : null}
-      {chrome.countdownMs ? (
-        <CountdownBar
-          key={chrome.id}
-          durationMs={chrome.countdownMs}
-          className={tone.bar}
-        />
-      ) : null}
-    </Card>
+    </View>
   );
 }
 
@@ -260,7 +269,6 @@ function formatClock(date: Date) {
 /** What each toast type is shown with. Add a type here, then render it below. */
 export type ToastParams = {
   error: { title: string; message: string };
-  success: { message: string; action?: ToastAction };
   wave: ToastPerson & {
     /** Where they waved from. */
     space: string;
@@ -309,19 +317,21 @@ type ToastType = keyof ToastParams;
 
 type ShownToast<T extends ToastType> = {
   params: ToastParams[T];
-  chrome: ToastChrome;
+  display: ToastDisplay;
 };
 
 function render<T extends ToastType>(
   renderer: (params: ToastParams[T]) => ReactNode,
 ) {
-  return function ToastWithChrome({ props }: ToastConfigParams<ShownToast<T>>) {
+  return function ToastWithDisplay({
+    props,
+  }: ToastConfigParams<ShownToast<T>>) {
     // Before the first toast the host renders a default type with no props.
     if (!props.params) return null;
     return (
-      <ToastChromeContext value={props.chrome}>
+      <ToastDisplayContext value={props.display}>
         {renderer(props.params)}
-      </ToastChromeContext>
+      </ToastDisplayContext>
     );
   };
 }
@@ -395,13 +405,6 @@ const toastConfig = {
       prefix={
         <StyledCircleAlert size={22} colorClassName="accent-status-danger" />
       }
-    />
-  )),
-  success: render<"success">(({ message, action }) => (
-    <ToastShell
-      variant="feedback"
-      title={message}
-      action={withDismiss(action)}
     />
   )),
   wave: render<"wave">(
@@ -504,7 +507,7 @@ const toastConfig = {
 } satisfies ToastConfig;
 
 type ToastBehaviour = {
-  position: "top" | "bottom";
+  position: "top";
   autoHide: boolean;
   visibilityTime?: number;
   swipeable: boolean;
@@ -531,13 +534,6 @@ const STICKY: ToastBehaviour = {
 
 const BEHAVIOUR: Record<ToastType, ToastBehaviour> = {
   error: CARD,
-  success: {
-    position: "bottom",
-    autoHide: true,
-    visibilityTime: 2000,
-    swipeable: true,
-    countdown: false,
-  },
   wave: CARD,
   message: CARD,
   classStarting: STICKY,
@@ -546,19 +542,32 @@ const BEHAVIOUR: Record<ToastType, ToastBehaviour> = {
   system: CARD,
 };
 
-let lastId = 0;
-
-function show<T extends ToastType>(type: T, params: ToastParams[T]) {
+const queue = createToastQueue((queued) => {
+  const type = queued.type as ToastType;
   const { countdown, ...behaviour } = BEHAVIOUR[type];
-  const chrome: ToastChrome = {
-    id: ++lastId,
+  const display: ToastDisplay = {
+    id: queued.id,
     countdownMs: countdown ? behaviour.visibilityTime : undefined,
     tapToDismiss: behaviour.autoHide,
   };
   RNDefaultToast.show({
     type,
     ...behaviour,
-    props: { params, chrome } satisfies ShownToast<T>,
+    props: { params: queued.params, display },
+    // However it went: timer, swipe, tap or a button.
+    onHide: () => queue.closed(queued.id),
+  });
+});
+
+let lastId = 0;
+
+/** Queues a toast; it shows once the ones ahead of it have gone. */
+function show<T extends ToastType>(type: T, params: ToastParams[T]) {
+  queue.push({
+    id: ++lastId,
+    type,
+    params,
+    urgent: type === "classStarting",
   });
 }
 
@@ -566,8 +575,7 @@ export const toast = {
   error: (message: string, title = "Error") =>
     show("error", { title, message }),
   /** Pass `action` for an Undo-style control in the pill. */
-  success: (message: string, action?: ToastAction) =>
-    show("success", { message, action }),
+  success: (message: string, action?: ToastAction) => showPill(message, action),
   wave: (params: ToastParams["wave"]) => show("wave", params),
   message: (params: ToastParams["message"]) => show("message", params),
   classStarting: (params: ToastParams["classStarting"]) =>
@@ -584,11 +592,48 @@ export function Toast(props: RNToastProps) {
   const insets = useSafeAreaInsets();
   // Position comes from each toast's type; see BEHAVIOUR.
   return (
-    <RNDefaultToast
-      config={toastConfig}
-      topOffset={insets.top + 8}
-      bottomOffset={insets.bottom + 16}
-      {...props}
-    />
+    <>
+      <RNDefaultToast
+        config={toastConfig}
+        topOffset={insets.top + 8}
+        {...props}
+      />
+      <FeedbackPillHost bottom={insets.bottom + 16} />
+    </>
+  );
+}
+
+/** The success pill, at the bottom of the screen, alongside any card. */
+function FeedbackPillHost({ bottom }: { bottom: number }) {
+  const pill = useFeedbackPill((state) => state.pill);
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[StyleSheet.absoluteFill, { paddingBottom: bottom }]}
+      className="justify-end"
+    >
+      {pill ? (
+        <Animated.View
+          key={pill.id}
+          entering={FadeInDown.duration(200)}
+          exiting={FadeOutDown.duration(200)}
+        >
+          <ToastShell
+            variant="feedback"
+            title={pill.message}
+            action={
+              pill.action && {
+                text: pill.action.text,
+                onPress: () => {
+                  pill.action?.onPress();
+                  hidePill();
+                },
+              }
+            }
+          />
+        </Animated.View>
+      ) : null}
+    </View>
   );
 }

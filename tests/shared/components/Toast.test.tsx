@@ -1,11 +1,26 @@
+import { useFeedbackPill } from "@shared/components/atoms/feedbackPill";
 import { Toast, toast, ToastShell } from "@shared/components/atoms/Toast";
+import { useToastQueue } from "@shared/components/atoms/toastQueue";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { RefreshCw } from "lucide-react-native";
 import React from "react";
 import RNDefaultToast from "react-native-toast-message";
 
+beforeEach(() => {
+  useToastQueue.setState({ current: null, waiting: [] });
+  useFeedbackPill.setState({ pill: null });
+});
+
 afterEach(() => {
+  jest.useRealTimers();
   jest.restoreAllMocks();
+});
+
+const wave = (name: string) => ({
+  name,
+  space: "Library",
+  sentAt: new Date(),
+  onWaveBack: jest.fn(),
 });
 
 describe("ToastShell", () => {
@@ -65,21 +80,12 @@ describe("toast", () => {
     const show = jest.spyOn(RNDefaultToast, "show").mockImplementation();
 
     toast.error("Sign in failed");
-    toast.success("Saved");
 
     expect(show).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "error",
         props: expect.objectContaining({
           params: { title: "Error", message: "Sign in failed" },
-        }),
-      }),
-    );
-    expect(show).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "success",
-        props: expect.objectContaining({
-          params: { message: "Saved", action: undefined },
         }),
       }),
     );
@@ -97,7 +103,7 @@ describe("toast", () => {
         visibilityTime: 4000,
         swipeable: true,
         props: expect.objectContaining({
-          chrome: expect.objectContaining({
+          display: expect.objectContaining({
             countdownMs: 4000,
             tapToDismiss: true,
           }),
@@ -110,6 +116,7 @@ describe("toast", () => {
     const show = jest.spyOn(RNDefaultToast, "show").mockImplementation();
 
     toast.classStarting({ name: "Design", when: "now", onJoin: jest.fn() });
+    useToastQueue.setState({ current: null, waiting: [] });
     toast.entryRequest({
       name: "Cy",
       space: "Library",
@@ -125,7 +132,7 @@ describe("toast", () => {
           autoHide: false,
           swipeable: false,
           props: expect.objectContaining({
-            chrome: expect.objectContaining({
+            display: expect.objectContaining({
               countdownMs: undefined,
               tapToDismiss: false,
             }),
@@ -134,21 +141,105 @@ describe("toast", () => {
       );
     }
   });
+});
 
-  it("shows success as a 2 s pill at the bottom, without a countdown", () => {
+describe("success pill", () => {
+  it("shows at the bottom for 2 s, outside the queue", async () => {
+    jest.useFakeTimers();
     const show = jest.spyOn(RNDefaultToast, "show").mockImplementation();
+    await render(<Toast />);
 
-    toast.success("Saved");
+    await act(() => toast.success("Saved"));
 
-    expect(show).toHaveBeenCalledWith(
-      expect.objectContaining({
-        position: "bottom",
-        visibilityTime: 2000,
-        props: expect.objectContaining({
-          chrome: expect.objectContaining({ countdownMs: undefined }),
-        }),
+    expect(screen.getByText("Saved")).toBeTruthy();
+    expect(show).not.toHaveBeenCalled();
+    await act(() => jest.advanceTimersByTime(2000));
+    expect(useFeedbackPill.getState().pill).toBeNull();
+  });
+
+  it("isn't held up by a card waiting for you", async () => {
+    await render(<Toast />);
+
+    await act(() =>
+      toast.entryRequest({
+        name: "Cy",
+        space: "Library",
+        onAccept: jest.fn(),
+        onDecline: jest.fn(),
       }),
     );
+    await act(() => toast.success("Saved"));
+
+    expect(screen.getByText("Cy wants to join")).toBeTruthy();
+    expect(screen.getByText("Saved")).toBeTruthy();
+  });
+});
+
+describe("toast queue", () => {
+  it("shows one at a time, in the order they came", () => {
+    jest.useFakeTimers();
+    const show = jest.spyOn(RNDefaultToast, "show").mockImplementation();
+
+    toast.wave(wave("Ada"));
+    toast.wave(wave("Bo"));
+    toast.wave(wave("Cy"));
+    expect(show).toHaveBeenCalledTimes(1);
+
+    const names = () =>
+      show.mock.calls.map(
+        ([options]) =>
+          (options.props as { params: { name: string } }).params.name,
+      );
+    const hideCurrent = () => {
+      show.mock.calls.at(-1)?.[0].onHide?.();
+      jest.advanceTimersByTime(350);
+    };
+
+    hideCurrent();
+    hideCurrent();
+    expect(names()).toEqual(["Ada", "Bo", "Cy"]);
+  });
+
+  it("moves on once, however many times the shown one hides", () => {
+    jest.useFakeTimers();
+    const show = jest.spyOn(RNDefaultToast, "show").mockImplementation();
+
+    toast.wave(wave("Ada"));
+    toast.wave(wave("Bo"));
+    toast.wave(wave("Cy"));
+    const onHide = show.mock.calls[0]?.[0].onHide;
+    onHide?.();
+    onHide?.();
+    jest.advanceTimersByTime(350);
+
+    expect(show).toHaveBeenCalledTimes(2);
+    expect(useToastQueue.getState().waiting).toHaveLength(1);
+  });
+
+  it("puts a class that's starting ahead of the others waiting", () => {
+    jest.spyOn(RNDefaultToast, "show").mockImplementation();
+
+    toast.wave(wave("Ada"));
+    toast.wave(wave("Bo"));
+    toast.classStarting({ name: "Design", when: "now", onJoin: jest.fn() });
+    toast.classStarting({ name: "Maths", when: "now", onJoin: jest.fn() });
+
+    expect(useToastQueue.getState().waiting.map((t) => t.type)).toEqual([
+      "classStarting",
+      "classStarting",
+      "wave",
+    ]);
+  });
+
+  it("says how many more are waiting, under the card", async () => {
+    await render(<Toast />);
+
+    await act(() => toast.system({ title: "Update ready" }));
+    expect(screen.queryByText(/more$/)).toBeNull();
+
+    await act(() => toast.wave(wave("Ada")));
+    await act(() => toast.wave(wave("Bo")));
+    expect(screen.getByText("+2 more")).toBeTruthy();
   });
 });
 
@@ -173,11 +264,15 @@ describe("Toast tap and countdown", () => {
     expect(hide).toHaveBeenCalled();
   });
 
-  it("shows the countdown on cards but not on sticky toasts", async () => {
+  it("shows the countdown on cards", async () => {
     await render(<Toast />);
 
     await act(() => toast.system({ title: "Update ready" }));
     expect(screen.getByTestId("toast-countdown")).toBeTruthy();
+  });
+
+  it("leaves the countdown off sticky toasts", async () => {
+    await render(<Toast />);
 
     await act(() =>
       toast.entryRequest({
@@ -260,9 +355,6 @@ describe("Toast types", () => {
         action: { text: "View", onPress },
       }),
     );
-    await fireEvent.press(screen.getByRole("button", { name: "View" }));
-    expect(onPress).toHaveBeenCalledTimes(1);
-
     await act(() =>
       toast.system({
         title: "Updated",
@@ -270,7 +362,12 @@ describe("Toast types", () => {
         icon: RefreshCw,
       }),
     );
-    expect(screen.getByText("Restart to apply")).toBeTruthy();
+    // The system message waits until the notice goes.
+    expect(screen.queryByText("Restart to apply")).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: "View" }));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Restart to apply")).toBeTruthy();
   });
 });
 
