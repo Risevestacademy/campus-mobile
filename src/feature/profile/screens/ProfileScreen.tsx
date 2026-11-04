@@ -1,6 +1,7 @@
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { Text } from "@shared/components/atoms";
+import { Button, Dialog, Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
+import { useLogout } from "@shared/hooks/useLogout";
 import { useAppearanceStore } from "@store/appearance";
 import {
   Armchair,
@@ -8,12 +9,13 @@ import {
   FileText,
   Flag,
   Lock,
+  LogOut,
   Mic,
   UserRound,
 } from "lucide-react-native";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FlatList, ScrollView, View } from "react-native";
-import { useUniwind } from "uniwind";
+import { useUniwind, withUniwind } from "uniwind";
 
 import {
   appearanceIcon,
@@ -26,11 +28,16 @@ import {
 } from "../components";
 import { Project } from "../types";
 
+const StyledLogOut = withUniwind(LogOut);
+
 export function ProfileScreen() {
   const appearanceSheetRef = useRef<BottomSheetModal>(null);
   const { theme } = useUniwind();
   const appearance = useAppearanceStore((state) => state.preference);
   const feedbackSheetRef = useRef<BottomSheetModal>(null);
+  const { logout, isLoading: isLoggingOut } = useLogout();
+
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
 
   const DESK = useMemo(
     () => [
@@ -145,10 +152,46 @@ export function ProfileScreen() {
             SETTINGS
           </Text>
           <ProfileSeparatedCard data={SETTINGS} />
+          <Button
+            variant="secondary"
+            className="mt-2"
+            loading={isLoggingOut}
+            onPress={() => setConfirmingLogout(true)}
+            accessibilityLabel="Log out"
+          >
+            <StyledLogOut size={16} colorClassName="accent-text-danger-icon" />
+            <Text variant="label" className="text-text-danger">
+              Log out
+            </Text>
+          </Button>
         </View>
       </ScrollView>
       <AppearanceSheet ref={appearanceSheetRef} />
       <NewFeedbackBottomSheet ref={feedbackSheetRef} />
+      <Dialog
+        visible={confirmingLogout}
+        title="Log out?"
+        onClose={() => setConfirmingLogout(false)}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              label="Cancel"
+              className="flex-1"
+              onPress={() => setConfirmingLogout(false)}
+            />
+            {/* Signing out clears the session; the auth guard takes over. */}
+            <Button
+              label="Log out"
+              className="flex-1 bg-status-danger active:bg-status-danger"
+              loading={isLoggingOut}
+              onPress={() => logout()}
+            />
+          </>
+        }
+      >
+        You&apos;ll need to sign in again to get back into Campus.
+      </Dialog>
     </SafeArea>
   );
 }
