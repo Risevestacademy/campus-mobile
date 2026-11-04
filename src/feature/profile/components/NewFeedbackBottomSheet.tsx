@@ -16,6 +16,7 @@ import {
 } from "@shared/components/atoms";
 import { useMe } from "@shared/hooks/useMe";
 import { cn } from "@shared/utils/style";
+import { useMySpace, useWorldStore } from "@store/world";
 import { usePathname } from "expo-router";
 import {
   Bug,
@@ -26,7 +27,7 @@ import {
   Send,
 } from "lucide-react-native";
 import React from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, useWindowDimensions, View } from "react-native";
 import { useCSSVariable, withUniwind } from "uniwind";
 
 import { useProfile, useSendFeedback } from "../hooks";
@@ -61,6 +62,8 @@ type SentFeedback = { title: string; type: FeedbackType };
 
 type FeedbackDraft = SentFeedback & {
   details: string;
+  /** The space it's about, by name. */
+  about?: string;
   /** Whether to attach where in the app they were when sending. */
   includeContext: boolean;
 };
@@ -68,7 +71,82 @@ type FeedbackDraft = SentFeedback & {
 const nounFor = (type: FeedbackType) =>
   FEEDBACK_TYPES.find((option) => option.key === type)?.noun ?? "feedback";
 
-/** Lives inside the sheet, so its state is cleared when the sheet closes. */
+/** Every space on campus, by name. Empty until the first world snapshot. */
+function useCampusSpaces() {
+  const spaces = useWorldStore((state) => state.spaces);
+  return React.useMemo(
+    () => Object.values(spaces).sort((a, b) => a.name.localeCompare(b.name)),
+    [spaces],
+  );
+}
+
+function SpaceOption({
+  name,
+  selected,
+  onSelect,
+}: {
+  name: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const { close } = useBottomSheet();
+  return (
+    <Pressable
+      onPress={() => {
+        onSelect();
+        close();
+      }}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      className={cn(
+        "flex-row items-center justify-between rounded-lg px-3 py-3 active:bg-bg-hover",
+        selected && "bg-bg-hover",
+      )}
+    >
+      <Text variant="body-sm">{name}</Text>
+      {selected && (
+        <StyledCheck size={16} colorClassName="accent-action-primary" />
+      )}
+    </Pressable>
+  );
+}
+
+const SpacePickerSheet = React.forwardRef<
+  BottomSheetModal,
+  {
+    spaces: { spaceKey: string; name: string }[];
+    selected?: string;
+    onSelect: (spaceKey: string) => void;
+  }
+>(({ spaces, selected, onSelect }, ref) => {
+  const maxHeight = useWindowDimensions().height * 0.7;
+  return (
+    // Opens on top of the feedback sheet, which stays up behind it.
+    <BottomSheet
+      ref={ref}
+      stackBehavior="push"
+      scrollable
+      // Grows with the list up to most of the screen, then scrolls.
+      maxDynamicContentSize={maxHeight}
+      contentClassName="gap-0"
+    >
+      <Text variant="h5" className="mb-3">
+        Where in Campus?
+      </Text>
+      {spaces.map((space) => (
+        <SpaceOption
+          key={space.spaceKey}
+          name={space.name}
+          selected={space.spaceKey === selected}
+          onSelect={() => onSelect(space.spaceKey)}
+        />
+      ))}
+    </BottomSheet>
+  );
+});
+
+SpacePickerSheet.displayName = "SpacePickerSheet";
+
 function FeedbackForm({
   sending,
   onSend,
@@ -78,6 +156,11 @@ function FeedbackForm({
 }) {
   const [title, setTitle] = React.useState("");
   const [details, setDetails] = React.useState("");
+  const spaces = useCampusSpaces();
+  const mySpace = useMySpace();
+  const [spaceKey, setSpaceKey] = React.useState(mySpace?.spaceKey);
+  const space = spaces.find((option) => option.spaceKey === spaceKey);
+  const spacePicker = React.useRef<BottomSheetModal>(null);
   const [selectedType, setSelectedType] = React.useState<FeedbackType>("bug");
   const [includeDeviceInfo, setIncludeDeviceInfo] = React.useState(true);
   const selectedFillColor = useCSSVariable("--color-text-on-dark") as string;
@@ -135,7 +218,16 @@ function FeedbackForm({
         label="Where in Campus?"
         select
         labelClassName="text-text-primary"
-        defaultValue="Mentor pod 2"
+        value={space?.name ?? ""}
+        placeholder={spaces.length ? "Pick a space" : "Campus is loading…"}
+        disabled={!spaces.length}
+        onPress={() => spacePicker.current?.present()}
+      />
+      <SpacePickerSheet
+        ref={spacePicker}
+        spaces={spaces}
+        selected={spaceKey}
+        onSelect={setSpaceKey}
       />
       <View className="gap-2">
         <Text variant="label">Screenshot</Text>
@@ -169,6 +261,7 @@ function FeedbackForm({
             type: selectedType,
             title: title.trim(),
             details: details.trim(),
+            about: space?.name,
             includeContext: includeDeviceInfo,
           })
         }
