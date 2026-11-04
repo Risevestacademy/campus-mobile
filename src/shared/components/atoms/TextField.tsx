@@ -149,7 +149,7 @@ export function TextField({
           )}
 
           {select && !hasError && !actualSuffix && (
-            <StyledCaretDownIcon size={18} colorClassName="accent-icon-muted" />
+            <StyledCaretDownIcon size={18} colorClassName="accent-text-muted" />
           )}
         </View>
       </Pressable>
