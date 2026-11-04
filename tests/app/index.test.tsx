@@ -28,7 +28,7 @@ describe("Index", () => {
     useSessionStore.setState({ status: "authenticated", hasInvite: false });
     await render(<Index />);
 
-    expect(screen.getByText("redirect:/(tabs)/(campus)")).toBeTruthy();
+    expect(screen.getByText("redirect:/(app)/(tabs)/(campus)")).toBeTruthy();
   });
 
   it("redirects to CreatePassword when authenticated with pending invite", async () => {

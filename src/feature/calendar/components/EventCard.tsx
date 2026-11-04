@@ -20,8 +20,8 @@ export function EventCard({ event, onJoin, onRemind }: EventCardProps) {
   return (
     <View className="flex-row items-center gap-3 rounded-xl border border-border-default bg-bg-card p-3">
       <TimeBlock
-        start={formatTime(event.start)}
-        end={formatTime(event.end)}
+        start={event.allDay ? "All day" : formatTime(event.start)}
+        end={event.allDay ? "" : formatTime(event.end)}
         kind={event.kind}
       />
 
@@ -50,16 +50,19 @@ export function EventCard({ event, onJoin, onRemind }: EventCardProps) {
       </View>
 
       {event.live ? (
-        <Button
-          size="sm"
-          className="h-8 rounded-full px-5"
-          onPress={() => onJoin?.(event)}
-        >
-          <Video width={16} height={16} color="#F7F7F7" />
-          <Text variant="label" className="text-text-on-dark">
-            Join
-          </Text>
-        </Button>
+        // In person, or no link given: nothing to join from here.
+        event.meetingUrl ? (
+          <Button
+            size="sm"
+            className="h-8 rounded-full px-5"
+            onPress={() => onJoin?.(event)}
+          >
+            <Video width={16} height={16} color="#F7F7F7" />
+            <Text variant="label" className="text-text-on-dark">
+              Join
+            </Text>
+          </Button>
+        ) : null
       ) : (
         <Button
           variant="secondary"

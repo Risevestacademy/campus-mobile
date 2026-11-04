@@ -4,12 +4,11 @@ import {
   WebSocketProvider,
 } from "@shared/components/providers/ws";
 import { useWs } from "@shared/hooks/useWs";
-import type { WebSocketState } from "@shared/lib/ws";
+import type { ServerMessage, WebSocketState } from "@shared/lib/ws";
 import { useSessionStore } from "@store/session";
 import { act, render } from "@testing-library/react-native";
 import React from "react";
 import { AppState, type AppStateStatus } from "react-native";
-import NitroCookies from "react-native-nitro-cookies";
 
 jest.mock("@core/auth/tokenStorage", () => ({
   getAuthTokens: jest.fn(),
@@ -26,9 +25,11 @@ const SOCKET_URL = `${WS_URL}?cohortId=${COHORT_ID}`;
 type CloseEventLike = { code: number; reason: string };
 
 class MockWebSocket {
+  static readonly OPEN = 1;
   static instances: MockWebSocket[] = [];
   static throwOnNext: Error | null = null;
 
+  readyState = 0;
   onopen: (() => void) | null = null;
   onclose: ((event: CloseEventLike) => void) | null = null;
   close = jest.fn(() => this.onclose?.({ code: 1000, reason: "" }));
@@ -53,6 +54,7 @@ class MockWebSocket {
   }
 
   open() {
+    this.readyState = MockWebSocket.OPEN;
     this.onopen?.();
   }
 
@@ -62,12 +64,15 @@ class MockWebSocket {
   }
 
   receive(frame: object) {
-    const event = { data: JSON.stringify(frame) };
-    this.messageListeners.forEach((listener) => listener(event));
+    this.receiveRaw(JSON.stringify(frame));
+  }
+
+  receiveRaw(data: unknown) {
+    this.messageListeners.forEach((listener) => listener({ data }));
   }
 }
 
-const getSync = NitroCookies.getSync as jest.Mock;
+const getAccessToken = jest.fn<Promise<string | null>, []>();
 const originalWebSocket = global.WebSocket;
 
 const onState = jest.fn<void, [WebSocketState]>();
@@ -91,11 +96,14 @@ function currentSocket() {
 function providerElement({
   url = WS_URL,
   cohortId = COHORT_ID,
-}: { url?: string; cohortId?: string | null } = {}) {
+  origin,
+}: { url?: string; cohortId?: string | null; origin?: string } = {}) {
   return (
     <WebSocketProvider
       url={url}
       cohortId={cohortId}
+      origin={origin}
+      getAccessToken={getAccessToken}
       refreshSession={refreshSession}
     >
       <Consumer />
@@ -124,9 +132,7 @@ describe("WebSocketProvider", () => {
 
   beforeEach(() => {
     MockWebSocket.instances = [];
-    getSync.mockReturnValue({
-      campus_session: { name: "campus_session", value: "abc123" },
-    });
+    getAccessToken.mockResolvedValue("abc123");
     useSessionStore.setState({ status: "authenticated", hasInvite: false });
   });
 
@@ -159,8 +165,8 @@ describe("WebSocketProvider", () => {
     expect(currentState().status).toBe("open");
   });
 
-  it("does not connect when the session cookie is missing", async () => {
-    getSync.mockReturnValue({});
+  it("does not connect when there is no access token", async () => {
+    getAccessToken.mockResolvedValue(null);
 
     await renderProvider();
 
@@ -168,19 +174,22 @@ describe("WebSocketProvider", () => {
     expect(currentSocket()).toBeNull();
   });
 
-  it("looks up the cookie on the http(s) equivalent of the socket url", async () => {
-    await renderProvider();
-
-    expect(getSync).toHaveBeenCalledWith("https://api.example.com/ws");
-  });
-
-  it("connects with the session cookie header", async () => {
+  it("connects with the access token as a bearer header", async () => {
     await renderProvider();
 
     const socket = lastSocket();
     expect(socket.url).toBe(SOCKET_URL);
     expect(socket.options.headers).toEqual({
-      Cookie: "campus_session=abc123",
+      Authorization: "Bearer abc123",
+    });
+  });
+
+  it("sends the configured origin", async () => {
+    await renderProvider({ origin: "https://dev.example.com" });
+
+    expect(lastSocket().options.headers).toEqual({
+      Authorization: "Bearer abc123",
+      Origin: "https://dev.example.com",
     });
   });
 
@@ -223,6 +232,21 @@ describe("WebSocketProvider", () => {
     expect(socket.close).toHaveBeenCalledTimes(1);
   });
 
+  it("drops a token that arrives after the session ended", async () => {
+    let resolveToken!: (token: string) => void;
+    getAccessToken.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveToken = resolve;
+      }),
+    );
+    await renderProvider();
+
+    await act(() => useSessionStore.setState({ status: "unauthenticated" }));
+    await act(async () => resolveToken("late"));
+
+    expect(MockWebSocket.instances).toHaveLength(0);
+  });
+
   it("ignores a late open from a socket that was already torn down", async () => {
     const { rerender } = await renderProvider();
     const stale = lastSocket();
@@ -249,9 +273,7 @@ describe("WebSocketProvider reconnection", () => {
     // Max jitter, so each retry waits the full backoff delay.
     jest.spyOn(Math, "random").mockReturnValue(1);
     MockWebSocket.instances = [];
-    getSync.mockReturnValue({
-      campus_session: { name: "campus_session", value: "abc123" },
-    });
+    getAccessToken.mockResolvedValue("abc123");
     useSessionStore.setState({ status: "authenticated", hasInvite: false });
   });
 
@@ -266,22 +288,20 @@ describe("WebSocketProvider reconnection", () => {
     });
   }
 
-  it("keeps checking for the cookie until it appears", async () => {
-    getSync.mockReturnValue({});
+  it("keeps checking for the token until it appears", async () => {
+    getAccessToken.mockResolvedValue(null);
     await renderProvider();
     expect(MockWebSocket.instances).toHaveLength(0);
 
     await advance(INITIAL_RETRY_DELAY_MS);
-    expect(getSync).toHaveBeenCalledTimes(2);
+    expect(getAccessToken).toHaveBeenCalledTimes(2);
     expect(MockWebSocket.instances).toHaveLength(0);
 
-    getSync.mockReturnValue({
-      campus_session: { name: "campus_session", value: "late" },
-    });
+    getAccessToken.mockResolvedValue("late");
     await advance(INITIAL_RETRY_DELAY_MS * 2);
 
     expect(lastSocket().options.headers).toEqual({
-      Cookie: "campus_session=late",
+      Authorization: "Bearer late",
     });
   });
 
@@ -324,11 +344,9 @@ describe("WebSocketProvider reconnection", () => {
 
   it.each([
     [
-      "the cookie lookup",
+      "the token lookup",
       () => {
-        getSync.mockImplementationOnce(() => {
-          throw new Error("INVALID_URL");
-        });
+        getAccessToken.mockRejectedValueOnce(new Error("storage unavailable"));
       },
     ],
     [
@@ -357,9 +375,9 @@ describe("WebSocketProvider reconnection", () => {
 
   it("survives a throw inside a retry timer", async () => {
     jest.spyOn(console, "error").mockImplementation(() => {});
-    getSync.mockReturnValueOnce({}).mockImplementationOnce(() => {
-      throw new Error("native storage error");
-    });
+    getAccessToken
+      .mockResolvedValueOnce(null)
+      .mockRejectedValueOnce(new Error("native storage error"));
 
     await renderProvider();
     await advance(INITIAL_RETRY_DELAY_MS);
@@ -369,27 +387,27 @@ describe("WebSocketProvider reconnection", () => {
   });
 
   it("caps the backoff delay", async () => {
-    getSync.mockReturnValue({});
+    getAccessToken.mockResolvedValue(null);
     await renderProvider();
 
     for (let i = 0; i < 10; i++) {
       await advance(MAX_RETRY_DELAY_MS);
     }
-    getSync.mockClear();
+    getAccessToken.mockClear();
 
     await advance(MAX_RETRY_DELAY_MS);
-    expect(getSync).toHaveBeenCalledTimes(1);
+    expect(getAccessToken).toHaveBeenCalledTimes(1);
   });
 
   it("stops retrying after logout", async () => {
-    getSync.mockReturnValue({});
+    getAccessToken.mockResolvedValue(null);
     await renderProvider();
 
     await act(() => useSessionStore.setState({ status: "unauthenticated" }));
-    getSync.mockClear();
+    getAccessToken.mockClear();
     await advance(MAX_RETRY_DELAY_MS * 2);
 
-    expect(getSync).not.toHaveBeenCalled();
+    expect(getAccessToken).not.toHaveBeenCalled();
   });
 
   it("does not reconnect a socket closed by logout or unmount", async () => {
@@ -429,9 +447,7 @@ describe("WebSocketProvider app state", () => {
         return { remove: removeSubscription };
       });
     MockWebSocket.instances = [];
-    getSync.mockReturnValue({
-      campus_session: { name: "campus_session", value: "abc123" },
-    });
+    getAccessToken.mockResolvedValue("abc123");
     useSessionStore.setState({ status: "authenticated", hasInvite: false });
   });
 
@@ -457,16 +473,16 @@ describe("WebSocketProvider app state", () => {
   });
 
   it("does not retry while in the background", async () => {
-    getSync.mockReturnValue({});
+    getAccessToken.mockResolvedValue(null);
     await renderProvider();
 
     await setAppState("background");
-    getSync.mockClear();
+    getAccessToken.mockClear();
     await act(async () => {
       jest.advanceTimersByTime(MAX_RETRY_DELAY_MS * 2);
     });
 
-    expect(getSync).not.toHaveBeenCalled();
+    expect(getAccessToken).not.toHaveBeenCalled();
   });
 
   it("reconnects immediately when the app becomes active again", async () => {
@@ -548,9 +564,7 @@ describe("WebSocketProvider heartbeat", () => {
     jest.useFakeTimers();
     jest.spyOn(Math, "random").mockReturnValue(1);
     MockWebSocket.instances = [];
-    getSync.mockReturnValue({
-      campus_session: { name: "campus_session", value: "abc123" },
-    });
+    getAccessToken.mockResolvedValue("abc123");
     useSessionStore.setState({ status: "authenticated", hasInvite: false });
   });
 
@@ -650,9 +664,7 @@ describe("WebSocketProvider close codes", () => {
     jest.useFakeTimers();
     jest.spyOn(Math, "random").mockReturnValue(1);
     MockWebSocket.instances = [];
-    getSync.mockReturnValue({
-      campus_session: { name: "campus_session", value: "abc123" },
-    });
+    getAccessToken.mockResolvedValue("abc123");
     refreshSession.mockResolvedValue(true);
     useSessionStore.setState({
       status: "authenticated",
@@ -782,16 +794,14 @@ describe("WebSocketProvider close codes", () => {
     "refreshes and reconnects at once on 1008 %s",
     async (reason) => {
       await openSocket();
-      getSync.mockReturnValue({
-        campus_session: { name: "campus_session", value: "refreshed" },
-      });
+      getAccessToken.mockResolvedValue("refreshed");
 
       await act(() => lastSocket().serverClose(1008, reason));
 
       expect(refreshSession).toHaveBeenCalledTimes(1);
       expect(MockWebSocket.instances).toHaveLength(2);
       expect(lastSocket().options.headers).toEqual({
-        Cookie: "campus_session=refreshed",
+        Authorization: "Bearer refreshed",
       });
     },
   );
@@ -840,6 +850,121 @@ describe("WebSocketProvider close codes", () => {
     await advance(INITIAL_RETRY_DELAY_MS);
 
     expect(MockWebSocket.instances).toHaveLength(2);
+  });
+});
+
+describe("WebSocketProvider messages", () => {
+  const onMessage = jest.fn<void, [ServerMessage]>();
+
+  function Listener() {
+    const { subscribe } = useWs();
+    React.useEffect(() => subscribe(onMessage), [subscribe]);
+    return null;
+  }
+
+  beforeAll(() => {
+    global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+  });
+
+  afterAll(() => {
+    global.WebSocket = originalWebSocket;
+  });
+
+  beforeEach(() => {
+    MockWebSocket.instances = [];
+    onMessage.mockReset();
+    getAccessToken.mockResolvedValue("abc123");
+    useSessionStore.setState({ status: "authenticated", hasInvite: false });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function tree({ listening = true } = {}) {
+    return (
+      <WebSocketProvider
+        url={WS_URL}
+        cohortId={COHORT_ID}
+        getAccessToken={getAccessToken}
+        refreshSession={refreshSession}
+      >
+        <Consumer />
+        {listening && <Listener />}
+      </WebSocketProvider>
+    );
+  }
+
+  async function renderWithListener() {
+    return render(tree());
+  }
+
+  const snapshot = {
+    type: "snapshot",
+    map: { id: "m", version: "1", width: 1, height: 1 },
+    players: [],
+    lockableSpaces: [],
+    lockedSpaces: [],
+  } as const;
+
+  it("delivers frames that arrive before the open re-render", async () => {
+    await renderWithListener();
+    const socket = lastSocket();
+
+    // Same tick as open: no render in between.
+    await act(() => {
+      socket.open();
+      socket.receive(snapshot);
+    });
+
+    expect(onMessage).toHaveBeenCalledWith(snapshot);
+  });
+
+  it("stops delivering once the listener unsubscribes", async () => {
+    const view = await renderWithListener();
+    await act(() => lastSocket().open());
+
+    await view.rerender(tree({ listening: false }));
+    await act(() => lastSocket().receive(snapshot));
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+    expect(onMessage).not.toHaveBeenCalled();
+  });
+
+  it("ignores frames that aren't messages", async () => {
+    await renderWithListener();
+    await act(() => lastSocket().open());
+
+    await act(() => lastSocket().receiveRaw("not json"));
+    await act(() => lastSocket().receiveRaw(JSON.stringify({ no: "type" })));
+
+    expect(onMessage).not.toHaveBeenCalled();
+  });
+
+  it("keeps delivering after one listener throws", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    onMessage.mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
+    await renderWithListener();
+    await act(() => lastSocket().open());
+
+    await act(() => lastSocket().receive(snapshot));
+    await act(() => lastSocket().receive(snapshot));
+
+    expect(onMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it("sends typed client messages once open", async () => {
+    await renderWithListener();
+    expect(currentState().send({ type: "active" })).toBe(false);
+
+    await act(() => lastSocket().open());
+
+    expect(currentState().send({ type: "say", text: "hi" })).toBe(true);
+    expect(lastSocket().send).toHaveBeenCalledWith(
+      JSON.stringify({ type: "say", text: "hi" }),
+    );
   });
 });
 

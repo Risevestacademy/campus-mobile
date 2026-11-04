@@ -5,14 +5,10 @@ import { View, type ViewProps } from "react-native";
 export const statusDotVariants = cva("size-2 rounded-full", {
   variants: {
     status: {
-      online: "bg-status-success",
+      available: "bg-status-success",
       away: "bg-status-warning",
       busy: "bg-status-danger",
-      offline: "bg-text-disabled",
     },
-  },
-  defaultVariants: {
-    status: "online",
   },
 });
 
@@ -20,8 +16,17 @@ export type StatusDotVariantProps = VariantProps<typeof statusDotVariants>;
 
 export interface StatusDotProps extends ViewProps, StatusDotVariantProps {}
 
-export function StatusDot({ status, className, ...props }: StatusDotProps) {
+export function StatusDot({
+  status,
+  className,
+  style,
+  ...props
+}: StatusDotProps) {
   return (
-    <View {...props} className={cn(statusDotVariants({ status }), className)} />
+    <View
+      {...props}
+      style={[style, { borderRadius: 100 }]}
+      className={cn(statusDotVariants({ status }), className)}
+    />
   );
 }

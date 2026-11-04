@@ -11,7 +11,19 @@
  * via the `definition` "ClientMessage".
  */
 export type ClientMessage =
-  PingMessage | MoveMessage | SetStatusMessage | ActiveMessage;
+  | PingMessage
+  | MoveMessage
+  | SetStatusMessage
+  | ActiveMessage
+  | SetLockMessage
+  | RequestEntryMessage
+  | WithdrawEntryRequestMessage
+  | AnswerEntryRequestMessage
+  | SayMessage
+  | MuteMessage
+  | RemoveFromSpaceMessage
+  | GoToMessage
+  | StopWalkingMessage;
 /**
  * One tile in screen terms: up is y - 1, right is x + 1.
  *
@@ -40,17 +52,58 @@ export type ServerMessage =
   | AppearanceMessage
   | LeftMessage
   | StatusChangedMessage
+  | SpaceChangedMessage
+  | CallMessage
+  | BroadcastMessage
+  | NearbyMessage
+  | LockChangedMessage
+  | LockableSpacesMessage
+  | SpacesMessage
+  | EntryRequestedMessage
+  | EntryRequestEndedMessage
+  | SaidMessage
+  | StaffActionMessage
+  | WalkingMessage
+  | WalkEndedMessage
   | ReplacedMessage
   | MovedMessage
   | MoveResultMessage
   | ErrorMessage;
 /**
- * moved: one tile in the direction asked. blocked: the tile is not walkable; they turn to face it without moving. too_fast: over walking speed; nothing happens, not even the turn.
+ * admitted: a yes. Their next step into the space is let through; walking away from beside it first lets the yes lapse. declined: a no. withdrawn: the asker withdrew it, or disconnected. walked_away: the asker left the tiles beside the space. nobody_inside: nobody inside can answer any more. not_needed: they may walk in without asking now, as the space was unlocked or its list names them. cancelled: the space no longer takes requests.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "EntryRequestOutcome".
+ */
+export type EntryRequestOutcome =
+  | "admitted"
+  | "declined"
+  | "withdrawn"
+  | "walked_away"
+  | "nobody_inside"
+  | "not_needed"
+  | "cancelled";
+/**
+ * arrived: you are one tile from them, in their space, never on their tile. stopped: you sent `stopWalking` or a `move`. refused: a space you may not enter is in the way, theirs or another, and you stopped beside the first one; `mayAsk` says whether asking to enter it would be taken. gone: they left, or were not here. elsewhere: they are online, but connected to another world server, which a walk cannot reach. no_way: no path reaches a tile beside them in their space: walls, a space with no room beside them, or a chase past the step limit. moved_by_staff: staff removed you from a space mid-walk.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "WalkEndReason".
+ */
+export type WalkEndReason =
+  | "arrived"
+  | "stopped"
+  | "refused"
+  | "gone"
+  | "elsewhere"
+  | "no_way"
+  | "moved_by_staff";
+/**
+ * moved: one tile in the direction asked. blocked: the tile is not walkable; they turn to face it without moving. refused: the tile is floor, but in a space they may not enter (designated and not on its list, or locked); they turn to face it without moving, and may ask with `requestEntry`. too_fast: over walking speed; nothing happens, not even the turn.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "MoveOutcome".
  */
-export type MoveOutcome = "moved" | "blocked" | "too_fast";
+export type MoveOutcome = "moved" | "blocked" | "refused" | "too_fast";
 /**
  * The close codes world sends. Two more reach a client without world sending them: 1006, from the browser, when the connection is lost, a heartbeat is missed or the client reads too slowly (reconnect with backoff); and 1009, from the socket library, for a frame over the size limit (client bug; reconnect).
  *
@@ -136,6 +189,111 @@ export interface ActiveMessage {
   type: "active";
 }
 /**
+ * Lock or unlock the space you are standing in, if `lockableSpaces` names it. Anybody inside may, guests included. Answered, if it changes anything, by the `lockChanged` everybody in your cohort gets, you included; in a space that cannot be locked, by a NOT_ALLOWED error. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "SetLockMessage".
+ */
+export interface SetLockMessage {
+  type: "setLock";
+  locked: boolean;
+}
+/**
+ * Ask to enter a space you are refused: a locked one, a designated one whose list does not name you, or one staff removed you from in the last 90 seconds. Only from a tile beside it, only while somebody inside can answer, and one request at a time. Answered by `entryRequested`, to you and to whoever inside can answer; otherwise by a NOT_ALLOWED error saying why. After a no, the same space can be asked again 30 seconds later. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "RequestEntryMessage".
+ */
+export interface RequestEntryMessage {
+  type: "requestEntry";
+  spaceKey: string;
+}
+/**
+ * Withdraw your open request, answered by its `entryRequestEnded`. A `requestId` that is not your open request, as one that has ended, gets a NOT_ALLOWED error. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "WithdrawEntryRequestMessage".
+ */
+export interface WithdrawEntryRequestMessage {
+  type: "withdrawEntryRequest";
+  /**
+   * This request, not the person asking: asking again gets a new one. Answer and withdraw with it, so a late answer never reaches a newer request.
+   */
+  requestId: string;
+}
+/**
+ * Answer a request to enter the space you are standing in. Anybody inside a locked space may; in a designated space, only somebody its list names, or an admin. The first answer stands: one that comes later, names a request that has ended, or comes from somebody who may not answer, gets a NOT_ALLOWED error. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "AnswerEntryRequestMessage".
+ */
+export interface AnswerEntryRequestMessage {
+  type: "answerEntryRequest";
+  /**
+   * This request, not the person asking: asking again gets a new one. Answer and withdraw with it, so a late answer never reaches a newer request.
+   */
+  requestId: string;
+  admit: boolean;
+}
+/**
+ * A line of chat to whoever can hear you: everybody in a whole-room space, or the people within its subscribe radius in a proximity space, measured when you send it, without the hysteresis `nearby` keeps, so the two need not match at the edge. Up to 500 characters, trimmed. Answered by the `said` you and they get; five lines at once, then one a second, after which a NOT_ALLOWED error. Never stored. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "SayMessage".
+ */
+export interface SayMessage {
+  type: "say";
+  text: string;
+}
+/**
+ * Staff only: switch off somebody’s microphone in the call for their space, once; they may switch it back on. An admin may mute anybody in the cohort’s campus; a professor or mentor only somebody in the designated space they stand in, whose list names them. Never an admin, never yourself. Answered by `staffAction`, to you and to them; otherwise by a NOT_ALLOWED error saying why. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "MuteMessage".
+ */
+export interface MuteMessage {
+  type: "mute";
+  /**
+   * Whose microphone to switch off.
+   */
+  userId: string;
+}
+/**
+ * Staff only, the same staff as for `mute`: move somebody out of the space they stand in, to the nearest tile outside it, and keep them out for 90 seconds; they may ask to enter meanwhile. Not from the corridors, nor from a space that takes no requests. Answered by `staffAction`, to you and to them; otherwise by a NOT_ALLOWED error saying why. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "RemoveFromSpaceMessage".
+ */
+export interface RemoveFromSpaceMessage {
+  type: "removeFromSpace";
+  /**
+   * Whom to remove from the space they stand in.
+   */
+  userId: string;
+}
+/**
+ * Have the server walk you to somebody, a step per `stepMs`, through the same doors your own steps would be. Each step is a `walking`; the walk ends with one `walkEnded`. Replaces a walk already going. Somebody connected to another world server ends it with `elsewhere`. Yourself is a NOT_ALLOWED error. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "GoToMessage".
+ */
+export interface GoToMessage {
+  type: "goTo";
+  /**
+   * Whom to walk to: in your cohort, on this world server.
+   */
+  userId: string;
+}
+/**
+ * End the walk `goTo` started, answered by `walkEnded` with `stopped`. A `move` ends it too. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "StopWalkingMessage".
+ */
+export interface StopWalkingMessage {
+  type: "stopWalking";
+}
+/**
  * First frame on a socket that was let in.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
@@ -203,9 +361,21 @@ export interface SnapshotMessage {
     height: number;
   };
   players: Avatar[];
+  /**
+   * The spaces whoever stands inside may lock. No other space can be, nor the corridors. The same in every cohort.
+   */
+  lockableSpaces: string[];
+  /**
+   * The spaces locked in your cohort right now.
+   */
+  lockedSpaces: string[];
+  /**
+   * Every space a `spaceKey` can name on this map, `_default` first.
+   */
+  spaces: SpaceName[];
 }
 /**
- * Somebody on the map and what to draw for them. A later change to their sprite or name arrives as an `appearance` message, and to their status as a `statusChanged`.
+ * Somebody on the map and what to draw for them. A later change to their sprite or name arrives as an `appearance` message, to their status as a `statusChanged`, and to their space as a `spaceChanged`.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "Avatar".
@@ -230,6 +400,26 @@ export interface Avatar {
    */
   spriteKey: string | null;
   status: Status;
+  /**
+   * The space they are standing in: a drawn space's key, or `_default` for the corridors and grounds.
+   */
+  spaceKey: string;
+}
+/**
+ * What to call a space a `spaceKey` names. The same in every cohort.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "SpaceName".
+ */
+export interface SpaceName {
+  /**
+   * A drawn space's key, or `_default` for the corridors and grounds.
+   */
+  spaceKey: string;
+  /**
+   * What to show for it. The key itself when campus-api has no row for the space yet.
+   */
+  name: string;
 }
 /**
  * Somebody arrived in your cohort. Not sent when a socket is replaced within the same cohort, because the avatar never left.
@@ -281,23 +471,233 @@ export interface StatusChangedMessage {
   status: Status;
 }
 /**
- * This account opened this cohort's campus somewhere else — another device or tab — and that connection has taken its place. Being in another cohort never causes this. The socket closes immediately afterwards with 4000 `entered_elsewhere`. Do NOT reconnect: the two connections would replace each other for as long as both stayed open. Show that they are in this campus elsewhere, and reconnect only when they ask to come back here.
+ * Somebody in your cohort stepped into another space. Sent to everybody in the cohort, you included when it is you, the moment the step is taken: it can arrive before the `moved` that shows the step.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
- * via the `definition` "ReplacedMessage".
+ * via the `definition` "SpaceChangedMessage".
  */
-export interface ReplacedMessage {
-  type: "replaced";
+export interface SpaceChangedMessage {
+  type: "spaceChanged";
+  userId: string;
+  /**
+   * The space they are standing in: a drawn space's key, or `_default` for the corridors and grounds.
+   */
+  spaceKey: string;
 }
 /**
- * Everybody in your cohort who moved or turned since the last tick, once each, as they stand now: two steps inside one tick arrive as the second, so an entry can be more than one tile from where they were. Sent once per tick, and not at all when nobody moved. You are never in your own `moved` frame — your `moveResult` already says where you ended up.
+ * Sent on arrival and each time you step into another space: leave the call you are in and join this one. Null where there is no call to join.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
- * via the `definition` "MovedMessage".
+ * via the `definition` "CallMessage".
  */
-export interface MovedMessage {
-  type: "moved";
-  players: Player[];
+export interface CallMessage {
+  type: "call";
+  call: Call | null;
+}
+/**
+ * The audio call for the space you are standing in. A participant’s identity starts with their user id and a colon.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "Call".
+ */
+export interface Call {
+  /**
+   * The media server to connect to.
+   */
+  url: string;
+  room: string;
+  /**
+   * Lets you join this room only, for about ten minutes.
+   */
+  token: string;
+  /**
+   * room: subscribe to everybody in it. proximity: subscribe only to the people the latest `nearby` names.
+   */
+  hearing: "room" | "proximity";
+  /**
+   * In tiles, for proximity: fade a voice to nothing across this distance.
+   */
+  audibleRadius: number;
+  /**
+   * In tiles, for proximity: how far `nearby` reaches.
+   */
+  subscribeRadius: number;
+}
+/**
+ * Sent on arrival, and again when you are made or stop being an admin: leave the broadcast room you are in and join this one. Null where there is none to join; when a token could not be made, another comes within a heartbeat.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "BroadcastMessage".
+ */
+export interface BroadcastMessage {
+  type: "broadcast";
+  call: BroadcastCall | null;
+}
+/**
+ * Your cohort’s broadcast room, where admins speak to everybody in the campus. Join it beside the call for your space and stay in it wherever you walk. Subscribe to every audio track in it and play it over everything else, with the call for your space carrying on quieter underneath; it cannot be muted. Several admins may speak at once. A broadcast starts and stops as a track is published and unpublished in this room.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "BroadcastCall".
+ */
+export interface BroadcastCall {
+  /**
+   * The media server to connect to.
+   */
+  url: string;
+  room: string;
+  /**
+   * Lets you join this room only: within a minute if you may speak, ten if you only listen. Join with it straight away.
+   */
+  token: string;
+  /**
+   * You are an admin: you may publish your microphone here, and nothing else. Everybody else only listens.
+   */
+  canSpeak: boolean;
+}
+/**
+ * In a proximity space, who is close enough to hear, each time that changes: subscribe to their audio and drop everybody else’s. Can arrive before the `call` it applies to.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "NearbyMessage".
+ */
+export interface NearbyMessage {
+  type: "nearby";
+  userIds: string[];
+}
+/**
+ * A space in your cohort was locked or unlocked. While it is locked, a step into it is refused, admins excepted. Sent to everybody in the cohort, you included.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "LockChangedMessage".
+ */
+export interface LockChangedMessage {
+  type: "lockChanged";
+  spaceKey: string;
+  locked: boolean;
+  /**
+   * Who locked or unlocked it. Null when the lock ended on its own: the last person inside left, or the space can no longer be locked.
+   */
+  userId: string | null;
+}
+/**
+ * Which spaces can be locked changed, because an admin changed a space: replaces the list from `snapshot`.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "LockableSpacesMessage".
+ */
+export interface LockableSpacesMessage {
+  type: "lockableSpaces";
+  spaceKeys: string[];
+}
+/**
+ * A space was renamed, or campus-api gained or lost a row for one: replaces `snapshot.spaces`. Sent to everybody.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "SpacesMessage".
+ */
+export interface SpacesMessage {
+  type: "spaces";
+  spaces: SpaceName[];
+}
+/**
+ * Somebody asks to enter a space. Sent to the asker, and to each person inside who may answer, as they become able to: on the request, or on stepping in later. Every one is followed by an `entryRequestEnded` with the same `requestId`. Only answerable while you stand in that space.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "EntryRequestedMessage".
+ */
+export interface EntryRequestedMessage {
+  type: "entryRequested";
+  /**
+   * This request, not the person asking: asking again gets a new one. Answer and withdraw with it, so a late answer never reaches a newer request.
+   */
+  requestId: string;
+  /**
+   * Who is asking.
+   */
+  userId: string;
+  spaceKey: string;
+}
+/**
+ * A request to enter is over. Sent to the asker and to everybody who was sent its `entryRequested`.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "EntryRequestEndedMessage".
+ */
+export interface EntryRequestEndedMessage {
+  type: "entryRequestEnded";
+  /**
+   * This request, not the person asking: asking again gets a new one. Answer and withdraw with it, so a late answer never reaches a newer request.
+   */
+  requestId: string;
+  /**
+   * Who asked.
+   */
+  userId: string;
+  spaceKey: string;
+  outcome: EntryRequestOutcome;
+  /**
+   * Who said yes or no. Null for every other outcome.
+   */
+  answeredBy: string | null;
+}
+/**
+ * A line of chat from somebody who could be heard where you stand when they said it, or your own. World keeps none of it: a line reaches whoever is in earshot at that moment and nobody later.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "SaidMessage".
+ */
+export interface SaidMessage {
+  type: "said";
+  /**
+   * Unique to this line.
+   */
+  id: string;
+  /**
+   * Who said it.
+   */
+  userId: string;
+  /**
+   * The space they said it in, so a meeting’s chat can be kept apart.
+   */
+  spaceKey: string;
+  text: string;
+  /**
+   * When world relayed it, as an ISO timestamp.
+   */
+  at: string;
+}
+/**
+ * Staff muted somebody or removed them from a space. Sent to the person it was done to and to the staff member who did it. Their cohort sees a removal as a `moved` and a `spaceChanged`.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "StaffActionMessage".
+ */
+export interface StaffActionMessage {
+  type: "staffAction";
+  /**
+   * muted: their microphone was switched off; they may switch it on again. removed: they were moved out of the space and are kept out until `until`.
+   */
+  action: "muted" | "removed";
+  /**
+   * Whom it was done to.
+   */
+  userId: string;
+  /**
+   * The staff member who did it.
+   */
+  by: string;
+  /**
+   * The space it was done in.
+   */
+  spaceKey: string;
+  /**
+   * For removed: when they may walk back in, as an ISO timestamp. Null for muted.
+   */
+  until: string | null;
+  /**
+   * For removed: where they stand now, outside the space. Snap them there. Null for muted.
+   */
+  player: Player | null;
 }
 /**
  * Somebody on the map, as the server has them. Positions are tiles, never pixels.
@@ -318,6 +718,65 @@ export interface Player {
   facing: Direction;
 }
 /**
+ * The server took a step of your `goTo` walk: where you are now. Only to you; everybody else sees it in `moved`.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "WalkingMessage".
+ */
+export interface WalkingMessage {
+  type: "walking";
+  /**
+   * Whom you are walking to.
+   */
+  userId: string;
+  player: Player;
+}
+/**
+ * Your `goTo` walk is over, and why. Only to you. Not sent when the socket closes.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "WalkEndedMessage".
+ */
+export interface WalkEndedMessage {
+  type: "walkEnded";
+  /**
+   * Whom you were walking to.
+   */
+  userId: string;
+  reason: WalkEndReason;
+  /**
+   * Where you stopped.
+   */
+  player: Player;
+  /**
+   * With `refused`, the space you stopped beside.
+   */
+  spaceKey: string | null;
+  /**
+   * With `refused`, whether a `requestEntry` for `spaceKey` would be taken from where you stopped. Offer to ask only when true.
+   */
+  mayAsk: boolean;
+}
+/**
+ * This account opened this cohort's campus somewhere else — another device or tab — and that connection has taken its place. Being in another cohort never causes this. The socket closes immediately afterwards with 4000 `entered_elsewhere`. Do NOT reconnect: the two connections would replace each other for as long as both stayed open. Show that they are in this campus elsewhere, and reconnect only when they ask to come back here.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "ReplacedMessage".
+ */
+export interface ReplacedMessage {
+  type: "replaced";
+}
+/**
+ * Everybody in your cohort who moved or turned since the last tick, once each, as they stand now: two steps inside one tick arrive as the second, so an entry can be more than one tile from where they were. Sent once per tick, and not at all when nobody moved. You are never in your own `moved` frame — your `moveResult` already says where you ended up.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "MovedMessage".
+ */
+export interface MovedMessage {
+  type: "moved";
+  players: Player[];
+}
+/**
  * The answer to one admitted `move`. `player` is where the server has them; on anything but `moved`, the client snaps back to it.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
@@ -330,13 +789,13 @@ export interface MoveResultMessage {
   player: Player;
 }
 /**
- * UNAUTHORIZED comes just before the socket closes with 1008, `message` being the reason. BAD_MESSAGE leaves the socket open.
+ * UNAUTHORIZED comes just before the socket closes with 1008, `message` being the reason. BAD_MESSAGE leaves the socket open. NOT_ALLOWED answers a message the server understood but will not act on, and leaves the socket open.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "ErrorMessage".
  */
 export interface ErrorMessage {
   type: "error";
-  code: "UNAUTHORIZED" | "BAD_MESSAGE";
+  code: "UNAUTHORIZED" | "BAD_MESSAGE" | "NOT_ALLOWED";
   message: string;
 }

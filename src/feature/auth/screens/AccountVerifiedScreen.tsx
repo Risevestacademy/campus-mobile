@@ -24,7 +24,7 @@ export default function AccountVerifiedScreen() {
         </View>
 
         <View className="mt-4 flex-row items-center gap-2">
-          <StatusDot status="online" />
+          <StatusDot status="available" />
           <Text className="font-caption text-caption text-text-secondary">
             Connected successfully
           </Text>
@@ -41,7 +41,7 @@ export default function AccountVerifiedScreen() {
       <View className="gap-4 py-2">
         <Button
           label="Go to Campus"
-          onPress={() => router.push("/(tabs)/(campus)")}
+          onPress={() => router.push("/(app)/(tabs)/(campus)")}
         />
         <Button
           label="View your profile"

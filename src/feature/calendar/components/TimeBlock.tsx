@@ -13,6 +13,7 @@ const timeBlockVariants = cva("items-center rounded-lg py-2 px-3", {
       broadcast: "bg-bg-tint-coral",
     },
   },
+  defaultVariants: { kind: "class" },
 });
 
 const timeTextVariants = cva("", {
@@ -23,12 +24,13 @@ const timeTextVariants = cva("", {
       broadcast: "text-text-coral-strong",
     },
   },
+  defaultVariants: { kind: "class" },
 });
 
 type TimeBlockProps = {
   start: string;
   end: string;
-  kind: CalendarEventKind;
+  kind?: CalendarEventKind;
 };
 
 export function TimeBlock({ start, end, kind }: TimeBlockProps) {

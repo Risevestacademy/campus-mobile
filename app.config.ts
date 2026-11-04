@@ -9,6 +9,9 @@ const HOSTS = {
   production: "campusbyrise.com",
 } as const;
 
+const INVALID_WORLD_URL_MESSAGE =
+  "WORLD_URL must be a wss:// URL without credentials or a query string.";
+
 const INVALID_ORIGIN_MESSAGE =
   "API_BASE_URL must be an HTTPS origin or a Railway private HTTP origin.";
 
@@ -54,6 +57,27 @@ function readApiBaseUrl(environment = process.env): string {
   return parseApiOrigin(configuredBaseUrl).origin;
 }
 
+function readWorldUrl(environment = process.env): string {
+  const configured = environment.WORLD_URL?.trim();
+
+  if (!configured) {
+    throw new Error("WORLD_URL is required.");
+  }
+
+  let url: URL;
+  try {
+    url = new URL(configured);
+  } catch {
+    throw new Error(INVALID_WORLD_URL_MESSAGE);
+  }
+
+  if (url.protocol !== "wss:" || url.username || url.password || url.search) {
+    throw new Error(INVALID_WORLD_URL_MESSAGE);
+  }
+
+  return url.toString();
+}
+
 function loadEnv() {
   const appEnv = process.env.APP_ENV;
 
@@ -70,6 +94,8 @@ function loadEnv() {
   return {
     env: appEnv as "development" | "staging" | "production",
     apiBaseUrl: readApiBaseUrl(),
+    worldUrl: readWorldUrl(),
+    webOrigin: `https://${HOSTS[appEnv as keyof typeof HOSTS]}`,
     googleIosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME,
     googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
     googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID,

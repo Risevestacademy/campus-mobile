@@ -189,9 +189,9 @@ export function AtomsPreview() {
       >
         <View className="flex-row flex-wrap items-center gap-6">
           <View className="flex-row items-center gap-2">
-            <StatusDot status="online" />
+            <StatusDot status="available" />
             <Text className="font-body-sm text-body-sm text-text-primary">
-              Online
+              Available
             </Text>
           </View>
           <View className="flex-row items-center gap-2">
@@ -204,12 +204,6 @@ export function AtomsPreview() {
             <StatusDot status="busy" />
             <Text className="font-body-sm text-body-sm text-text-primary">
               Busy
-            </Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <StatusDot status="offline" />
-            <Text className="font-body-sm text-body-sm text-text-primary">
-              Offline
             </Text>
           </View>
         </View>

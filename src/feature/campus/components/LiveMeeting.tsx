@@ -13,7 +13,7 @@ export function LiveMeeting() {
   const { open } = useMeetingJoin();
 
   const goToDetails = () => {
-    router.push("/(tabs)/(campus)/space/diarahaff");
+    router.push("/(app)/(tabs)/(campus)/space/diarahaff");
   };
   const showMeeting = () => {
     open({

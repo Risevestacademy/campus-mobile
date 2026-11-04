@@ -1,3 +1,5 @@
 // import { components } from '@core/api/generated/schema';
 
-export type ActivityStatus = "online" | "busy" | "offline" | "away";
+import { Status } from "./lib/generated/world-protocol";
+
+export type ActivityStatus = Status;

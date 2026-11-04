@@ -9,7 +9,7 @@ export default function Index() {
     if (hasInvite) {
       return <Redirect href="/(auth)/CreatePassword" />;
     }
-    return <Redirect href="/(tabs)/(campus)" />;
+    return <Redirect href="/(app)/(tabs)/(campus)" />;
   }
 
   return <Redirect href="/SignIn" />;

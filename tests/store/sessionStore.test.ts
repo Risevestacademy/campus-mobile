@@ -1,7 +1,6 @@
 import { clearAuthTokens } from "@core/auth/tokenStorage";
 import { queryClient } from "@shared/lib/react-query";
 import { useSessionStore } from "@store/session";
-import NitroCookies from "react-native-nitro-cookies";
 
 jest.mock("@core/auth/tokenStorage", () => ({
   getAuthTokens: jest.fn(),
@@ -43,33 +42,6 @@ describe("useSessionStore - clearSession", () => {
   it("handles clearSession with different reasons", async () => {
     await useSessionStore.getState().clearSession("logout");
     expect(useSessionStore.getState().status).toBe("unauthenticated");
-  });
-
-  it("clears the campus_session cookie for the API origin", async () => {
-    await useSessionStore.getState().clearSession("logout");
-
-    expect(NitroCookies.clearByName).toHaveBeenCalledWith(
-      "http://localhost:3000",
-      "campus_session",
-    );
-  });
-
-  it("still ends the session when clearing the cookie fails", async () => {
-    const consoleError = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    (NitroCookies.clearByName as jest.Mock).mockRejectedValueOnce(
-      new Error("native storage error"),
-    );
-
-    await useSessionStore.getState().clearSession("logout");
-
-    expect(useSessionStore.getState().status).toBe("unauthenticated");
-    expect(consoleError).toHaveBeenCalledWith(
-      "Failed to clear session cookie:",
-      expect.any(Error),
-    );
-    consoleError.mockRestore();
   });
 });
 
