@@ -6,6 +6,7 @@ import {
   Armchair,
   Bell,
   FileText,
+  Flag,
   Lock,
   Mic,
   UserRound,
@@ -19,6 +20,7 @@ import {
   AppearanceSheet,
   appearanceSubtitle,
   DefaultHeader,
+  NewFeedbackBottomSheet,
   ProfilePinnedProject,
   ProfileSeparatedCard,
 } from "../components";
@@ -28,6 +30,7 @@ export function ProfileScreen() {
   const appearanceSheetRef = useRef<BottomSheetModal>(null);
   const { theme } = useUniwind();
   const appearance = useAppearanceStore((state) => state.preference);
+  const feedbackSheetRef = useRef<BottomSheetModal>(null);
 
   const DESK = useMemo(
     () => [
@@ -62,6 +65,12 @@ export function ProfileScreen() {
       {
         title: "Privacy and safety",
         icon: Lock,
+      },
+      {
+        title: "Feedback & Reports",
+        icon: Flag,
+        onPress: () => feedbackSheetRef.current?.present(),
+        subtitle: "Help shape Campus. We read every note.",
       },
       {
         title: "Appearance",
@@ -139,6 +148,7 @@ export function ProfileScreen() {
         </View>
       </ScrollView>
       <AppearanceSheet ref={appearanceSheetRef} />
+      <NewFeedbackBottomSheet ref={feedbackSheetRef} />
     </SafeArea>
   );
 }
