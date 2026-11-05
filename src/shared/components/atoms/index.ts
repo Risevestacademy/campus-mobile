@@ -7,6 +7,7 @@ export * from "./Modal";
 export * from "./MultiAvatar";
 export * from "./Pill";
 export * from "./Row";
+export * from "./Spinner";
 export * from "./StatusDot";
 export * from "./Text";
 export * from "./TextField";
