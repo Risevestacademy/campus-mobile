@@ -1,5 +1,5 @@
 import { ApiError, isApiError } from "@core/api/error";
-import { Button, toast } from "@shared/components/atoms";
+import { Button, Spinner, toast } from "@shared/components/atoms";
 import { Text } from "@shared/components/atoms/Text";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { Google } from "@shared/icons";
@@ -7,7 +7,7 @@ import { useInviteStore } from "@store/invite";
 import { useSessionStore } from "@store/session";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Image, ScrollView, View } from "react-native";
+import { Image, ScrollView, View } from "react-native";
 import {
   GoogleOneTapSignIn,
   isNoSavedCredentialFoundResponse,
@@ -85,7 +85,7 @@ export default function InvitationScreen() {
       <Header />
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
+          <Spinner />
         </View>
       ) : (
         <View className="flex-1">
