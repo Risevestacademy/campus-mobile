@@ -200,6 +200,7 @@ function FeedbackForm({
       </View>
       <TextField
         label="Title"
+        inBottomSheet
         value={title}
         onChangeText={setTitle}
         placeholder="Title of the feedback"
@@ -207,6 +208,7 @@ function FeedbackForm({
       />
       <TextField
         label="Details"
+        inBottomSheet
         value={details}
         onChangeText={setDetails}
         multiline
@@ -321,42 +323,72 @@ const FeedbackSentSheet = React.forwardRef<
 
 FeedbackSentSheet.displayName = "FeedbackSentSheet";
 
+/** Lets the success sheet close the form without touching other sheets. */
+const FORM_SHEET = "new-feedback";
+
 export const NewFeedbackBottomSheet = React.forwardRef<BottomSheetModal>(
   (_props, ref) => {
     const sentSheet = React.useRef<BottomSheetModal>(null);
-    const { dismissAll } = useBottomSheetModal();
+    const { dismiss } = useBottomSheetModal();
     const [sent, setSent] = React.useState<SentFeedback>({
       title: "",
       type: "bug",
     });
+    const [sending, setSending] = React.useState(false);
+    // Bumped each time the form closes. A send remembers the one it started
+    // in, and a reply for a form that has since closed is ignored.
+    const session = React.useRef(0);
 
-    const { send: sendFeedback, isSending } = useSendFeedback();
+    const { send: sendFeedback } = useSendFeedback();
     const { data: me } = useMe();
     const path = usePathname();
 
     const send = async ({ includeContext, ...feedback }: FeedbackDraft) => {
+      const startedIn = session.current;
+      setSending(true);
       try {
         const receipt = await sendFeedback({
           ...feedback,
           cohortId: me?.membership?.cohortId ?? undefined,
           context: includeContext ? { path } : undefined,
         });
+        if (startedIn !== session.current) return;
         setSent({ title: receipt.title, type: receipt.type });
         sentSheet.current?.present();
       } catch (error) {
+        if (startedIn !== session.current) return;
         toast.error(
           error instanceof Error ? error.message : "Please try again.",
           "Couldn't send feedback",
         );
+      } finally {
+        if (startedIn === session.current) setSending(false);
       }
+    };
+
+    const onFormDismiss = () => {
+      session.current += 1;
+      setSending(false);
     };
 
     return (
       <>
-        <BottomSheet ref={ref}>
-          <FeedbackForm sending={isSending} onSend={send} />
+        <BottomSheet
+          ref={ref}
+          name={FORM_SHEET}
+          onDismiss={onFormDismiss}
+          // Scrolls once the form is taller than the screen, so Send stays
+          // reachable on small phones and with the keyboard up.
+          scrollable
+          keyboardBlurBehavior="restore"
+        >
+          <FeedbackForm sending={sending} onSend={send} />
         </BottomSheet>
-        <FeedbackSentSheet ref={sentSheet} sent={sent} onDismiss={dismissAll} />
+        <FeedbackSentSheet
+          ref={sentSheet}
+          sent={sent}
+          onDismiss={() => dismiss(FORM_SHEET)}
+        />
       </>
     );
   },
