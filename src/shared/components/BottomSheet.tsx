@@ -55,6 +55,7 @@ export const BottomSheet = forwardRef<BottomSheetModal, SheetProps>(
             contentContainerClassName={cn("gap-4 px-6", contentClassName)}
             contentContainerStyle={{ paddingBottom: bottom + 8 }}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {children}
           </StyledBottomSheetScrollView>
