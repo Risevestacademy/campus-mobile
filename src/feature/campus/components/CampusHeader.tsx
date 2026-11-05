@@ -287,8 +287,11 @@ export function CampusHeaderHero({
   progress,
   onLayout,
   onSummaryLayout,
+  footer,
 }: CampusSummaryProps & {
   progress: SharedValue<number>;
+  /** Under the count and location, e.g. the walk-to-my-desk shortcut. */
+  footer?: React.ReactNode;
   /** Its height sets how far the collapse runs. */
   onLayout?: (event: LayoutChangeEvent) => void;
   onSummaryLayout?: (event: LayoutChangeEvent) => void;
@@ -329,6 +332,7 @@ export function CampusHeaderHero({
           skeleton
         />
       </Animated.View>
+      {footer}
     </View>
   );
 }

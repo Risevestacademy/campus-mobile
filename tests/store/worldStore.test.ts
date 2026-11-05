@@ -12,6 +12,7 @@ function avatar(userId: string, overrides: Partial<Avatar> = {}): Avatar {
     displayName: userId,
     spriteKey: null,
     status: "available",
+    statusUntil: null,
     spaceKey: "_default",
     ...overrides,
   };
@@ -95,14 +96,19 @@ describe("useWorldStore", () => {
   it("updates status, space and name for known people only", () => {
     apply(snapshot(avatar("a")));
 
-    apply({ type: "statusChanged", userId: "a", status: "away" });
+    apply({ type: "statusChanged", userId: "a", status: "away", until: null });
     apply({ type: "spaceChanged", userId: "a", spaceKey: "library" });
     apply({
       type: "appearance",
       userId: "a",
       displayName: "Ada",
     } as ServerMessage);
-    apply({ type: "statusChanged", userId: "ghost", status: "busy" });
+    apply({
+      type: "statusChanged",
+      userId: "ghost",
+      status: "busy",
+      until: null,
+    });
 
     expect(state().players.a).toMatchObject({
       status: "away",

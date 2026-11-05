@@ -32,6 +32,7 @@ function player(userId: string, overrides: Partial<Avatar> = {}): Avatar {
     displayName: userId,
     spriteKey: null,
     status: "available",
+    statusUntil: null,
     spaceKey: "library",
     ...overrides,
   };
