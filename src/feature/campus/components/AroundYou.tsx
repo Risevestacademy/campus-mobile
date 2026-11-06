@@ -9,7 +9,12 @@ import {
 import { capitalize, formatParticipantPresentation } from "@shared/helpers";
 import { useMeetingJoin } from "@shared/hooks/ui";
 import { useWs } from "@shared/hooks/useWs";
-import { type Presence, useAroundMe, useWorldReady } from "@store/world";
+import {
+  type Presence,
+  useAroundMe,
+  useIsWatching,
+  useWorldReady,
+} from "@store/world";
 import { AudioLines, Hand, Navigation } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
@@ -34,6 +39,8 @@ export function HappeningAroundYou() {
   const { send } = useWs();
   const { open } = useMeetingJoin();
   const call = useCurrentCall();
+  // Only the device standing for you can walk.
+  const watching = useIsWatching();
 
   if (!ready) return null;
 
@@ -67,7 +74,7 @@ export function HappeningAroundYou() {
         ]
       : []),
     ...inMySpace.map((player) => ({
-      onNavigate: () => goTo(player.userId),
+      onNavigate: watching ? undefined : () => goTo(player.userId),
       id: player.userId,
       participants: [{ id: player.userId, name: nameOf(player) }],
       desc: [capitalize(player.status), spaceName].filter(Boolean).join(" · "),
@@ -195,9 +202,14 @@ function Happening({
           <RoundButton label={`Wave at ${who}`} onPress={onWave}>
             <StyledHand colorClassName="accent-text-on-dark" size={18} />
           </RoundButton>
-          <RoundButton label={`Navigate to ${who}`} onPress={onNavigate}>
-            <StyledNavigation colorClassName="accent-text-on-dark" size={18} />
-          </RoundButton>
+          {onNavigate ? (
+            <RoundButton label={`Navigate to ${who}`} onPress={onNavigate}>
+              <StyledNavigation
+                colorClassName="accent-text-on-dark"
+                size={18}
+              />
+            </RoundButton>
+          ) : null}
         </Row>
       ) : null}
     </Row>
