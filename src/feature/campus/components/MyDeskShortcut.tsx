@@ -1,22 +1,19 @@
 import { Spinner, Text } from "@shared/components/atoms";
-import { deskTarget, useMyDesk } from "@shared/hooks/useDesks";
 import { useMySpace, useWorldReady } from "@store/world";
 import { Armchair } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
 
-import { useDeskPreview, useGoToSpace } from "../hooks";
+import { useGoToSpace, useMyDeskTarget } from "../hooks";
 
 const StyledArmchair = withUniwind(Armchair);
 
 export function MyDeskShortcut() {
-  const desk = useMyDesk();
+  const target = useMyDeskTarget();
   const ready = useWorldReady();
   const mySpace = useMySpace();
   const { goToSpace, walkingTo } = useGoToSpace();
-  const preview = useDeskPreview();
 
-  const target = (desk ? deskTarget(desk) : null) ?? preview;
   if (!target || !ready) return null;
 
   if (mySpace?.spaceKey === target.spaceKey) {

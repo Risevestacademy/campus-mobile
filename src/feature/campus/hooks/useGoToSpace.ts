@@ -53,15 +53,17 @@ export function useGoToSpace() {
     [subscribe],
   );
 
-  const goToSpace = (spaceKey: string, name: string) => {
+  /** Starts the walk; false when campus isn't connected (it says so). */
+  const goToSpace = (spaceKey: string, name: string): boolean => {
     if (!send({ type: "goToSpace", spaceKey })) {
       toast.error(
         "You're not connected to campus right now.",
         "Can't walk there",
       );
-      return;
+      return false;
     }
     start({ spaceKey, name, socket });
+    return true;
   };
 
   // No `walkEnded` comes once the socket closes, so a walk only counts while
