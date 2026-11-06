@@ -20,7 +20,20 @@ jest.mock("@core/auth/tokenStorage", () => ({
 
 const WS_URL = "wss://api.example.com/ws";
 const COHORT_ID = "cohort-1";
-const SOCKET_URL = `${WS_URL}?cohortId=${COHORT_ID}`;
+const SOCKET_URL = `${WS_URL}?cohortId=${COHORT_ID}&enter=take`;
+const WATCH_URL = `${WS_URL}?cohortId=${COHORT_ID}&enter=ifFree`;
+const WELCOME = {
+  type: "welcome",
+  userId: "me",
+  connectionId: "c1",
+  heartbeatSeconds: 0,
+  stepMs: 200,
+  tickMs: 100,
+  awayAfterSeconds: 0,
+  mode: "avatar",
+  displayName: null,
+  spriteKey: null,
+};
 
 type CloseEventLike = { code: number; reason: string };
 
@@ -707,13 +720,49 @@ describe("WebSocketProvider close codes", () => {
     expect(MockWebSocket.instances).toHaveLength(2);
   });
 
-  it("stops and reports replaced on 4000 entered_elsewhere", async () => {
+  it("enters with take, then reconnects with ifFree once let in", async () => {
+    const socket = await openSocket();
+    expect(socket.url).toBe(SOCKET_URL);
+
+    await act(() => socket.receive(WELCOME));
+    await act(() => socket.serverClose(1006));
+    await advance(INITIAL_RETRY_DELAY_MS);
+
+    // A dropped network mustn't take the avatar back from another device.
+    expect(lastSocket().url).toBe(WATCH_URL);
+  });
+
+  it("keeps taking until it has been let in", async () => {
+    await openSocket();
+
+    await act(() => lastSocket().serverClose(1006));
+    await advance(INITIAL_RETRY_DELAY_MS);
+
+    expect(lastSocket().url).toBe(SOCKET_URL);
+  });
+
+  it("comes straight back with ifFree to watch when replaced", async () => {
     await openSocket();
 
     await act(() => lastSocket().serverClose(4000, "entered_elsewhere"));
+
+    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(lastSocket().url).toBe(WATCH_URL);
+    expect(currentState().status).toBe("connecting");
+  });
+
+  async function replacedWhileWatching() {
+    await openSocket();
+    await act(() => lastSocket().serverClose(4000, "entered_elsewhere"));
+    await act(() => lastSocket().open());
+    await act(() => lastSocket().serverClose(4000, "entered_elsewhere"));
+  }
+
+  it("stops and reports replaced when it can't stay to watch", async () => {
+    await replacedWhileWatching();
     await advance(MAX_RETRY_DELAY_MS * 2);
 
-    expect(MockWebSocket.instances).toHaveLength(1);
+    expect(MockWebSocket.instances).toHaveLength(2);
     expect(currentState()).toMatchObject({
       socket: null,
       status: "replaced",
@@ -729,23 +778,22 @@ describe("WebSocketProvider close codes", () => {
         emitAppState = handler as (state: string) => void;
         return { remove: jest.fn() };
       });
-    await openSocket();
-    await act(() => lastSocket().serverClose(4000, "entered_elsewhere"));
+    await replacedWhileWatching();
 
     await act(async () => emitAppState("background"));
     await act(async () => emitAppState("active"));
 
-    expect(MockWebSocket.instances).toHaveLength(1);
+    expect(MockWebSocket.instances).toHaveLength(2);
     expect(currentState().status).toBe("replaced");
   });
 
-  it("reconnects when asked after being replaced", async () => {
-    await openSocket();
-    await act(() => lastSocket().serverClose(4000, "entered_elsewhere"));
+  it("takes the avatar when asked to enter here", async () => {
+    await replacedWhileWatching();
 
     await act(() => currentState().reconnect());
 
-    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(MockWebSocket.instances).toHaveLength(3);
+    expect(lastSocket().url).toBe(SOCKET_URL);
     expect(currentState().status).toBe("connecting");
   });
 

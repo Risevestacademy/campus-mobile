@@ -12,6 +12,7 @@ function avatar(userId: string, overrides: Partial<Avatar> = {}): Avatar {
     displayName: userId,
     spriteKey: null,
     status: "available",
+    statusUntil: null,
     spaceKey: "_default",
     ...overrides,
   };
@@ -57,6 +58,7 @@ describe("useWorldStore", () => {
       userId: "a",
       displayName: "a",
       status: "available",
+      statusUntil: null,
       spaceKey: "_default",
     });
 
@@ -95,14 +97,19 @@ describe("useWorldStore", () => {
   it("updates status, space and name for known people only", () => {
     apply(snapshot(avatar("a")));
 
-    apply({ type: "statusChanged", userId: "a", status: "away" });
+    apply({ type: "statusChanged", userId: "a", status: "away", until: null });
     apply({ type: "spaceChanged", userId: "a", spaceKey: "library" });
     apply({
       type: "appearance",
       userId: "a",
       displayName: "Ada",
     } as ServerMessage);
-    apply({ type: "statusChanged", userId: "ghost", status: "busy" });
+    apply({
+      type: "statusChanged",
+      userId: "ghost",
+      status: "busy",
+      until: null,
+    });
 
     expect(state().players.a).toMatchObject({
       status: "away",
@@ -131,6 +138,43 @@ describe("useWorldStore", () => {
     apply({ type: "replaced" });
 
     expect(state()).toMatchObject({ ready: false, selfId: null, players: {} });
+  });
+
+  it("keeps when a timed status ends, and clears it with a lasting one", () => {
+    apply(snapshot(avatar("a")));
+
+    apply({
+      type: "statusChanged",
+      userId: "a",
+      status: "busy",
+      until: "2026-11-06T15:00:00.000Z",
+    });
+    expect(state().players.a).toMatchObject({
+      status: "busy",
+      statusUntil: "2026-11-06T15:00:00.000Z",
+    });
+
+    apply({ type: "statusChanged", userId: "a", status: "busy", until: null });
+    expect(state().players.a?.statusUntil).toBeNull();
+  });
+
+  it("knows whether this device stands for you or only looks on", () => {
+    apply({ type: "welcome", userId: "me", mode: "watcher" } as ServerMessage);
+    expect(state().mode).toBe("watcher");
+
+    apply({ type: "welcome", userId: "me", mode: "avatar" } as ServerMessage);
+    expect(state().mode).toBe("avatar");
+  });
+
+  it("keeps the campus on screen when another device takes over", () => {
+    apply({ type: "welcome", userId: "me", mode: "avatar" } as ServerMessage);
+    apply(snapshot(avatar("me"), avatar("a")));
+    apply({ type: "nearby", userIds: ["a"] });
+
+    apply({ type: "watching" });
+
+    expect(state()).toMatchObject({ mode: "watcher", ready: true, nearby: [] });
+    expect(count()).toBe(2);
   });
 });
 

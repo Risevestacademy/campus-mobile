@@ -23,6 +23,8 @@ export type ClientMessage =
   | MuteMessage
   | RemoveFromSpaceMessage
   | GoToMessage
+  | GoToSpaceMessage
+  | GoToTileMessage
   | StopWalkingMessage;
 /**
  * One tile in screen terms: up is y - 1, right is x + 1.
@@ -58,6 +60,7 @@ export type ServerMessage =
   | NearbyMessage
   | LockChangedMessage
   | LockableSpacesMessage
+  | DesksChangedMessage
   | SpacesMessage
   | EntryRequestedMessage
   | EntryRequestEndedMessage
@@ -66,6 +69,7 @@ export type ServerMessage =
   | WalkingMessage
   | WalkEndedMessage
   | ReplacedMessage
+  | WatchingMessage
   | MovedMessage
   | MoveResultMessage
   | ErrorMessage;
@@ -84,7 +88,7 @@ export type EntryRequestOutcome =
   | "not_needed"
   | "cancelled";
 /**
- * arrived: you are one tile from them, in their space, never on their tile. stopped: you sent `stopWalking` or a `move`. refused: a space you may not enter is in the way, theirs or another, and you stopped beside the first one; `mayAsk` says whether asking to enter it would be taken. gone: they left, or were not here. elsewhere: they are online, but connected to another world server, which a walk cannot reach. no_way: no path reaches a tile beside them in their space: walls, a space with no room beside them, or a chase past the step limit. moved_by_staff: staff removed you from a space mid-walk.
+ * arrived: walking to somebody, you are one tile from them, in their space, never on their tile; to a space, you are on the free tile nearest its middle, or its middle when none is free; to a tile, you are on it. stopped: you sent `stopWalking` or a `move`. refused: a space you may not enter is in the way, or is where you were going, and you stopped beside the first one; `mayAsk` says whether asking to enter it would be taken. gone: they left, or were not here. elsewhere: they are online, but connected to another world server, which a walk cannot reach. gone and elsewhere end only walks to somebody. no_way: no path reaches where you were going: walls, a space with no room beside them, or a walk past the step limit. moved_by_staff: staff removed you from a space mid-walk.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "WalkEndReason".
@@ -178,6 +182,10 @@ export interface MoveMessage {
 export interface SetStatusMessage {
   type: "setStatus";
   status: Status;
+  /**
+   * Choose it for this long only: then it goes back to the last status chosen without a time. Leave it out for a status that lasts. Choosing again, with or without one, replaces the timer.
+   */
+  forSeconds?: number;
 }
 /**
  * The person did something the server cannot see — a key, a click, a word in a call. Keeps them from going away while idle, and brings them back if they had. A `move` or `setStatus` counts already; a `ping` does not. No answer.
@@ -285,7 +293,37 @@ export interface GoToMessage {
   userId: string;
 }
 /**
- * End the walk `goTo` started, answered by `walkEnded` with `stopped`. A `move` ends it too. Counts as activity.
+ * Have the server walk you into a space, to the free tile nearest its middle, the way `goTo` walks you to somebody: a `walking` a step, then one `walkEnded`. A space closed to you ends it beside the space with `refused`. Replaces a walk already going. A key not drawn on this map, or the corridors, is a NOT_ALLOWED error. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "GoToSpaceMessage".
+ */
+export interface GoToSpaceMessage {
+  type: "goToSpace";
+  /**
+   * A drawn space's key on this map. The corridors take `goToTile`.
+   */
+  spaceKey: string;
+}
+/**
+ * Have the server walk you onto a tile, the way `goTo` walks you to somebody: a `walking` a step, then one `walkEnded`. A tile in a space closed to you ends it beside the space with `refused`. Replaces a walk already going. A tile off the map or inside a wall is a NOT_ALLOWED error. Counts as activity.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "GoToTileMessage".
+ */
+export interface GoToTileMessage {
+  type: "goToTile";
+  /**
+   * Tile column.
+   */
+  x: number;
+  /**
+   * Tile row.
+   */
+  y: number;
+}
+/**
+ * End the walk `goTo`, `goToSpace` or `goToTile` started, answered by `walkEnded` with `stopped`. A `move` ends it too. Counts as activity.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "StopWalkingMessage".
@@ -316,6 +354,10 @@ export interface WelcomeMessage {
    * How long you may do nothing before the server shows you away. Send `active` well within it while the person is there. 0 when this deployment never does.
    */
   awayAfterSeconds: number;
+  /**
+   * avatar: you stand for this account on the map. watcher: another connection does, or nobody does; you see the cohort, may set the status and use the chat of whoever stands for you, and are never sent a call.
+   */
+  mode: "avatar" | "watcher";
   /**
    * The name to show beside them. Null when they have set none.
    */
@@ -401,6 +443,10 @@ export interface Avatar {
   spriteKey: string | null;
   status: Status;
   /**
+   * When a status chosen for a while ends, as an ISO timestamp, and goes back to the one chosen before it. Null for a status that lasts, and while they show away for being idle.
+   */
+  statusUntil: string | null;
+  /**
    * The space they are standing in: a drawn space's key, or `_default` for the corridors and grounds.
    */
   spaceKey: string;
@@ -460,7 +506,7 @@ export interface LeftMessage {
   userId: string;
 }
 /**
- * Somebody in your cohort's status changed: chosen, or set to away while idle and back again. Sent to everybody in the cohort, you included when it is yours.
+ * Somebody in your cohort's status changed: chosen, chosen for a while and that time ended, or set to away while idle and back again. Sent to everybody in the cohort, you included when it is yours.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "StatusChangedMessage".
@@ -469,6 +515,10 @@ export interface StatusChangedMessage {
   type: "statusChanged";
   userId: string;
   status: Status;
+  /**
+   * When a status chosen for a while ends, as an ISO timestamp, and goes back to the one chosen before it. Null for a status that lasts, and while they show away for being idle.
+   */
+  until: string | null;
 }
 /**
  * Somebody in your cohort stepped into another space. Sent to everybody in the cohort, you included when it is you, the moment the step is taken: it can arrive before the `moved` that shows the step.
@@ -588,6 +638,15 @@ export interface LockChangedMessage {
 export interface LockableSpacesMessage {
   type: "lockableSpaces";
   spaceKeys: string[];
+}
+/**
+ * Who holds a desk in your cohort may have changed, or desks were added to or taken off the map: fetch `GET /v1/cohorts/{cohortId}/desks` from campus-api again.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "DesksChangedMessage".
+ */
+export interface DesksChangedMessage {
+  type: "desksChanged";
 }
 /**
  * A space was renamed, or campus-api gained or lost a row for one: replaces `snapshot.spaces`. Sent to everybody.
@@ -718,7 +777,7 @@ export interface Player {
   facing: Direction;
 }
 /**
- * The server took a step of your `goTo` walk: where you are now. Only to you; everybody else sees it in `moved`.
+ * The server took a step of your walk: where you are now. Only to you; everybody else sees it in `moved`.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "WalkingMessage".
@@ -726,13 +785,24 @@ export interface Player {
 export interface WalkingMessage {
   type: "walking";
   /**
-   * Whom you are walking to.
+   * Whom you are walking to, for a `goTo` walk.
    */
-  userId: string;
+  userId: string | null;
+  /**
+   * The space you are walking into, for a `goToSpace` walk.
+   */
+  toSpaceKey: string | null;
+  /**
+   * The tile you are walking onto, for a `goToTile` walk.
+   */
+  toTile: {
+    x: number;
+    y: number;
+  } | null;
   player: Player;
 }
 /**
- * Your `goTo` walk is over, and why. Only to you. Not sent when the socket closes.
+ * Your walk is over, and why. Only to you. Not sent when the socket closes.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "WalkEndedMessage".
@@ -740,9 +810,20 @@ export interface WalkingMessage {
 export interface WalkEndedMessage {
   type: "walkEnded";
   /**
-   * Whom you were walking to.
+   * Whom you are walking to, for a `goTo` walk.
    */
-  userId: string;
+  userId: string | null;
+  /**
+   * The space you are walking into, for a `goToSpace` walk.
+   */
+  toSpaceKey: string | null;
+  /**
+   * The tile you are walking onto, for a `goToTile` walk.
+   */
+  toTile: {
+    x: number;
+    y: number;
+  } | null;
   reason: WalkEndReason;
   /**
    * Where you stopped.
@@ -758,13 +839,22 @@ export interface WalkEndedMessage {
   mayAsk: boolean;
 }
 /**
- * This account opened this cohort's campus somewhere else — another device or tab — and that connection has taken its place. Being in another cohort never causes this. The socket closes immediately afterwards with 4000 `entered_elsewhere`. Do NOT reconnect: the two connections would replace each other for as long as both stayed open. Show that they are in this campus elsewhere, and reconnect only when they ask to come back here.
+ * This account opened this cohort's campus somewhere else — another device or tab — and that connection has taken its place. Being in another cohort never causes this. The socket closes immediately afterwards with 4000 `entered_elsewhere`. Do NOT reconnect: the two connections would replace each other for as long as both stayed open. Show that they are in this campus elsewhere, and reconnect only when they ask to come back here. A socket that entered with `enter=ifFree` is sent `watching` instead, and stays open.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "ReplacedMessage".
  */
 export interface ReplacedMessage {
   type: "replaced";
+}
+/**
+ * This socket entered with `enter=ifFree`, and the account has entered this cohort's campus somewhere else with `enter=take`. It is a watcher from now on, as if `welcome.mode` had said so: leave the call and the broadcast room, stop drawing yourself as walking, and offer to enter here, which is reconnecting with `enter=take`. The socket stays open.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "WatchingMessage".
+ */
+export interface WatchingMessage {
+  type: "watching";
 }
 /**
  * Everybody in your cohort who moved or turned since the last tick, once each, as they stand now: two steps inside one tick arrive as the second, so an entry can be more than one tile from where they were. Sent once per tick, and not at all when nobody moved. You are never in your own `moved` frame — your `moveResult` already says where you ended up.

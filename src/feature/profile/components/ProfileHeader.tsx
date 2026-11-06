@@ -17,7 +17,7 @@ const StyledChevronLeft = withUniwind(ChevronLeft);
 export function DefaultHeader() {
   const { data: userData, isLoading: isUserLoading } = useMe();
   const { data: profileData, isLoading: isProfileLoading } = useProfile();
-  const { status, setStatus } = useAvailability();
+  const { status, until, setStatus } = useAvailability();
   const router = useRouter();
   const isMembershipLoading = isUserLoading || isProfileLoading;
 
@@ -86,6 +86,7 @@ export function DefaultHeader() {
       <Skeleton isLoading={!status} radius="round">
         <ActivityToggle
           status={status}
+          until={until}
           onChange={setStatus}
           containerClassName="px-3 py-2 gap-2 bg-bg-card"
           iconColorClassName="accent-text-muted"
