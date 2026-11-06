@@ -21,6 +21,11 @@ export type WorldState = {
   selfId: string | null;
   players: Record<string, Presence>;
   spaces: Record<string, SpaceName>;
+  /**
+   * avatar: this device stands for you on the map. watcher: another device
+   * does, and this one only looks on. Null until `welcome`.
+   */
+  mode: "avatar" | "watcher" | null;
   /** Who is close enough to hear you, in a proximity space; else empty. */
   nearby: string[];
 };
@@ -28,6 +33,7 @@ export type WorldState = {
 const initialState: WorldState = {
   ready: false,
   selfId: null,
+  mode: null,
   players: {},
   spaces: {},
   nearby: [],
@@ -61,7 +67,7 @@ export function applyWorldMessage(
 ): WorldState {
   switch (message.type) {
     case "welcome":
-      return { ...state, selfId: message.userId };
+      return { ...state, selfId: message.userId, mode: message.mode };
     case "snapshot":
       return {
         ...state,
@@ -103,6 +109,9 @@ export function applyWorldMessage(
       return { ...state, spaces: bySpaceKey(message.spaces) };
     case "replaced":
       return initialState;
+    // Another device took over, but this socket stays open to look on.
+    case "watching":
+      return { ...state, mode: "watcher", nearby: [] };
     default:
       return state;
   }
@@ -122,6 +131,10 @@ export const useCampusCount = () =>
   useWorldStore((state) => Object.keys(state.players).length);
 
 export const useWorldReady = () => useWorldStore((state) => state.ready);
+
+/** Another device stands for you on the map; this one only looks on. */
+export const useIsWatching = () =>
+  useWorldStore((state) => state.mode === "watcher");
 
 export const useMySpace = () =>
   useWorldStore((state) => {
