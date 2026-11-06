@@ -37,7 +37,7 @@ export function SearchResultsList({
                 {section.data.length}
               </Text>
             )
-          : undefined
+          : () => <View className="h-4" />
       }
       stickySectionHeadersEnabled
       keyboardShouldPersistTaps="handled"
