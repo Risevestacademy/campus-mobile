@@ -1,4 +1,4 @@
-import { closeAction, withCohort } from "@shared/lib/ws";
+import { closeAction, worldSocketUrl } from "@shared/lib/ws";
 
 describe("closeAction", () => {
   it.each([
@@ -35,22 +35,31 @@ describe("closeAction", () => {
   });
 });
 
-describe("withCohort", () => {
-  it("adds cohortId as a query parameter", () => {
-    expect(withCohort("wss://ws.example.com", "c1")).toBe(
-      "wss://ws.example.com?cohortId=c1",
-    );
+describe("worldSocketUrl", () => {
+  it("adds the cohort and how to enter as query parameters", () => {
+    expect(
+      worldSocketUrl("wss://ws.example.com", {
+        cohortId: "c1",
+        enter: "take",
+      }),
+    ).toBe("wss://ws.example.com?cohortId=c1&enter=take");
   });
 
   it("appends to an existing query", () => {
-    expect(withCohort("wss://ws.example.com/?v=1", "c1")).toBe(
-      "wss://ws.example.com/?v=1&cohortId=c1",
-    );
+    expect(
+      worldSocketUrl("wss://ws.example.com/?v=1", {
+        cohortId: "c1",
+        enter: "ifFree",
+      }),
+    ).toBe("wss://ws.example.com/?v=1&cohortId=c1&enter=ifFree");
   });
 
   it("encodes the cohort id", () => {
-    expect(withCohort("wss://ws.example.com", "a b&c")).toBe(
-      "wss://ws.example.com?cohortId=a%20b%26c",
-    );
+    expect(
+      worldSocketUrl("wss://ws.example.com", {
+        cohortId: "a b&c",
+        enter: "take",
+      }),
+    ).toBe("wss://ws.example.com?cohortId=a%20b%26c&enter=take");
   });
 });

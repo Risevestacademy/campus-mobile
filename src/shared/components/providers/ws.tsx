@@ -6,7 +6,7 @@ import {
   type ServerMessageListener,
   WebSocketContext,
   type WebSocketState,
-  withCohort,
+  worldSocketUrl,
 } from "@shared/lib/ws";
 import { useSessionStore } from "@store/session";
 import React from "react";
@@ -76,7 +76,6 @@ export function WebSocketProvider({
   React.useEffect(() => {
     if (status !== "authenticated" || !cohortId) return;
 
-    const socketUrl = withCohort(url, cohortId);
     let ws: WebSocket | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
@@ -86,6 +85,10 @@ export function WebSocketProvider({
     let stopped = false;
     // A refresh already failed to get us back in since the last admission.
     let refreshed = false;
+    // Take the avatar on a fresh start (sign-in, launch, "Enter here"); once
+    // in, every reconnect only takes it if it's free, so coming back from the
+    // background or a dropped network never kicks out another device.
+    let admitted = false;
     // iOS suspends backgrounded apps, leaving sockets that look open but are
     // dead. Drop the connection in the background and reopen on return.
     let paused = AppState.currentState === "background";
@@ -133,6 +136,7 @@ export function WebSocketProvider({
       // The token is saved after the session flips to authenticated, so it
       // can be missing for a moment; keep polling for it.
       let next: WebSocket;
+      const enter = admitted ? "ifFree" : "take";
       try {
         const token = await readToken();
         if (current !== dial || disposed || paused || stopped) return;
@@ -140,7 +144,7 @@ export function WebSocketProvider({
           scheduleRetry();
           return;
         }
-        next = createWebSocket(socketUrl, {
+        next = createWebSocket(worldSocketUrl(url, { cohortId, enter }), {
           Authorization: `Bearer ${token}`,
           ...(origin ? { Origin: origin } : {}),
         });
@@ -171,7 +175,16 @@ export function WebSocketProvider({
             refreshThenConnect(reason);
             return;
           case "replaced":
-            stop("replaced", reason || "entered_elsewhere");
+            // Another device took over. Come straight back as a watcher;
+            // only an ifFree socket being replaced means we can't.
+            if (enter === "ifFree") {
+              stop("replaced", reason || "entered_elsewhere");
+              return;
+            }
+            admitted = true;
+            attempt = 0;
+            setConnection(CONNECTING);
+            void connect();
             return;
           case "stop":
             stop("refused", reason);
@@ -228,6 +241,7 @@ export function WebSocketProvider({
         ) {
           // Admitted: a later session_expired deserves a fresh refresh.
           refreshed = false;
+          admitted = true;
           startHeartbeat(message.heartbeatSeconds);
         }
       });
