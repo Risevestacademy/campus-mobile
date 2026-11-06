@@ -1,9 +1,9 @@
 import { ApiError, isApiError } from "@core/api/error";
-import { Button, Text, toast } from "@shared/components/atoms";
+import { Button, Spinner, Text, toast } from "@shared/components/atoms";
 import { Google } from "@shared/icons";
 import { useSessionStore } from "@store/session";
 import { Redirect, useRouter } from "expo-router";
-import { ActivityIndicator, Image, View } from "react-native";
+import { Image, View } from "react-native";
 import {
   GoogleOneTapSignIn,
   isNoSavedCredentialFoundResponse,
@@ -92,7 +92,7 @@ function SignInScreen() {
             </Text>
           </Button>
         ) : (
-          <ActivityIndicator />
+          <Spinner />
         )}
       </View>
     </View>

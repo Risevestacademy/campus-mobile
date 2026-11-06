@@ -1,10 +1,10 @@
 import { ApiError, isApiError } from "@core/api/error";
-import { Button, Modal, Text, toast } from "@shared/components/atoms";
+import { Button, Modal, Spinner, Text, toast } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { useSessionStore } from "@store/session";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
 import { Header, InvitationDetailsCard } from "../components";
 import { useInviteDecision, useInviteValidate } from "../hooks";
@@ -61,7 +61,7 @@ export default function CreatePasswordScreen() {
       <Header />
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
+          <Spinner />
         </View>
       ) : (
         <>
