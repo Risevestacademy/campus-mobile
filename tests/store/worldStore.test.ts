@@ -58,6 +58,7 @@ describe("useWorldStore", () => {
       userId: "a",
       displayName: "a",
       status: "available",
+      statusUntil: null,
       spaceKey: "_default",
     });
 
@@ -137,6 +138,24 @@ describe("useWorldStore", () => {
     apply({ type: "replaced" });
 
     expect(state()).toMatchObject({ ready: false, selfId: null, players: {} });
+  });
+
+  it("keeps when a timed status ends, and clears it with a lasting one", () => {
+    apply(snapshot(avatar("a")));
+
+    apply({
+      type: "statusChanged",
+      userId: "a",
+      status: "busy",
+      until: "2026-11-06T15:00:00.000Z",
+    });
+    expect(state().players.a).toMatchObject({
+      status: "busy",
+      statusUntil: "2026-11-06T15:00:00.000Z",
+    });
+
+    apply({ type: "statusChanged", userId: "a", status: "busy", until: null });
+    expect(state().players.a?.statusUntil).toBeNull();
   });
 
   it("knows whether this device stands for you or only looks on", () => {

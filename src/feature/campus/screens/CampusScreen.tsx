@@ -17,7 +17,7 @@ export function CampusScreen() {
   const ready = useWorldReady();
   const userCount = useCampusCount();
   const spaceKey = useMySpace();
-  const { status, setStatus } = useAvailability();
+  const { status, until, setStatus } = useAvailability();
   const header = useCollapsingHeader();
 
   const noOfParticipants = ready ? userCount : undefined;
@@ -47,6 +47,7 @@ export function CampusScreen() {
       </Animated.ScrollView>
       <CampusHeaderBar
         status={status}
+        statusUntil={until}
         onStatusChange={setStatus}
         noOfParticipants={noOfParticipants}
         location={location?.name}

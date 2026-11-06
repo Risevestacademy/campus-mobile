@@ -12,7 +12,7 @@ import { useShallow } from "zustand/react/shallow";
  */
 export type Presence = Pick<
   Avatar,
-  "userId" | "displayName" | "status" | "spaceKey"
+  "userId" | "displayName" | "status" | "statusUntil" | "spaceKey"
 >;
 
 export type WorldState = {
@@ -39,8 +39,14 @@ const initialState: WorldState = {
   nearby: [],
 };
 
-function toPresence({ userId, displayName, status, spaceKey }: Avatar) {
-  return { userId, displayName, status, spaceKey };
+function toPresence({
+  userId,
+  displayName,
+  status,
+  statusUntil,
+  spaceKey,
+}: Avatar) {
+  return { userId, displayName, status, statusUntil, spaceKey };
 }
 
 function bySpaceKey(spaces: SpaceName[]) {
@@ -93,7 +99,10 @@ export function applyWorldMessage(
       return { ...state, players };
     }
     case "statusChanged":
-      return patch(state, message.userId, { status: message.status });
+      return patch(state, message.userId, {
+        status: message.status,
+        statusUntil: message.until,
+      });
     case "spaceChanged": {
       const next = patch(state, message.userId, { spaceKey: message.spaceKey });
       // Earshot belongs to the space you were in; a new one sends its own.
@@ -148,6 +157,12 @@ export const useMySpace = () =>
 export const useMyStatus = () =>
   useWorldStore((state) =>
     state.selfId ? state.players[state.selfId]?.status : undefined,
+  );
+
+/** When a status you chose for a while ends, as an ISO timestamp; else null. */
+export const useMyStatusUntil = () =>
+  useWorldStore((state) =>
+    state.selfId ? (state.players[state.selfId]?.statusUntil ?? null) : null,
   );
 
 /**
