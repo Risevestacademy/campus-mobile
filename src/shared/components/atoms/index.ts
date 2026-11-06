@@ -2,6 +2,8 @@ export * from "./AtomsPreview";
 export * from "./Avatar";
 export * from "./Button";
 export * from "./Card";
+export * from "./Checkbox";
+export * from "./Dialog";
 export * from "./Divider";
 export * from "./Modal";
 export * from "./MultiAvatar";
