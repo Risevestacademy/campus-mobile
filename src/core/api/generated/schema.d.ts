@@ -878,6 +878,70 @@ export interface paths {
     patch: operations["NoticesController_pin"];
     trace?: never;
   };
+  "/v1/notifications": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List your notifications
+     * @description Your own, newest first, paginated. `unread=true` leaves out the ones already read, which is the badge count in `meta.total`.
+     *
+     *     Each says what happened (`kind`) and what it is about (`referenceType`, `referenceId`), and not the thing itself: fetch the notice when you need its text.
+     *
+     *     New ones also arrive, while a campus socket is open, as world’s `notification` message, with the same fields.
+     */
+    get: operations["NotificationsController_list"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/notifications/read-all": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Mark all your notifications read
+     * @description Every one of yours not yet read, for "clear all". Answers how many that was; none is not an error.
+     */
+    post: operations["NotificationsController_markAllRead"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/notifications/{id}/read": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Mark one notification read
+     * @description Answers the notification as it now is. One already read is answered as it is, and changes nothing.
+     */
+    patch: operations["NotificationsController_markRead"];
+    trace?: never;
+  };
   "/v1/cohorts/{cohortId}/desks": {
     parameters: {
       query?: never;
@@ -1197,6 +1261,32 @@ export interface paths {
      *     `?dryRun=true` answers what would change and keeps none of it. Running it again when nothing has been published since changes nothing: `changed` is false.
      */
     post: operations["MapsController_sync"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/maps/{id}/publish": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Publish a synced map to world (admin only)
+     * @description Makes the map live for world, without restarting it. A sync only brings the database level with what is published; this is the separate decision to serve it.
+     *
+     *     The row is locked, checked, given this moment as `publishedAt`, and an audit entry is written in the same transaction. Publishing again moves the timestamp and writes another entry.
+     *
+     *     After the commit, world is told the map’s key on the same channel a space edit uses. That is fire-and-forget: this route does not wait for world, and a failed notification is logged rather than failing the publish.
+     *
+     *     Only the map people enter on can be published: world serves one map, and a different one would leave clients without a spawn. A retired map is refused for the same reason a retired space is.
+     */
+    post: operations["MapsController_publish"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2967,10 +3057,10 @@ export interface components {
        * @example campus
        * @enum {string}
        */
-      scope: "campus" | "cohort" | "cohort-track";
+      scope: "campus" | "cohort" | "cohort-track" | "mentorship-group";
       /**
        * Format: uuid
-       * @description Required for cohort and cohort-track scope.
+       * @description Required for every scope but campus.
        * @example 11111111-1111-4111-8111-111111111111
        */
       cohortId?: string;
@@ -2980,6 +3070,12 @@ export interface components {
        * @example 22222222-2222-4222-8222-222222222222
        */
       cohortTrackId?: string;
+      /**
+       * Format: uuid
+       * @description Required for mentorship-group scope.
+       * @example 33333333-3333-4333-8333-333333333333
+       */
+      mentorshipGroupId?: string;
     };
     UpdateNoticeDto: {
       /** @example Updated title */
@@ -2990,6 +3086,70 @@ export interface components {
     PinNoticeDto: {
       /** @example true */
       pinned: boolean;
+    };
+    /**
+     * @description What happened. More kinds will be added; show a plain alert for one you
+     *     do not know rather than dropping it.
+     * @enum {string}
+     */
+    NotificationKind:
+      "notice_posted" | "entry_request_admitted" | "entry_request_declined";
+    /**
+     * @description What `referenceId` names. Grows with `kind`.
+     * @enum {string}
+     */
+    NotificationReferenceType: "notice" | "entry_request";
+    EntryRequestContextDto: {
+      /** Format: uuid */
+      cohortId: string;
+      /** @example lounge */
+      spaceKey: string;
+    };
+    NotificationDto: {
+      /** Format: uuid */
+      id: string;
+      /**
+       * @description What happened. More kinds will be added; show a plain alert for one you
+       *     do not know rather than dropping it.
+       * @example notice_posted
+       */
+      kind: components["schemas"]["NotificationKind"];
+      /**
+       * @description What `referenceId` names. Grows with `kind`.
+       * @example notice
+       */
+      referenceType: components["schemas"]["NotificationReferenceType"];
+      /**
+       * @description For an entry request, the cohort and space it was for. Null for a
+       *     notice, which is fetched by `referenceId` instead.
+       */
+      context: components["schemas"]["EntryRequestContextDto"] | null;
+      /**
+       * @description The notice's id, or for an entry request world's own id for it, which
+       *     names nothing campus-api can fetch.
+       * @example 3f0e1c2a-8b4d-4e6f-9a1b-2c3d4e5f6a7b
+       */
+      referenceId: string;
+      /** @example false */
+      read: boolean;
+      /**
+       * Format: date-time
+       * @example 2026-11-05T09:30:00.000Z
+       */
+      createdAt: string;
+    };
+    PaginatedNotificationDto: {
+      /** @description The page of items. */
+      items: components["schemas"]["NotificationDto"][];
+      /** @description Pagination metadata. */
+      meta: components["schemas"]["PaginationMetaDto"];
+    };
+    MarkAllReadResponseDto: {
+      /**
+       * @description How many were unread and are read now. Zero when there were none.
+       * @example 4
+       */
+      marked: number;
     };
     DeskHolderDto: {
       /** @example 22222222-2222-4222-8222-222222222222 */
@@ -3293,6 +3453,7 @@ export interface components {
       | "guest_visit_extended"
       | "map_synced"
       | "map_retired"
+      | "map_published"
       | "membership_ended"
       | "member_track_changed"
       | "feedback_resolved"
@@ -3483,6 +3644,20 @@ export interface components {
        */
       changed: boolean;
       maps: components["schemas"]["MapSyncMapDto"][];
+    };
+    MapPublishedResponseDto: {
+      /**
+       * Format: date-time
+       * @description When this publish made it live.
+       */
+      publishedAt: string;
+      /** @example 55555555-5555-4555-8555-555555555555 */
+      id: string;
+      /**
+       * @description The map's ID in Sanity.
+       * @example campus
+       */
+      key: string;
     };
     GrantSpaceMembershipDto: {
       /**
@@ -6810,6 +6985,127 @@ export interface operations {
       };
     };
   };
+  NotificationsController_list: {
+    parameters: {
+      query?: {
+        /** @description Page to fetch, 1-based, up to 10000. */
+        page?: number;
+        /** @description Number of items per page. */
+        perPage?: number;
+        /** @description Only the ones not yet read. */
+        unread?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Paginated list. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaginatedNotificationDto"];
+        };
+      };
+      /** @description `unread` is not true or false, or a page is out of range. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable full-access session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  NotificationsController_markAllRead: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MarkAllReadResponseDto"];
+        };
+      };
+      /** @description No usable full-access session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  NotificationsController_markRead: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NotificationDto"];
+        };
+      };
+      /** @description The id is not a UUID. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable full-access session. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No notification of yours has this id. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
   DesksController_list: {
     parameters: {
       query?: never;
@@ -7628,6 +7924,72 @@ export interface operations {
       };
       /** @description The published maps could not be read at all. `details.reason` is `not_configured` when this deployment is not told where they are, or `unreachable` when Sanity did not answer; that one is worth trying again. Nothing was changed. */
       503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+    };
+  };
+  MapsController_publish: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MapPublishedResponseDto"];
+        };
+      };
+      /** @description The id is not a UUID. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No usable session: none sent, unparseable, expired, provisional, or its account is gone or suspended. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description Signed in, but not an admin. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description No map with that id. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiErrorResponseDto"];
+        };
+      };
+      /** @description The map is retired, or it is not the map people enter on. Nothing was changed and no audit entry was written. */
+      409: {
         headers: {
           [name: string]: unknown;
         };
