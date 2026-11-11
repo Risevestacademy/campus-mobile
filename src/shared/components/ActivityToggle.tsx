@@ -36,9 +36,14 @@ const options: {
   },
 ] as const;
 
-type ClearAfter = "never" | "30m" | "1h" | "2h" | "4h" | "today";
+/** "current" keeps the timer the status already has. */
+type ClearAfter = "current" | "never" | "30m" | "1h" | "2h" | "4h" | "today";
 
-const CLEAR_AFTER: { key: ClearAfter; label: string }[] = [
+const HOUR = 60 * 60;
+/** The longest world takes for `setStatus`'s `forSeconds`: 12 hours. */
+export const MAX_STATUS_SECONDS = 12 * HOUR;
+
+const PRESETS: { key: Exclude<ClearAfter, "current">; label: string }[] = [
   { key: "never", label: "Don't clear" },
   { key: "30m", label: "30 minutes" },
   { key: "1h", label: "1 hour" },
@@ -47,14 +52,27 @@ const CLEAR_AFTER: { key: ClearAfter; label: string }[] = [
   { key: "today", label: "Today" },
 ];
 
-const HOUR = 60 * 60;
+const secondsUntilMidnight = (now: Date) => {
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return Math.round((+midnight - +now) / 1000);
+};
+
+/** Within what world takes: at least a minute, at most 12 hours. */
+const clampSeconds = (seconds: number) =>
+  Math.min(MAX_STATUS_SECONDS, Math.max(60, Math.round(seconds)));
 
 /** How long to keep a status, for `setStatus`; undefined keeps it for good. */
 export function clearAfterSeconds(
   key: ClearAfter,
   now = new Date(),
+  until?: string | null,
 ): number | undefined {
   switch (key) {
+    case "current":
+      return until
+        ? clampSeconds((Date.parse(until) - +now) / 1000)
+        : undefined;
     case "never":
       return undefined;
     case "30m":
@@ -65,16 +83,30 @@ export function clearAfterSeconds(
       return 2 * HOUR;
     case "4h":
       return 4 * HOUR;
-    case "today": {
-      const midnight = new Date(now);
-      midnight.setHours(24, 0, 0, 0);
-      return Math.max(60, Math.round((+midnight - +now) / 1000));
-    }
+    case "today":
+      return clampSeconds(secondsUntilMidnight(now));
   }
 }
 
-const labelOf = (key: ClearAfter) =>
-  CLEAR_AFTER.find((option) => option.key === key)?.label ?? "";
+/**
+ * What the timer can be set to now. The status's own timer comes first when
+ * it has one. Today only shows once midnight is within world's 12 hours.
+ */
+export function clearAfterOptions(
+  until: string | null | undefined,
+  now = new Date(),
+): { key: ClearAfter; label: string }[] {
+  return [
+    ...(until
+      ? [{ key: "current" as const, label: `Until ${formatUntil(until)}` }]
+      : []),
+    ...PRESETS.filter(
+      (option) =>
+        option.key !== "today" ||
+        secondsUntilMidnight(now) <= MAX_STATUS_SECONDS,
+    ),
+  ];
+}
 
 /** "3:00 PM", or the device's own clock format. */
 function formatUntil(iso: string) {
@@ -110,12 +142,23 @@ export function ActivityToggle({
 
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const clearAfterSheetRef = useRef<BottomSheetModal>(null);
-  const [clearAfter, setClearAfter] = useState<ClearAfter>("never");
-  const show = () => bottomSheetRef.current?.present();
+  // Starts from the timer the status already has, every time the sheet opens.
+  const initialClearAfter: ClearAfter = until ? "current" : "never";
+  const [clearAfter, setClearAfter] = useState<ClearAfter>(initialClearAfter);
+  const clearOptions = clearAfterOptions(until);
+  const clearLabel =
+    clearOptions.find((option) => option.key === clearAfter)?.label ?? "";
+  const show = () => {
+    setClearAfter(initialClearAfter);
+    bottomSheetRef.current?.present();
+  };
 
   const select = (next: ActivityStatus) => {
-    const forSeconds = clearAfterSeconds(clearAfter);
-    if (next !== status || forSeconds) onChange?.(next, forSeconds);
+    const forSeconds = clearAfterSeconds(clearAfter, new Date(), until);
+    // Choosing again, with or without a timer, replaces the one it has.
+    const timerChanges =
+      clearAfter !== "current" && (forSeconds !== undefined || Boolean(until));
+    if (next !== status || timerChanges) onChange?.(next, forSeconds);
     bottomSheetRef.current?.dismiss();
   };
 
@@ -158,10 +201,10 @@ export function ActivityToggle({
             onPress={() => clearAfterSheetRef.current?.present()}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel={`Clear after: ${labelOf(clearAfter)}`}
+            accessibilityLabel={`Clear after: ${clearLabel}`}
           >
             <Text color="link" variant="body-sm">
-              {labelOf(clearAfter)}
+              {clearLabel}
             </Text>
             <StyledChevronRight colorClassName="accent-text-link" size={16} />
           </Pressable>
@@ -180,6 +223,7 @@ export function ActivityToggle({
       </BottomSheet>
       <ClearAfterSheet
         ref={clearAfterSheetRef}
+        options={clearOptions}
         selected={clearAfter}
         onSelect={setClearAfter}
       />
@@ -220,10 +264,12 @@ function ClearAfterOption({
 
 const ClearAfterSheet = ({
   ref,
+  options,
   selected,
   onSelect,
 }: {
   ref: React.Ref<BottomSheetModal>;
+  options: { key: ClearAfter; label: string }[];
   selected: ClearAfter;
   onSelect: (key: ClearAfter) => void;
 }) => (
@@ -231,7 +277,7 @@ const ClearAfterSheet = ({
     <Text variant="h5" className="mb-3">
       Clear after
     </Text>
-    {CLEAR_AFTER.map((option) => (
+    {options.map((option) => (
       <ClearAfterOption
         key={option.key}
         label={option.label}

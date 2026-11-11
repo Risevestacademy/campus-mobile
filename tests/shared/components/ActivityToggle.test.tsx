@@ -1,5 +1,9 @@
 import { ActivityToggle } from "@shared/components";
-import { clearAfterSeconds } from "@shared/components/ActivityToggle";
+import {
+  clearAfterOptions,
+  clearAfterSeconds,
+  MAX_STATUS_SECONDS,
+} from "@shared/components/ActivityToggle";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 
@@ -61,6 +65,40 @@ describe("ActivityToggle", () => {
     expect(onChange).toHaveBeenCalledWith("available", 1800);
   });
 
+  it("starts from the timer the status already has", async () => {
+    await render(
+      <ActivityToggle status="busy" until={UNTIL} onChange={onChange} />,
+    );
+
+    expect(
+      screen.getByLabelText(`Clear after: Until ${untilText}`),
+    ).toBeTruthy();
+    // Same status, same timer: nothing to change.
+    await fireEvent.press(screen.getAllByText("Busy").at(-1)!);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps the timer when only the status changes", async () => {
+    await render(
+      <ActivityToggle status="busy" until={UNTIL} onChange={onChange} />,
+    );
+
+    await fireEvent.press(screen.getByText("Away"));
+
+    expect(onChange).toHaveBeenCalledWith("away", expect.any(Number));
+  });
+
+  it("removes the timer with Don't clear", async () => {
+    await render(
+      <ActivityToggle status="busy" until={UNTIL} onChange={onChange} />,
+    );
+
+    await pickClearAfter("Don't clear");
+    await fireEvent.press(screen.getAllByText("Busy").at(-1)!);
+
+    expect(onChange).toHaveBeenCalledWith("busy", undefined);
+  });
+
   it("sends nothing for the same status without a timer", async () => {
     await render(<ActivityToggle status="away" onChange={onChange} />);
 
@@ -78,5 +116,25 @@ describe("clearAfterSeconds", () => {
   it("lasts until midnight for Today", () => {
     const now = new Date(2026, 10, 6, 22, 30, 0);
     expect(clearAfterSeconds("today", now)).toBe(90 * 60);
+  });
+
+  it("never asks world for more than 12 hours", () => {
+    const morning = new Date(2026, 10, 6, 9, 0, 0);
+    expect(clearAfterSeconds("today", morning)).toBe(MAX_STATUS_SECONDS);
+  });
+});
+
+describe("clearAfterOptions", () => {
+  const keys = (now: Date, until?: string) =>
+    clearAfterOptions(until, now).map((option) => option.key);
+
+  it("offers Today only once midnight is within 12 hours", () => {
+    expect(keys(new Date(2026, 10, 6, 9, 0))).not.toContain("today");
+    expect(keys(new Date(2026, 10, 6, 13, 0))).toContain("today");
+  });
+
+  it("offers the current timer first when there is one", () => {
+    expect(keys(new Date(2026, 10, 6, 13, 0), UNTIL)[0]).toBe("current");
+    expect(keys(new Date(2026, 10, 6, 13, 0))).not.toContain("current");
   });
 });
