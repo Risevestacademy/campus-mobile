@@ -116,8 +116,10 @@ export function applyWorldMessage(
       });
     case "spaces":
       return { ...state, spaces: bySpaceKey(message.spaces) };
+    // Another device took over. Keep the campus on screen, stale, while we
+    // come straight back to watch it.
     case "replaced":
-      return initialState;
+      return { ...state, ready: false, mode: "watcher", nearby: [] };
     // Another device took over, but this socket stays open to look on.
     case "watching":
       return { ...state, mode: "watcher", nearby: [] };
@@ -144,6 +146,18 @@ export const useWorldReady = () => useWorldStore((state) => state.ready);
 /** Another device stands for you on the map; this one only looks on. */
 export const useIsWatching = () =>
   useWorldStore((state) => state.mode === "watcher");
+
+/**
+ * Watching, but nobody stands for you: the device that did has left. World
+ * never hands the avatar to a watcher on its own.
+ */
+export const isStandingEmpty = (state: WorldState) =>
+  state.mode === "watcher" &&
+  state.ready &&
+  state.selfId !== null &&
+  !state.players[state.selfId];
+
+export const useStandingEmpty = () => useWorldStore(isStandingEmpty);
 
 export const useMySpace = () =>
   useWorldStore((state) => {

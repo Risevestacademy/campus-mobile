@@ -1,7 +1,7 @@
 import { Text } from "@shared/components/atoms";
 import { useTopInsetHandoff } from "@shared/hooks/useTopInsetHandoff";
 import { useWs } from "@shared/hooks/useWs";
-import { useIsWatching } from "@store/world";
+import { useIsWatching, useStandingEmpty } from "@store/world";
 import { StatusBar } from "expo-status-bar";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
@@ -20,6 +20,8 @@ export function OtherDeviceBanner({ children }: { children: ReactNode }) {
   const { status, reconnect } = useWs();
   // Watching, or replaced on a server that couldn't let us stay to watch.
   const elsewhere = useIsWatching() || status === "replaced";
+  // The other device has gone; this one tries to stand in on its own.
+  const left = useStandingEmpty();
   const insets = useSafeAreaInsets();
   useTopInsetHandoff(elsewhere);
 
@@ -34,10 +36,12 @@ export function OtherDeviceBanner({ children }: { children: ReactNode }) {
         >
           <StatusBar style="light" />
           <Text variant="body-sm" className="flex-1 text-text-on-dark">
-            You’re on campus on another device.
+            {left
+              ? "Your other device left campus."
+              : "You’re on campus on another device."}
           </Text>
           <Pressable
-            onPress={reconnect}
+            onPress={() => reconnect()}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityHint="Moves you onto campus on this device"

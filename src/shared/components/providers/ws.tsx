@@ -2,6 +2,7 @@ import {
   type ClientMessage,
   closeAction,
   createWebSocket,
+  type EnterMode,
   parseServerMessage,
   type ServerMessageListener,
   WebSocketContext,
@@ -67,6 +68,8 @@ export function WebSocketProvider({
     React.useState<ConnectionState>(CONNECTING);
   // Bumped by `reconnect` to restart the effect after replaced/refused.
   const [generation, setGeneration] = React.useState(0);
+  // How the next fresh start enters; `reconnect` sets it, the effect reads it.
+  const restartAs = React.useRef<EnterMode>("take");
   const onRefresh = React.useEffectEvent(() => refreshSession());
   // Outlives sockets, so subscribers attached before a socket opens get its
   // first frames too.
@@ -88,7 +91,12 @@ export function WebSocketProvider({
     // Take the avatar on a fresh start (sign-in, launch, "Enter here"); once
     // in, every reconnect only takes it if it's free, so coming back from the
     // background or a dropped network never kicks out another device.
-    let admitted = false;
+    let admitted = restartAs.current === "ifFree";
+    restartAs.current = "take";
+    // The last socket world let in. After a drop world holds the avatar for
+    // it for a while; naming it on an ifFree reconnect gets the avatar back
+    // rather than watching our own held avatar.
+    let resumeId: string | null = null;
     // iOS suspends backgrounded apps, leaving sockets that look open but are
     // dead. Drop the connection in the background and reopen on return.
     let paused = AppState.currentState === "background";
@@ -144,10 +152,14 @@ export function WebSocketProvider({
           scheduleRetry();
           return;
         }
-        next = createWebSocket(worldSocketUrl(url, { cohortId, enter }), {
-          Authorization: `Bearer ${token}`,
-          ...(origin ? { Origin: origin } : {}),
-        });
+        const resume = enter === "ifFree" ? resumeId : null;
+        next = createWebSocket(
+          worldSocketUrl(url, { cohortId, enter, resume }),
+          {
+            Authorization: `Bearer ${token}`,
+            ...(origin ? { Origin: origin } : {}),
+          },
+        );
       } catch (error) {
         // connect also runs from timers and listeners, where a throw would
         // escape as an unhandled error. Treat it as one more failed attempt.
@@ -182,6 +194,8 @@ export function WebSocketProvider({
               return;
             }
             admitted = true;
+            // The avatar is the other device's now, not held for us.
+            resumeId = null;
             attempt = 0;
             setConnection(CONNECTING);
             void connect();
@@ -242,6 +256,10 @@ export function WebSocketProvider({
           // Admitted: a later session_expired deserves a fresh refresh.
           refreshed = false;
           admitted = true;
+          resumeId =
+            typeof message.connectionId === "string"
+              ? message.connectionId
+              : null;
           startHeartbeat(message.heartbeatSeconds);
         }
       });
@@ -283,7 +301,14 @@ export function WebSocketProvider({
     };
   }, [status, url, origin, cohortId, generation]);
 
-  const reconnect = React.useCallback(() => setGeneration((g) => g + 1), []);
+  /**
+   * Starts over after replaced/refused. take (the default) claims the avatar,
+   * as "Enter here" does; ifFree only claims it when nobody holds it.
+   */
+  const reconnect = React.useCallback((enter: EnterMode = "take") => {
+    restartAs.current = enter;
+    setGeneration((g) => g + 1);
+  }, []);
   const enabled = status === "authenticated" && cohortId !== null;
 
   const current = enabled ? connection : IDLE;

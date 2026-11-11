@@ -1,4 +1,5 @@
 import { OtherDeviceBanner } from "@shared/components";
+import { applySafeAreaInsets } from "@shared/lib/safeAreaInsets";
 import type { ServerMessage } from "@shared/lib/ws";
 import { useWorldStore } from "@store/world";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
@@ -73,7 +74,7 @@ describe("OtherDeviceBanner", () => {
     );
 
     await fireEvent.press(screen.getByText("Enter here"));
-    expect(mockReconnect).toHaveBeenCalled();
+    expect(mockReconnect).toHaveBeenCalledWith();
   });
 
   it("shows when another device took over and we couldn't stay", async () => {
@@ -95,5 +96,27 @@ describe("OtherDeviceBanner", () => {
     expect(updateInsets).toHaveBeenLastCalledWith(
       expect.objectContaining({ top: 47 }),
     );
+  });
+
+  it("keeps the top inset covered when the device's insets change", async () => {
+    const updateInsets = jest.spyOn(Uniwind, "updateInsets");
+    apply({ type: "welcome", userId: "me", mode: "watcher" });
+    await renderBanner();
+
+    // e.g. a rotation, reported by the root SafeAreaListener after the banner.
+    applySafeAreaInsets({ top: 59, bottom: 34, left: 0, right: 0 });
+
+    expect(updateInsets).toHaveBeenLastCalledWith(
+      expect.objectContaining({ top: 0 }),
+    );
+  });
+
+  it("says when the other device has left", async () => {
+    apply({ type: "welcome", userId: "me", mode: "watcher" });
+    apply({ type: "snapshot", players: [], spaces: [] });
+
+    await renderBanner();
+
+    expect(screen.getByText("Your other device left campus.")).toBeTruthy();
   });
 });

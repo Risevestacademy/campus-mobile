@@ -22,6 +22,8 @@ const WS_URL = "wss://api.example.com/ws";
 const COHORT_ID = "cohort-1";
 const SOCKET_URL = `${WS_URL}?cohortId=${COHORT_ID}&enter=take`;
 const WATCH_URL = `${WS_URL}?cohortId=${COHORT_ID}&enter=ifFree`;
+/** An ifFree reconnect naming the socket world let in last (WELCOME's). */
+const RESUME_URL = `${WATCH_URL}&resume=c1`;
 const WELCOME = {
   type: "welcome",
   userId: "me",
@@ -474,6 +476,21 @@ describe("WebSocketProvider app state", () => {
     await act(async () => emitAppState(state));
   }
 
+  it("resumes its held avatar on coming back from the background", async () => {
+    await renderProvider();
+    const socket = lastSocket();
+    await act(() => socket.open());
+    await act(() => socket.receive({ ...WELCOME, connectionId: "conn-x" }));
+
+    await setAppState("background");
+    await setAppState("active");
+    await act(async () => {});
+
+    expect(lastSocket()).not.toBe(socket);
+    expect(lastSocket().url).toContain("enter=ifFree");
+    expect(lastSocket().url).toContain("resume=conn-x");
+  });
+
   it("closes the socket when the app goes to the background", async () => {
     await renderProvider();
     const socket = lastSocket();
@@ -728,8 +745,9 @@ describe("WebSocketProvider close codes", () => {
     await act(() => socket.serverClose(1006));
     await advance(INITIAL_RETRY_DELAY_MS);
 
-    // A dropped network mustn't take the avatar back from another device.
-    expect(lastSocket().url).toBe(WATCH_URL);
+    // A dropped network mustn't take the avatar back from another device,
+    // but names the dropped socket so world gives back the avatar it holds.
+    expect(lastSocket().url).toBe(RESUME_URL);
   });
 
   it("keeps taking until it has been let in", async () => {
@@ -749,6 +767,24 @@ describe("WebSocketProvider close codes", () => {
     expect(MockWebSocket.instances).toHaveLength(2);
     expect(lastSocket().url).toBe(WATCH_URL);
     expect(currentState().status).toBe("connecting");
+  });
+
+  it("doesn't resume once another device has taken over", async () => {
+    const socket = await openSocket();
+    await act(() => socket.receive(WELCOME));
+
+    await act(() => socket.serverClose(4000, "entered_elsewhere"));
+
+    // The avatar is the other device's now; nothing is held for us.
+    expect(lastSocket().url).toBe(WATCH_URL);
+  });
+
+  it("only claims a free avatar when asked to reconnect with ifFree", async () => {
+    await replacedWhileWatching();
+
+    await act(() => currentState().reconnect("ifFree"));
+
+    expect(lastSocket().url).toBe(WATCH_URL);
   });
 
   async function replacedWhileWatching() {

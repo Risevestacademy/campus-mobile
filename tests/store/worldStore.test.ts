@@ -1,6 +1,11 @@
 import type { Avatar, SpaceName } from "@shared/lib/generated/world-protocol";
 import type { ServerMessage } from "@shared/lib/ws";
-import { useAroundMe, useMySpace, useWorldStore } from "@store/world";
+import {
+  isStandingEmpty,
+  useAroundMe,
+  useMySpace,
+  useWorldStore,
+} from "@store/world";
 import { act, renderHook } from "@testing-library/react-native";
 
 function avatar(userId: string, overrides: Partial<Avatar> = {}): Avatar {
@@ -131,13 +136,24 @@ describe("useWorldStore", () => {
     expect(Object.keys(state().players)).toEqual(["c"]);
   });
 
-  it("clears everything when the account opens campus elsewhere", () => {
-    apply({ type: "welcome", userId: "me" } as ServerMessage);
-    apply(snapshot(avatar("me")));
+  it("keeps the campus on screen, stale, when another device takes over", () => {
+    apply({ type: "welcome", userId: "me", mode: "avatar" } as ServerMessage);
+    apply(snapshot(avatar("me"), avatar("a")));
 
     apply({ type: "replaced" });
 
-    expect(state()).toMatchObject({ ready: false, selfId: null, players: {} });
+    expect(state()).toMatchObject({ ready: false, mode: "watcher" });
+    expect(Object.keys(state().players)).toEqual(["me", "a"]);
+  });
+
+  it("knows when nobody stands for you while watching", () => {
+    apply({ type: "welcome", userId: "me", mode: "watcher" } as ServerMessage);
+    apply(snapshot(avatar("me"), avatar("a")));
+    expect(isStandingEmpty(state())).toBe(false);
+
+    apply({ type: "left", userId: "me" } as ServerMessage);
+
+    expect(isStandingEmpty(state())).toBe(true);
   });
 
   it("keeps when a timed status ends, and clears it with a lasting one", () => {

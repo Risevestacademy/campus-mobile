@@ -27,10 +27,11 @@ export type WebSocketState = {
   /** World's close reason when status is `replaced` or `refused`. */
   closeReason: string | null;
   /**
-   * Start over, taking the avatar: after `replaced` or `refused`, or to
-   * enter here from watching. Only when the person asks.
+   * Start over: after `replaced` or `refused`, or to enter here from
+   * watching. take (the default) claims the avatar, so only when the person
+   * asks; ifFree claims it only when nobody holds it.
    */
-  reconnect: () => void;
+  reconnect: (enter?: EnterMode) => void;
   /** Sends when open; returns false (and drops it) otherwise. */
   send: (message: ClientMessage) => boolean;
   /**
@@ -92,10 +93,24 @@ export type EnterMode = "take" | "ifFree";
 
 export function worldSocketUrl(
   url: string,
-  { cohortId, enter }: { cohortId: string; enter: EnterMode },
+  {
+    cohortId,
+    enter,
+    resume,
+  }: {
+    cohortId: string;
+    enter: EnterMode;
+    /**
+     * The `connectionId` of the socket that just dropped. While world holds
+     * the avatar for it after a drop, an ifFree socket naming it gets the
+     * avatar back instead of watching it.
+     */
+    resume?: string | null;
+  },
 ): string {
   const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}cohortId=${encodeURIComponent(cohortId)}&enter=${enter}`;
+  const resumeParam = resume ? `&resume=${encodeURIComponent(resume)}` : "";
+  return `${url}${separator}cohortId=${encodeURIComponent(cohortId)}&enter=${enter}${resumeParam}`;
 }
 
 // React Native's WebSocket accepts a third `options` argument for headers,
