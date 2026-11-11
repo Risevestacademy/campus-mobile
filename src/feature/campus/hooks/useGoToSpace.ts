@@ -14,6 +14,10 @@ export function useGoToSpace() {
   // The socket listener outlives renders, so it reads the walk from here.
   const current = React.useRef<Walk | null>(null);
 
+  // Spaces this hook walked to before the current walk replaced them. Their
+  // last frames can still arrive, and must not end the current walk.
+  const replaced = React.useRef(new Set<string>());
+
   const start = (next: Walk | null) => {
     current.current = next;
     setWalk(next);
@@ -22,33 +26,37 @@ export function useGoToSpace() {
   React.useEffect(
     () =>
       subscribe((message) => {
-        // going represents the current space a particpant is moving to
+        if (message.type !== "walking" && message.type !== "walkEnded") return;
+        // going represents the space this hook is walking you to now
         const going = current.current;
         if (!going) return;
-        // Another walk took over, e.g. walking to somebody.
-        if (
-          message.type === "walking" &&
-          message.toSpaceKey !== going.spaceKey
-        ) {
-          current.current = null;
-          setWalk(null);
+        const target = message.toSpaceKey;
+
+        if (target === going.spaceKey) {
+          // World handles walks in order, so the replaced ones are over.
+          replaced.current.clear();
+          if (message.type === "walking") return;
+          start(null);
+          if (message.reason === "refused") {
+            toast.error(
+              `${going.name} is closed to you right now.`,
+              "Can't get in",
+            );
+          } else if (message.reason === "no_way") {
+            toast.error(
+              `There's no way through to ${going.name}.`,
+              "Can't get there",
+            );
+          }
           return;
         }
-        if (message.type !== "walkEnded") return;
-        current.current = null;
-        setWalk(null);
-        if (message.toSpaceKey !== going.spaceKey) return;
-        if (message.reason === "refused") {
-          toast.error(
-            `${going.name} is closed to you right now.`,
-            "Can't get in",
-          );
-        } else if (message.reason === "no_way") {
-          toast.error(
-            `There's no way through to ${going.name}.`,
-            "Can't get there",
-          );
-        }
+
+        // A late frame from a walk this one replaced.
+        if (target !== null && replaced.current.has(target)) return;
+
+        // Another walk took over, e.g. walking to somebody.
+        replaced.current.clear();
+        start(null);
       }),
     [subscribe],
   );
@@ -61,6 +69,10 @@ export function useGoToSpace() {
         "Can't walk there",
       );
       return false;
+    }
+    const previous = current.current;
+    if (previous && previous.spaceKey !== spaceKey) {
+      replaced.current.add(previous.spaceKey);
     }
     start({ spaceKey, name, socket });
     return true;
