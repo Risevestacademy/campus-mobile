@@ -32,6 +32,7 @@ function player(userId: string, overrides: Partial<Avatar> = {}): Avatar {
     displayName: userId,
     spriteKey: null,
     status: "available",
+    statusUntil: null,
     spaceKey: "library",
     ...overrides,
   };
@@ -103,5 +104,17 @@ describe("HappeningAroundYou", () => {
     await fireEvent.press(screen.getByLabelText("Navigate to Bo"));
 
     expect(mockSend).toHaveBeenCalledWith({ type: "goTo", userId: "Bo" });
+  });
+
+  it("offers no walking or call while another device stands for you", async () => {
+    arrive(player("Ada"), player("Bo"));
+    await act(() => apply({ type: "watching" }));
+    await render(<HappeningAroundYou />);
+
+    await act(() => apply({ type: "nearby", userIds: ["Ada"] }));
+
+    expect(screen.getByLabelText("Wave at Bo")).toBeTruthy();
+    expect(screen.queryByLabelText("Navigate to Bo")).toBeNull();
+    expect(screen.queryByLabelText(/^In call with/)).toBeNull();
   });
 });

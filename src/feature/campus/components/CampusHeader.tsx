@@ -74,7 +74,9 @@ function Summary({
 
 type CampusHeaderBarProps = CampusSummaryProps & {
   status?: Status;
-  onStatusChange?: (status: Status) => void;
+  /** When a status chosen for a while ends, as an ISO timestamp. */
+  statusUntil?: string | null;
+  onStatusChange?: (status: Status, forSeconds?: number) => void;
   scrollY: SharedValue<number>;
   /** Top of the page's count and location, within the scroll content. */
   summaryY: SharedValue<number>;
@@ -93,6 +95,7 @@ type CampusHeaderBarProps = CampusSummaryProps & {
  */
 export function CampusHeaderBar({
   status,
+  statusUntil,
   onStatusChange,
   noOfParticipants,
   location,
@@ -194,7 +197,11 @@ export function CampusHeaderBar({
             </Text>
           </Skeleton>
           <Skeleton isLoading={isLoading || !status} radius={16}>
-            <ActivityToggle status={status} onChange={onStatusChange} />
+            <ActivityToggle
+              status={status}
+              until={statusUntil}
+              onChange={onStatusChange}
+            />
           </Skeleton>
         </View>
         <Animated.View

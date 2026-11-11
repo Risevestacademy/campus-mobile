@@ -1,10 +1,10 @@
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { BottomSheetModal, useBottomSheet } from "@gorhom/bottom-sheet";
 import { StatusDot, Text } from "@shared/components/atoms";
 import { ActivityStatus } from "@shared/types";
 import { cn } from "@shared/utils/style";
-import { ChevronRight, Clock } from "lucide-react-native";
+import { Check, ChevronRight, Clock } from "lucide-react-native";
 import { CaretDownIcon } from "phosphor-react-native";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
 
@@ -36,13 +36,95 @@ const options: {
   },
 ] as const;
 
+/** "current" keeps the timer the status already has. */
+type ClearAfter = "current" | "never" | "30m" | "1h" | "2h" | "4h" | "today";
+
+const HOUR = 60 * 60;
+/** The longest world takes for `setStatus`'s `forSeconds`: 12 hours. */
+export const MAX_STATUS_SECONDS = 12 * HOUR;
+
+const PRESETS: { key: Exclude<ClearAfter, "current">; label: string }[] = [
+  { key: "never", label: "Don't clear" },
+  { key: "30m", label: "30 minutes" },
+  { key: "1h", label: "1 hour" },
+  { key: "2h", label: "2 hours" },
+  { key: "4h", label: "4 hours" },
+  { key: "today", label: "Today" },
+];
+
+const secondsUntilMidnight = (now: Date) => {
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return Math.round((+midnight - +now) / 1000);
+};
+
+/** Within what world takes: at least a minute, at most 12 hours. */
+const clampSeconds = (seconds: number) =>
+  Math.min(MAX_STATUS_SECONDS, Math.max(60, Math.round(seconds)));
+
+/** How long to keep a status, for `setStatus`; undefined keeps it for good. */
+export function clearAfterSeconds(
+  key: ClearAfter,
+  now = new Date(),
+  until?: string | null,
+): number | undefined {
+  switch (key) {
+    case "current":
+      return until
+        ? clampSeconds((Date.parse(until) - +now) / 1000)
+        : undefined;
+    case "never":
+      return undefined;
+    case "30m":
+      return HOUR / 2;
+    case "1h":
+      return HOUR;
+    case "2h":
+      return 2 * HOUR;
+    case "4h":
+      return 4 * HOUR;
+    case "today":
+      return clampSeconds(secondsUntilMidnight(now));
+  }
+}
+
+/**
+ * What the timer can be set to now. The status's own timer comes first when
+ * it has one. Today only shows once midnight is within world's 12 hours.
+ */
+export function clearAfterOptions(
+  until: string | null | undefined,
+  now = new Date(),
+): { key: ClearAfter; label: string }[] {
+  return [
+    ...(until
+      ? [{ key: "current" as const, label: `Until ${formatUntil(until)}` }]
+      : []),
+    ...PRESETS.filter(
+      (option) =>
+        option.key !== "today" ||
+        secondsUntilMidnight(now) <= MAX_STATUS_SECONDS,
+    ),
+  ];
+}
+
+/** "3:00 PM", or the device's own clock format. */
+function formatUntil(iso: string) {
+  return new Date(iso).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 const StyledChevronDown = withUniwind(CaretDownIcon);
+const StyledCheck = withUniwind(Check);
 const StyledChevronRight = withUniwind(ChevronRight);
 const StyledClock = withUniwind(Clock);
 
 type ActivityToggleProps = {
   status?: ActivityStatus;
-  onChange?: (status: ActivityStatus) => void;
+  until?: string | null;
+  onChange?: (status: ActivityStatus, forSeconds?: number) => void;
   containerClassName?: string;
   textClassName?: string;
   iconColorClassName?: string;
@@ -50,6 +132,7 @@ type ActivityToggleProps = {
 
 export function ActivityToggle({
   status,
+  until,
   onChange,
   containerClassName,
   textClassName,
@@ -58,10 +141,24 @@ export function ActivityToggle({
   const selectedOption = options.find((e) => e.status === status);
 
   const bottomSheetRef = useRef<BottomSheetModal>(null);
-  const show = () => bottomSheetRef.current?.present();
+  const clearAfterSheetRef = useRef<BottomSheetModal>(null);
+  // Starts from the timer the status already has, every time the sheet opens.
+  const initialClearAfter: ClearAfter = until ? "current" : "never";
+  const [clearAfter, setClearAfter] = useState<ClearAfter>(initialClearAfter);
+  const clearOptions = clearAfterOptions(until);
+  const clearLabel =
+    clearOptions.find((option) => option.key === clearAfter)?.label ?? "";
+  const show = () => {
+    setClearAfter(initialClearAfter);
+    bottomSheetRef.current?.present();
+  };
 
   const select = (next: ActivityStatus) => {
-    if (next !== status) onChange?.(next);
+    const forSeconds = clearAfterSeconds(clearAfter, new Date(), until);
+    // Choosing again, with or without a timer, replaces the one it has.
+    const timerChanges =
+      clearAfter !== "current" && (forSeconds !== undefined || Boolean(until));
+    if (next !== status || timerChanges) onChange?.(next, forSeconds);
     bottomSheetRef.current?.dismiss();
   };
 
@@ -81,6 +178,7 @@ export function ActivityToggle({
           variant="label"
         >
           {selectedOption?.short}
+          {until ? ` · until ${formatUntil(until)}` : ""}
         </Text>
         <StyledChevronDown
           colorClassName={iconColorClassName}
@@ -98,9 +196,15 @@ export function ActivityToggle({
         <ActivitySelector onSelect={select} selected={status} />
         <View className="flex-row items-center justify-between">
           <Text>Clear after</Text>
-          <Pressable className="flex-row items-center gap-1">
+          <Pressable
+            className="flex-row items-center gap-1"
+            onPress={() => clearAfterSheetRef.current?.present()}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={`Clear after: ${clearLabel}`}
+          >
             <Text color="link" variant="body-sm">
-              1 hour
+              {clearLabel}
             </Text>
             <StyledChevronRight colorClassName="accent-text-link" size={16} />
           </Pressable>
@@ -117,9 +221,72 @@ export function ActivityToggle({
           </Text>
         </View>
       </BottomSheet>
+      <ClearAfterSheet
+        ref={clearAfterSheetRef}
+        options={clearOptions}
+        selected={clearAfter}
+        onSelect={setClearAfter}
+      />
     </>
   );
 }
+
+function ClearAfterOption({
+  label,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const { close } = useBottomSheet();
+  return (
+    <Pressable
+      onPress={() => {
+        onSelect();
+        close();
+      }}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      className={cn(
+        "flex-row items-center justify-between rounded-lg px-3 py-3 active:bg-bg-hover",
+        selected && "bg-bg-hover",
+      )}
+    >
+      <Text variant="body-sm">{label}</Text>
+      {selected && (
+        <StyledCheck size={16} colorClassName="accent-action-primary" />
+      )}
+    </Pressable>
+  );
+}
+
+const ClearAfterSheet = ({
+  ref,
+  options,
+  selected,
+  onSelect,
+}: {
+  ref: React.Ref<BottomSheetModal>;
+  options: { key: ClearAfter; label: string }[];
+  selected: ClearAfter;
+  onSelect: (key: ClearAfter) => void;
+}) => (
+  <BottomSheet ref={ref} stackBehavior="push" contentClassName="gap-0">
+    <Text variant="h5" className="mb-3">
+      Clear after
+    </Text>
+    {options.map((option) => (
+      <ClearAfterOption
+        key={option.key}
+        label={option.label}
+        selected={option.key === selected}
+        onSelect={() => onSelect(option.key)}
+      />
+    ))}
+  </BottomSheet>
+);
 
 function ActivitySelector({
   onSelect,

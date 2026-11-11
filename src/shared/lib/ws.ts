@@ -14,8 +14,8 @@ export type ServerMessageListener = (message: ServerMessage) => void;
  * idle: signed out or no cohort, so nothing to connect to.
  * connecting: dialing, or waiting to retry (including while backgrounded).
  * open: `socket` is usable.
- * replaced: this account opened the cohort elsewhere; call `reconnect` only
- *   when the person asks to come back here.
+ * replaced: this account opened the cohort elsewhere and we couldn't stay on
+ *   as a watcher; call `reconnect` only when the person asks to come back.
  * refused: world turned the socket away for good; see `closeReason`.
  */
 export type WebSocketStatus =
@@ -26,8 +26,12 @@ export type WebSocketState = {
   status: WebSocketStatus;
   /** World's close reason when status is `replaced` or `refused`. */
   closeReason: string | null;
-  /** Start over after `replaced` or `refused`. */
-  reconnect: () => void;
+  /**
+   * Start over: after `replaced` or `refused`, or to enter here from
+   * watching. take (the default) claims the avatar, so only when the person
+   * asks; ifFree claims it only when nobody holds it.
+   */
+  reconnect: (enter?: EnterMode) => void;
   /** Sends when open; returns false (and drops it) otherwise. */
   send: (message: ClientMessage) => boolean;
   /**
@@ -79,9 +83,34 @@ export function closeAction(code: number, reason: string): CloseAction {
 }
 
 /** world admits a socket to the cohort named on the upgrade. */
-export function withCohort(url: string, cohortId: string): string {
+/**
+ * How a socket enters the campus when the account is already in it elsewhere.
+ * take: this one becomes the avatar and the other is `replaced`. ifFree: the
+ * avatar only if nobody holds it, a watcher otherwise, and later `watching`
+ * rather than `replaced` when another takes it.
+ */
+export type EnterMode = "take" | "ifFree";
+
+export function worldSocketUrl(
+  url: string,
+  {
+    cohortId,
+    enter,
+    resume,
+  }: {
+    cohortId: string;
+    enter: EnterMode;
+    /**
+     * The `connectionId` of the socket that just dropped. While world holds
+     * the avatar for it after a drop, an ifFree socket naming it gets the
+     * avatar back instead of watching it.
+     */
+    resume?: string | null;
+  },
+): string {
   const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}cohortId=${encodeURIComponent(cohortId)}`;
+  const resumeParam = resume ? `&resume=${encodeURIComponent(resume)}` : "";
+  return `${url}${separator}cohortId=${encodeURIComponent(cohortId)}&enter=${enter}${resumeParam}`;
 }
 
 // React Native's WebSocket accepts a third `options` argument for headers,
