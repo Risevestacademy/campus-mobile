@@ -13,6 +13,7 @@ import type {
 } from "../types";
 
 const StyledClock = withUniwind(Clock);
+const StyledExternalLink = withUniwind(ExternalLink);
 const StyledX = withUniwind(X);
 
 const ACTION_ICONS = {
@@ -72,24 +73,7 @@ function SearchHomeRow({
 }: { item: SearchHomeItem } & Omit<SearchHomeProps, "sections">) {
   switch (item.type) {
     case "live":
-      return (
-        <Pressable
-          onPress={() => onOpenMeeting(item.data)}
-          accessibilityRole="button"
-          accessibilityLabel={`${item.data.title}, live now`}
-          className="flex-row items-center gap-3 px-4 py-3 active:bg-bg-hover"
-        >
-          <View className="flex-1 gap-0.5">
-            <Text variant="label">{item.data.title}</Text>
-            {item.data.location ? (
-              <Text variant="caption" color="secondary">
-                {item.data.location}
-              </Text>
-            ) : null}
-          </View>
-          <LiveIndicator />
-        </Pressable>
-      );
+      return <LiveMeetingRow meeting={item.data} onOpen={onOpenMeeting} />;
     case "recent":
       return (
         <Pressable
@@ -134,4 +118,37 @@ function SearchHomeRow({
         </View>
       );
   }
+}
+
+/** Tappable only when there's somewhere to join it. */
+function LiveMeetingRow({
+  meeting,
+  onOpen,
+}: {
+  meeting: LiveMeetingItem;
+  onOpen: (meeting: LiveMeetingItem) => void;
+}) {
+  const { join } = meeting;
+  return (
+    <Pressable
+      onPress={() => onOpen(meeting)}
+      disabled={!join}
+      accessibilityRole={join?.kind === "external" ? "link" : "button"}
+      accessibilityLabel={`${meeting.title}, live now`}
+      className="flex-row items-center gap-3 px-4 py-3 active:bg-bg-hover"
+    >
+      <View className="flex-1 gap-0.5">
+        <Text variant="label">{meeting.title}</Text>
+        {meeting.location ? (
+          <Text variant="caption" color="secondary">
+            {meeting.location}
+          </Text>
+        ) : null}
+      </View>
+      <LiveIndicator />
+      {join?.kind === "external" ? (
+        <StyledExternalLink size={16} colorClassName="accent-text-muted" />
+      ) : null}
+    </Pressable>
+  );
 }

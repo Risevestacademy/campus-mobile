@@ -17,7 +17,7 @@ export function LiveMeeting() {
   };
   const showMeeting = () => {
     open({
-      meetingId: "diarahaff",
+      spaceKey: "diarahaff",
       title: "",
       hostName: "",
       startsAt: new Date(),

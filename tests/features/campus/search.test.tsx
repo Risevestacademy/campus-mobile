@@ -5,16 +5,18 @@ import {
 } from "@features/campus/helpers";
 import { SearchScreen } from "@features/campus/screens/SearchScreen";
 import { CalendarService } from "@services/calendar";
+import { type RoomLinkEntry, RoomLinkService } from "@services/roomLinks";
 import { useRecentSearchesStore } from "@store/recentSearches";
 import type { Presence } from "@store/world";
 import { useWorldStore } from "@store/world";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
+import { Linking } from "react-native";
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
-const mockOpenMeeting = jest.fn();
+const mockOpenMeeting = jest.fn<void, [{ onJoin: () => void }]>();
 const mockSend = jest.fn(() => true);
 const mockListeners = new Set<(message: unknown) => void>();
 
@@ -39,6 +41,10 @@ let mockHoldsDesk = false;
 
 jest.mock("@shared/hooks/useDesks", () => ({
   useMyDesk: () => (mockHoldsDesk ? { key: "desk_a1" } : null),
+}));
+
+jest.mock("@shared/hooks/useMe", () => ({
+  useMe: () => ({ data: { membership: { cohortId: "cohort-1" } } }),
 }));
 
 jest.mock("@features/campus/hooks/useMyDeskTarget", () => ({
@@ -151,7 +157,9 @@ describe("toSearchHomeSections", () => {
 
   it("orders what's on now, then recent, then quick actions", () => {
     const sections = toSearchHomeSections({
-      live: [{ id: "e1", title: "Crit", location: "", startsAt: "" }],
+      live: [
+        { id: "e1", title: "Crit", location: "", startsAt: "", join: null },
+      ],
       recent: ["ada"],
     });
     expect(sections.map((s) => s.title)).toEqual([
@@ -272,38 +280,134 @@ describe("SearchScreen", () => {
     expect(screen.queryByText("Recent")).toBeNull();
   });
 
-  it("shows what's on now from your calendar, and opens it", async () => {
-    const start = new Date(Date.now() - 10 * 60_000).toISOString();
-    const end = new Date(Date.now() + 20 * 60_000).toISOString();
-    jest.spyOn(CalendarService, "getEvents").mockResolvedValue({
-      connected: true,
-      truncated: false,
-      events: [
-        {
-          id: "e1",
+  describe("happening now", () => {
+    type CalendarEvent = Awaited<
+      ReturnType<typeof CalendarService.getEvents>
+    >["events"][number];
+
+    const liveEvent = (
+      overrides: Partial<CalendarEvent> = {},
+    ): CalendarEvent => ({
+      id: "google-event-id",
+      title: "Design crit",
+      start: new Date(Date.now() - 10 * 60_000).toISOString(),
+      end: new Date(Date.now() + 20 * 60_000).toISOString(),
+      allDay: false,
+      status: "confirmed",
+      response: "accepted",
+      location: "Studio",
+      meetingUrl: null,
+      url: null,
+      room: null,
+      ...overrides,
+    });
+
+    const room = (cohortId = "cohort-1") => ({
+      code: "k3F9xQ2pLm",
+      cohortId,
+      spaceId: "space-uuid",
+      spaceKey: "campus-space-id",
+      spaceName: "Design Studio",
+      title: "Design crit",
+    });
+
+    const showEvents = (...events: CalendarEvent[]) =>
+      jest
+        .spyOn(CalendarService, "getEvents")
+        .mockResolvedValue({ connected: true, truncated: false, events });
+
+    it("opens the campus room it's held in, not the calendar event", async () => {
+      showEvents(liveEvent({ room: room() }));
+      const enter = jest
+        .spyOn(RoomLinkService, "enter")
+        .mockResolvedValue({} as RoomLinkEntry);
+      await renderScreen();
+
+      await fireEvent.press(
+        await screen.findByLabelText("Design crit, live now"),
+      );
+
+      expect(screen.getByText("Happening now")).toBeTruthy();
+      expect(mockOpenMeeting).toHaveBeenCalledWith(
+        expect.objectContaining({
+          spaceKey: "campus-space-id",
           title: "Design crit",
-          start,
-          end,
-          allDay: false,
-          status: "confirmed",
-          response: "accepted",
-          location: "Studio",
-          meetingUrl: null,
-          url: null,
-          room: null,
-        },
-      ],
-    } as Awaited<ReturnType<typeof CalendarService.getEvents>>);
-    await renderScreen();
+          location: "Design Studio",
+        }),
+      );
 
-    await fireEvent.press(
-      await screen.findByLabelText("Design crit, live now"),
-    );
+      // Join lets you in through the link, then walks you there.
+      await act(async () => mockOpenMeeting.mock.lastCall?.[0].onJoin());
+      expect(enter).toHaveBeenCalledWith("k3F9xQ2pLm");
+      expect(mockSend).toHaveBeenCalledWith({
+        type: "goToSpace",
+        spaceKey: "campus-space-id",
+      });
+    });
 
-    expect(screen.getByText("Happening now")).toBeTruthy();
-    expect(mockOpenMeeting).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Design crit", location: "Studio" }),
-    );
+    it("still walks there when the link doesn't let you in", async () => {
+      showEvents(liveEvent({ room: room() }));
+      jest.spyOn(RoomLinkService, "enter").mockRejectedValue(new Error("nope"));
+      jest.spyOn(console, "warn").mockImplementation(() => {});
+      await renderScreen();
+
+      await fireEvent.press(
+        await screen.findByLabelText("Design crit, live now"),
+      );
+      await act(async () => mockOpenMeeting.mock.lastCall?.[0].onJoin());
+
+      expect(mockSend).toHaveBeenCalledWith({
+        type: "goToSpace",
+        spaceKey: "campus-space-id",
+      });
+    });
+
+    it("opens a video call's link without the join sheet", async () => {
+      showEvents(liveEvent({ meetingUrl: "https://meet.google.com/abc" }));
+      const openURL = jest
+        .spyOn(Linking, "openURL")
+        .mockResolvedValue(undefined);
+      await renderScreen();
+
+      await fireEvent.press(
+        await screen.findByLabelText("Design crit, live now"),
+      );
+
+      expect(openURL).toHaveBeenCalledWith("https://meet.google.com/abc");
+      expect(mockOpenMeeting).not.toHaveBeenCalled();
+    });
+
+    it("uses the video call for a room in another cohort", async () => {
+      showEvents(
+        liveEvent({
+          room: room("other-cohort"),
+          meetingUrl: "https://meet.google.com/abc",
+        }),
+      );
+      const openURL = jest
+        .spyOn(Linking, "openURL")
+        .mockResolvedValue(undefined);
+      await renderScreen();
+
+      await fireEvent.press(
+        await screen.findByLabelText("Design crit, live now"),
+      );
+
+      expect(openURL).toHaveBeenCalledWith("https://meet.google.com/abc");
+      expect(mockOpenMeeting).not.toHaveBeenCalled();
+    });
+
+    it("offers no join for an event with nowhere to join", async () => {
+      showEvents(liveEvent());
+      await renderScreen();
+
+      const row = await screen.findByLabelText("Design crit, live now");
+      expect(row.props.accessibilityState).toEqual(
+        expect.objectContaining({ disabled: true }),
+      );
+      await fireEvent.press(row);
+      expect(mockOpenMeeting).not.toHaveBeenCalled();
+    });
   });
 
   it("walks you to a person or a space", async () => {

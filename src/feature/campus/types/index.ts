@@ -1,5 +1,6 @@
 export type {
   LiveMeetingItem,
+  MeetingJoinTarget,
   MeetingResult,
   PersonResult,
   QuickAction,

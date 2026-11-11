@@ -42,7 +42,7 @@ export function HappeningAroundYou() {
   const joinConversation = () => {
     const participants = earshot.map((player) => ({ name: nameOf(player) }));
     open({
-      meetingId: space?.spaceKey ?? "",
+      spaceKey: space?.spaceKey ?? "",
       title: formatParticipantPresentation(participants.map((p) => p.name)),
       hostName: "",
       startsAt: new Date(),

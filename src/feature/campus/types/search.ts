@@ -46,12 +46,21 @@ export type SearchSection = {
 };
 
 /** A meeting on now, from your calendar. */
+/** Where joining a calendar event takes you. */
+export type MeetingJoinTarget =
+  /** A room link to a space in your cohort's campus. */
+  | { kind: "campus"; code: string; spaceKey: string; spaceName: string }
+  /** A video call outside campus, e.g. Google Meet. */
+  | { kind: "external"; url: string };
+
 export type LiveMeetingItem = {
   id: string;
   title: string;
   location: string;
   /** ISO timestamp. */
   startsAt: string;
+  /** Null when there's nowhere to join it. */
+  join: MeetingJoinTarget | null;
 };
 
 export type QuickAction = {
