@@ -8,7 +8,7 @@ const state = () => useRecentSearchesStore.getState();
 
 describe("useRecentSearchesStore", () => {
   beforeEach(async () => {
-    useRecentSearchesStore.setState({ queries: [], hydrated: false });
+    useRecentSearchesStore.setState(useRecentSearchesStore.getInitialState());
     await SecureStore.deleteItemAsync("recent_searches");
   });
 
@@ -37,7 +37,7 @@ describe("useRecentSearchesStore", () => {
   it("comes back after a restart", async () => {
     state().add("ada");
     await Promise.resolve();
-    useRecentSearchesStore.setState({ queries: [], hydrated: false });
+    useRecentSearchesStore.setState(useRecentSearchesStore.getInitialState());
 
     await state().hydrate();
 
@@ -53,5 +53,76 @@ describe("useRecentSearchesStore", () => {
 
     state().clear();
     expect(state().queries).toEqual([]);
+  });
+
+  describe("changes made while the saved searches are still being read", () => {
+    const saved = async () =>
+      JSON.parse((await SecureStore.getItemAsync("recent_searches")) ?? "[]");
+
+    /** Reads what's saved now, but answers only once `finish` is called. */
+    function delayRead() {
+      let finish!: () => void;
+      const gate = new Promise<void>((resolve) => (finish = resolve));
+      const real = jest.requireMock("expo-secure-store").getItemAsync;
+      const original = real.getMockImplementation();
+      real.mockImplementationOnce(async (key: string) => {
+        const value = await original(key);
+        await gate;
+        return value;
+      });
+      return finish;
+    }
+
+    beforeEach(async () => {
+      await SecureStore.setItemAsync("recent_searches", JSON.stringify(["a"]));
+    });
+
+    it("saves the new search and the old ones together", async () => {
+      const finish = delayRead();
+      const hydrating = state().hydrate();
+      state().add("b");
+
+      finish();
+      await hydrating;
+
+      expect(state().queries).toEqual(["b", "a"]);
+      expect(await saved()).toEqual(["b", "a"]);
+    });
+
+    it("doesn't bring back one removed meanwhile", async () => {
+      const finish = delayRead();
+      const hydrating = state().hydrate();
+      state().remove("A");
+
+      finish();
+      await hydrating;
+
+      expect(state().queries).toEqual([]);
+      expect(await saved()).toEqual([]);
+    });
+
+    it("drops the saved ones when cleared meanwhile", async () => {
+      const finish = delayRead();
+      const hydrating = state().hydrate();
+      state().clear();
+      state().add("b");
+
+      finish();
+      await hydrating;
+
+      expect(state().queries).toEqual(["b"]);
+      expect(await saved()).toEqual(["b"]);
+    });
+
+    it("reads once when asked twice", async () => {
+      const finish = delayRead();
+      const first = state().hydrate();
+      const second = state().hydrate();
+
+      finish();
+      await Promise.all([first, second]);
+
+      expect(state().queries).toEqual(["a"]);
+    });
   });
 });
