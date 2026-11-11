@@ -3,6 +3,7 @@ import {
   Avatar,
   Card,
   Row,
+  Spinner,
   Text,
   TextField,
   toast,
@@ -10,16 +11,9 @@ import {
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { capitalize, getInitials } from "@shared/helpers";
 import { useMe } from "@shared/hooks/useMe";
-import { LoaderCircle, Lock } from "lucide-react-native";
+import { Lock } from "lucide-react-native";
 import React from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
 import { withUniwind } from "uniwind";
 
 import { HeaderWithBack } from "../components";
@@ -27,7 +21,6 @@ import { useProfile, useUpdateProfile } from "../hooks";
 import { useHasProfileChanges, useProfileUpdateStore } from "../store";
 
 const StyledLock = withUniwind(Lock);
-const StyledLoaderCircle = withUniwind(LoaderCircle);
 
 export function EditProfileScreen() {
   const { data } = useProfile();
@@ -62,23 +55,6 @@ export function EditProfileScreen() {
       );
     }
   };
-  const rotation = useSharedValue(0);
-
-  const spinStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
-
-  React.useEffect(() => {
-    if (isUpdating) {
-      rotation.value = withRepeat(
-        withTiming(360, { duration: 800, easing: Easing.linear }),
-        -1,
-        false,
-      );
-    } else {
-      rotation.value = 0;
-    }
-  }, [isUpdating, rotation]);
 
   return (
     <SafeArea className="px-0">
@@ -97,12 +73,7 @@ export function EditProfileScreen() {
             hitSlop={12}
           >
             {isUpdating ? (
-              <Animated.View style={spinStyle}>
-                <StyledLoaderCircle
-                  size={20}
-                  colorClassName="accent-text-on-dark"
-                />
-              </Animated.View>
+              <Spinner colorClassName="accent-text-on-dark" />
             ) : (
               hasChanges && (
                 <Text variant="label" color="link">

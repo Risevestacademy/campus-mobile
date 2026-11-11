@@ -21,6 +21,8 @@ export type WorldState = {
   selfId: string | null;
   players: Record<string, Presence>;
   spaces: Record<string, SpaceName>;
+  /** Space keys locked in your cohort right now. */
+  lockedSpaces: string[];
   /** Who is close enough to hear you, in a proximity space; else empty. */
   nearby: string[];
 };
@@ -30,6 +32,7 @@ const initialState: WorldState = {
   selfId: null,
   players: {},
   spaces: {},
+  lockedSpaces: [],
   nearby: [],
 };
 
@@ -70,6 +73,7 @@ export function applyWorldMessage(
           message.players.map((p) => [p.userId, toPresence(p)]),
         ),
         spaces: bySpaceKey(message.spaces),
+        lockedSpaces: message.lockedSpaces,
         // A new connection: world sends `nearby` again if it applies.
         nearby: [],
       };
@@ -101,6 +105,15 @@ export function applyWorldMessage(
       });
     case "spaces":
       return { ...state, spaces: bySpaceKey(message.spaces) };
+    case "lockChanged": {
+      const others = state.lockedSpaces.filter(
+        (key) => key !== message.spaceKey,
+      );
+      return {
+        ...state,
+        lockedSpaces: message.locked ? [...others, message.spaceKey] : others,
+      };
+    }
     case "replaced":
       return initialState;
     default:

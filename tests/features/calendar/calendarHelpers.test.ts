@@ -23,6 +23,7 @@ function googleEvent(
     location: "Room 2",
     meetingUrl: "https://meet.google.com/abc-defg-hij",
     url: null,
+    room: null,
     ...overrides,
   };
 }
