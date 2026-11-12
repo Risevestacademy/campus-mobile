@@ -3,7 +3,9 @@ import "../global.css";
 import { registerSessionExpirationHandler } from "@core/api";
 import { GOOGLE_SIGN_IN_CONFIG } from "@core/auth/googleSignIn";
 import { RealtimeProvider } from "@core/realtime";
+import { SpaceCallProvider } from "@features/room";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { registerGlobals } from "@livekit/react-native";
 import { Toast } from "@shared/components/atoms";
 import { MeetingJoinProvider } from "@shared/hooks/ui/useMeetingJoin";
 import { queryClient } from "@shared/lib/react-query";
@@ -21,6 +23,8 @@ import {
   SafeAreaProvider,
 } from "react-native-safe-area-context";
 import { Uniwind, useResolveClassNames } from "uniwind";
+
+registerGlobals();
 
 GoogleOneTapSignIn.configure(GOOGLE_SIGN_IN_CONFIG);
 
@@ -58,20 +62,22 @@ export default function RootLayout() {
                 <MeetingJoinProvider>
                   <KeyboardProvider>
                     <StatusBar style={"dark"} />
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        contentStyle,
-                        animation: "fade",
-                      }}
-                    >
-                      <Stack.Protected guard={canAccessAuth}>
-                        <Stack.Screen name="(auth)" />
-                      </Stack.Protected>
-                      <Stack.Protected guard={canAccessApp}>
-                        <Stack.Screen name="(app)" />
-                      </Stack.Protected>
-                    </Stack>
+                    <SpaceCallProvider>
+                      <Stack
+                        screenOptions={{
+                          headerShown: false,
+                          contentStyle,
+                          animation: "fade",
+                        }}
+                      >
+                        <Stack.Protected guard={canAccessAuth}>
+                          <Stack.Screen name="(auth)" />
+                        </Stack.Protected>
+                        <Stack.Protected guard={canAccessApp}>
+                          <Stack.Screen name="(app)" />
+                        </Stack.Protected>
+                      </Stack>
+                    </SpaceCallProvider>
                     <Toast />
                   </KeyboardProvider>
                 </MeetingJoinProvider>

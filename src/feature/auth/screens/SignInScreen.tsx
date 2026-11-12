@@ -48,8 +48,15 @@ function SignInScreen() {
         }
 
         router.replace("/(app)/(tabs)/(campus)");
+      } else {
+        console.warn("[signIn] unexpected Google response", response);
       }
     } catch (error) {
+      if (!isApiError(error)) {
+        console.warn("[signIn]", error);
+        toast.error("Sign in failed. Please try again.");
+        return;
+      }
       if (isApiError(error)) {
         const e = error as ApiError;
         // If code is invite accepted, log the user in

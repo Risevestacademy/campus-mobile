@@ -5,8 +5,10 @@ import { useWorldStore } from "@store/world";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 
+const mockPush = jest.fn();
+
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: jest.fn() }),
 }));
 
 const mockSend = jest.fn();
@@ -17,10 +19,6 @@ jest.mock("@shared/hooks/useWs", () => ({
 
 jest.mock("@shared/hooks/useMe", () => ({
   useMe: () => ({ data: { user: { displayName: "Me", avatarUrl: null } } }),
-}));
-
-jest.mock("@shared/hooks/ui", () => ({
-  useMeetingJoin: () => ({ open: jest.fn() }),
 }));
 
 function player(userId: string, overrides: Partial<Avatar> = {}): Avatar {
@@ -52,6 +50,7 @@ function arrive(...others: Avatar[]) {
 describe("HappeningAroundYou", () => {
   beforeEach(() => {
     mockSend.mockClear();
+    mockPush.mockClear();
     useWorldStore.getState().reset();
   });
 
@@ -80,20 +79,23 @@ describe("HappeningAroundYou", () => {
     expect(screen.queryByText("Join")).toBeNull();
   });
 
-  it("shows the conversation within earshot as the call you're in", async () => {
+  it("offers Join for the conversation within earshot and enters the room", async () => {
     arrive(player("Ada"), player("Cy"), player("Bo"));
     await render(<HappeningAroundYou />);
 
     await act(() => apply({ type: "nearby", userIds: ["Ada", "Cy"] }));
 
-    // You're in the call too, first, as in the floating call.
     expect(screen.getByText("You, Ada & Cy")).toBeTruthy();
-    const inCall = screen.getByLabelText("In call with You, Ada & Cy");
-    expect(inCall.props.accessibilityState).toEqual({ disabled: true });
-    expect(screen.queryByText("Join")).toBeNull();
     expect(screen.queryByLabelText("Wave at You, Ada & Cy")).toBeNull();
     // Bo is in the space but out of earshot: listed on their own.
     expect(screen.getByLabelText("Wave at Bo")).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText("Join You, Ada & Cy"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(app)/space/[id]",
+      params: { id: "library" },
+    });
   });
 
   it("asks world to take you to someone when you tap Navigate", async () => {

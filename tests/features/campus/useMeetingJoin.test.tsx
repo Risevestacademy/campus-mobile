@@ -4,13 +4,11 @@ import {
   MeetingJoinProvider,
   useMeetingJoin,
 } from "@shared/hooks/ui";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 
-const mockPush = jest.fn();
-
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));
 
 const meeting: MeetingJoinData = {
@@ -26,15 +24,7 @@ function Opener() {
 }
 
 describe("useMeetingJoin", () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it("joins the meeting room exactly once on repeated presses", async () => {
+  it("shows the meeting's details without a way to join", async () => {
     await render(
       <MeetingJoinProvider>
         <Opener />
@@ -42,18 +32,9 @@ describe("useMeetingJoin", () => {
     );
 
     await fireEvent.press(screen.getByText("Open meeting"));
-    const join = screen.getByText("Join");
 
-    await fireEvent.press(join);
-    await fireEvent.press(join);
-    // Outlast the Button's own press throttle so only the join guard is left
-    await act(() => jest.advanceTimersByTime(1000));
-    await fireEvent.press(join);
-
-    expect(mockPush).toHaveBeenCalledTimes(1);
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/(app)/(tabs)/(campus)/space/[id]",
-      params: { id: "design-foundations" },
-    });
+    expect(screen.getByText("Design Foundations")).toBeTruthy();
+    expect(screen.getByText("Close")).toBeTruthy();
+    expect(screen.queryByText("Join")).toBeNull();
   });
 });

@@ -12,10 +12,13 @@ export function LiveMeeting() {
   const router = useRouter();
   const { open } = useMeetingJoin();
 
-  const goToDetails = () => {
-    router.push("/(app)/(tabs)/(campus)/space/diarahaff");
+  const joinClass = () => {
+    router.push({
+      pathname: "/(app)/space/[id]",
+      params: { id: "diarahaff" },
+    });
   };
-  const showMeeting = () => {
+  const showDetails = () => {
     open({
       meetingId: "diarahaff",
       title: "",
@@ -41,11 +44,11 @@ export function LiveMeeting() {
           label="Details"
           className="flex-1"
           variant="secondary"
-          onPress={goToDetails}
+          onPress={showDetails}
         />
-        <Button className="flex-1" onPress={showMeeting}>
+        <Button className="flex-1" onPress={joinClass}>
           <StyledVideo colorClassName="accent-text-on-dark" size={16} />
-          <Text className="text-text-on-dark">Join Meeting</Text>
+          <Text className="text-text-on-dark">Join class</Text>
         </Button>
       </View>
     </View>

@@ -89,3 +89,17 @@ jest.mock("expo-constants", () => ({
     },
   },
 }));
+
+// LiveKit ships untranspiled ESM and needs native WebRTC; tests never connect.
+jest.mock("@livekit/react-native", () => ({
+  registerGlobals: jest.fn(),
+  AudioSession: {
+    startAudioSession: jest.fn(),
+    stopAudioSession: jest.fn(),
+  },
+  LiveKitRoom: ({ children }) => children,
+  useConnectionState: jest.fn(() => "connected"),
+  useLocalParticipant: jest.fn(),
+  useParticipants: jest.fn(() => []),
+  VideoTrack: () => null,
+}));
