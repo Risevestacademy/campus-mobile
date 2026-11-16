@@ -2,6 +2,7 @@ import { BottomSheetModal, useBottomSheet } from "@gorhom/bottom-sheet";
 import { StatusDot, Text } from "@shared/components/atoms";
 import { ActivityStatus } from "@shared/types";
 import { cn } from "@shared/utils/style";
+import { useStandingEmpty } from "@store/world";
 import { Check, ChevronRight, Clock } from "lucide-react-native";
 import { CaretDownIcon } from "phosphor-react-native";
 import { useRef, useState } from "react";
@@ -139,6 +140,10 @@ export function ActivityToggle({
   iconColorClassName = "accent-text-on-dark",
 }: ActivityToggleProps) {
   const selectedOption = options.find((e) => e.status === status);
+  // Nobody stands for you while this device takes the avatar back, and world
+  // refuses a status change until it has.
+  const nobodyStanding = useStandingEmpty();
+  const disabled = !status || nobodyStanding;
 
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const clearAfterSheetRef = useRef<BottomSheetModal>(null);
@@ -168,9 +173,12 @@ export function ActivityToggle({
         className={cn(
           "flex-row items-center gap-1 rounded-full bg-overlay-white-15 px-3 py-0.5",
           containerClassName,
+          nobodyStanding && "opacity-50",
         )}
         onPress={show}
-        disabled={!status}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
       >
         <StatusDot status={selectedOption?.status} />
         <Text

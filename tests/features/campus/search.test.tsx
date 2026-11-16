@@ -74,6 +74,7 @@ const person = (
   userId,
   displayName,
   status: "available",
+  statusUntil: null,
   spaceKey,
 });
 

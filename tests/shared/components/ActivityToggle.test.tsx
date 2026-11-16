@@ -4,6 +4,8 @@ import {
   clearAfterSeconds,
   MAX_STATUS_SECONDS,
 } from "@shared/components/ActivityToggle";
+import type { ServerMessage } from "@shared/lib/ws";
+import { useWorldStore } from "@store/world";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 
@@ -27,6 +29,18 @@ describe("ActivityToggle", () => {
 
   beforeEach(() => {
     onChange.mockClear();
+    useWorldStore.getState().reset();
+  });
+
+  it("can't be changed while nobody stands for you", async () => {
+    const apply = (message: unknown) =>
+      useWorldStore.getState().apply(message as ServerMessage);
+    apply({ type: "welcome", userId: "me", mode: "watcher" });
+    apply({ type: "snapshot", players: [], spaces: [] });
+
+    await render(<ActivityToggle status="available" onChange={onChange} />);
+
+    expect(screen.getByRole("button", { name: /Available/ })).toBeDisabled();
   });
 
   it("shows when a timed status ends", async () => {
