@@ -5,10 +5,12 @@ import { useMe } from "@shared/hooks/useMe";
 import { useSessionStore } from "@store/session";
 import type { ReactNode } from "react";
 
+import { useClaimEmptyAvatar } from "./useClaimEmptyAvatar";
 import { useWorldSync } from "./useWorldSync";
 
 function WorldSync() {
   useWorldSync();
+  useClaimEmptyAvatar();
   return null;
 }
 

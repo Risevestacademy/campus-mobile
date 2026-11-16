@@ -1,6 +1,6 @@
 import type { CallParticipant } from "@shared/components";
 import { useMe } from "@shared/hooks/useMe";
-import { useAroundMe } from "@store/world";
+import { useAroundMe, useIsWatching } from "@store/world";
 import { useState } from "react";
 
 /**
@@ -12,8 +12,10 @@ export function useCurrentCall() {
   const { space, earshot } = useAroundMe();
   const { data: me } = useMe();
   const [muted, setMuted] = useState(false);
+  const watching = useIsWatching();
 
-  if (earshot.length === 0) return null;
+  // A watcher is never sent a call: the device standing for you is in it.
+  if (watching || earshot.length === 0) return null;
 
   // You lead the call, the same as in its name: "You, Ada +2".
   const participants: CallParticipant[] = [
