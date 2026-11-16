@@ -9,6 +9,7 @@ import {
   CampusHeaderHero,
   HappeningAroundYou,
   LiveMeeting,
+  MyDeskShortcut,
   Spaces,
 } from "../components";
 import { useCollapsingHeader } from "../hooks";
@@ -38,6 +39,7 @@ export function CampusScreen() {
           progress={header.progress}
           onLayout={header.onHeroLayout}
           onSummaryLayout={header.onSummaryLayout}
+          footer={<MyDeskShortcut />}
         />
         <View className="px-6">
           <LiveMeeting />

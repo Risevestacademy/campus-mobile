@@ -2,11 +2,11 @@ import { cn } from "@shared/utils/style";
 import { cva, type VariantProps } from "class-variance-authority";
 import { ReactNode, useRef } from "react";
 import {
-  ActivityIndicator,
   Pressable as RNPressable,
   type PressableProps as RNPressableProps,
 } from "react-native";
 
+import { Spinner } from "./Spinner";
 import { Text } from "./Text";
 
 export const buttonVariants = cva(
@@ -150,7 +150,7 @@ export function Button({
       )}
 
       {Boolean(loading) && (
-        <ActivityIndicator size="small" colorClassName={spinnerColorClass} />
+        <Spinner size="sm" colorClassName={spinnerColorClass} />
       )}
     </RNPressable>
   );

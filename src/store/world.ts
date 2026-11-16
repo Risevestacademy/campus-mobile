@@ -26,6 +26,8 @@ export type WorldState = {
    * does, and this one only looks on. Null until `welcome`.
    */
   mode: "avatar" | "watcher" | null;
+  /** Space keys locked in your cohort right now. */
+  lockedSpaces: string[];
   /** Who is close enough to hear you, in a proximity space; else empty. */
   nearby: string[];
 };
@@ -36,6 +38,7 @@ const initialState: WorldState = {
   mode: null,
   players: {},
   spaces: {},
+  lockedSpaces: [],
   nearby: [],
 };
 
@@ -82,6 +85,7 @@ export function applyWorldMessage(
           message.players.map((p) => [p.userId, toPresence(p)]),
         ),
         spaces: bySpaceKey(message.spaces),
+        lockedSpaces: message.lockedSpaces,
         // A new connection: world sends `nearby` again if it applies.
         nearby: [],
       };
@@ -116,8 +120,15 @@ export function applyWorldMessage(
       });
     case "spaces":
       return { ...state, spaces: bySpaceKey(message.spaces) };
-    // Another device took over. Keep the campus on screen, stale, while we
-    // come straight back to watch it.
+    case "lockChanged": {
+      const others = state.lockedSpaces.filter(
+        (key) => key !== message.spaceKey,
+      );
+      return {
+        ...state,
+        lockedSpaces: message.locked ? [...others, message.spaceKey] : others,
+      };
+    }
     case "replaced":
       return { ...state, ready: false, mode: "watcher", nearby: [] };
     // Another device took over, but this socket stays open to look on.

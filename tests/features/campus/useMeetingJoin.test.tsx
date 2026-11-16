@@ -14,15 +14,15 @@ jest.mock("expo-router", () => ({
 }));
 
 const meeting: MeetingJoinData = {
-  meetingId: "design-foundations",
+  spaceKey: "design-foundations",
   title: "Design Foundations",
   location: "Classroom A",
   participants: [{ name: "Ada" }],
 };
 
-function Opener() {
+function Opener({ data = meeting }: { data?: MeetingJoinData }) {
   const { open } = useMeetingJoin();
-  return <Button label="Open meeting" onPress={() => open(meeting)} />;
+  return <Button label="Open meeting" onPress={() => open(data)} />;
 }
 
 describe("useMeetingJoin", () => {
@@ -54,6 +54,27 @@ describe("useMeetingJoin", () => {
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/(app)/(tabs)/(campus)/space/[id]",
       params: { id: "design-foundations" },
+    });
+  });
+
+  it("runs the meeting's own join step once, then opens its space", async () => {
+    const onJoin = jest.fn();
+    await render(
+      <MeetingJoinProvider>
+        <Opener data={{ ...meeting, spaceKey: "campus-space-id", onJoin }} />
+      </MeetingJoinProvider>,
+    );
+
+    await fireEvent.press(screen.getByText("Open meeting"));
+    const join = screen.getByText("Join");
+    await fireEvent.press(join);
+    await act(() => jest.advanceTimersByTime(1000));
+    await fireEvent.press(join);
+
+    expect(onJoin).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenLastCalledWith({
+      pathname: "/(app)/(tabs)/(campus)/space/[id]",
+      params: { id: "campus-space-id" },
     });
   });
 });

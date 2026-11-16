@@ -2,13 +2,14 @@ import { ActivityToggle, Skeleton } from "@shared/components";
 import { Avatar, StatusDot, Text } from "@shared/components/atoms";
 import { useMe } from "@shared/hooks/useMe";
 import { Status } from "@shared/lib/generated/world-protocol";
+import { useRouter } from "expo-router";
 import {
   MessageCircleWarning,
   Navigation,
   Search,
   UserRound,
 } from "lucide-react-native";
-import { type LayoutChangeEvent, View } from "react-native";
+import { type LayoutChangeEvent, Pressable, View } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -105,6 +106,7 @@ export function CampusHeaderBar({
   collapsed,
   onLayout,
 }: CampusHeaderBarProps) {
+  const router = useRouter();
   const { top } = useSafeAreaInsets();
   const { data: me, isLoading } = useMe();
 
@@ -212,7 +214,11 @@ export function CampusHeaderBar({
           importantForAccessibility={collapsed ? "no-hide-descendants" : "auto"}
           testID="campus-header-actions"
         >
-          <IconOverlay>
+          <IconOverlay
+            onPress={() => {
+              router.push("/search");
+            }}
+          >
             <StyledSearch size={20} colorClassName="accent-text-on-dark" />
           </IconOverlay>
           <IconOverlay>
@@ -294,8 +300,11 @@ export function CampusHeaderHero({
   progress,
   onLayout,
   onSummaryLayout,
+  footer,
 }: CampusSummaryProps & {
   progress: SharedValue<number>;
+  /** Under the count and location, e.g. the walk-to-my-desk shortcut. */
+  footer?: React.ReactNode;
   /** Its height sets how far the collapse runs. */
   onLayout?: (event: LayoutChangeEvent) => void;
   onSummaryLayout?: (event: LayoutChangeEvent) => void;
@@ -336,6 +345,7 @@ export function CampusHeaderHero({
           skeleton
         />
       </Animated.View>
+      {footer}
     </View>
   );
 }
@@ -343,11 +353,16 @@ export function CampusHeaderHero({
 const IconOverlay = ({
   children,
   badge,
+  onPress,
 }: {
   children: React.ReactNode;
   badge?: number;
+  onPress?: () => void;
 }) => (
-  <View className="size-11 items-center justify-center rounded-full bg-overlay-white-15">
+  <Pressable
+    onPress={onPress}
+    className="size-11 items-center justify-center rounded-full bg-overlay-white-15"
+  >
     {children}
 
     {badge && (
@@ -357,5 +372,5 @@ const IconOverlay = ({
         </Text>
       </View>
     )}
-  </View>
+  </Pressable>
 );

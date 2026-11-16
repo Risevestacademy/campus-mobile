@@ -6,6 +6,37 @@ import { Modal as RNModal, Pressable, View } from "react-native";
 import { Button, type ButtonProps } from "./Button";
 import { Text } from "./Text";
 
+export interface ModalFrameProps {
+  visible: boolean;
+  onClose?: () => void;
+  className?: string;
+  children: ReactNode;
+}
+
+export function ModalFrame({
+  visible,
+  onClose,
+  className,
+  children,
+}: ModalFrameProps) {
+  return (
+    <RNModal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <Pressable
+        onPress={onClose}
+        className="flex-1 justify-center bg-overlay-scrim px-6"
+      >
+        <Pressable className={className}>{children}</Pressable>
+      </Pressable>
+    </RNModal>
+  );
+}
+
 export interface ModalProps {
   visible: boolean;
   title: string;
@@ -32,57 +63,45 @@ export function Modal({
   className,
 }: ModalProps) {
   return (
-    <RNModal
+    <ModalFrame
       visible={visible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={onClose}
+      onClose={onClose}
+      className={cn(
+        "items-center gap-3 rounded-xl border border-border-default bg-white p-6 dark:bg-bg-hover",
+        className,
+      )}
     >
-      <Pressable
-        onPress={onClose}
-        className="flex-1 justify-center bg-overlay-scrim px-6"
-      >
-        {/* Inner Pressable swallows taps so only the backdrop closes the modal. */}
-        <Pressable
+      <View className="size-14 items-center justify-center rounded-full bg-status-danger-subtle">
+        {icon ?? <Warning />}
+      </View>
+
+      <View className="items-center gap-2">
+        <Text className="text-center font-h5 text-h5 text-text-primary">
+          {title}
+        </Text>
+        {description ? (
+          <Text className="text-center font-body-sm text-body-sm text-[#6B7280] dark:text-text-on-dark">
+            {description}
+          </Text>
+        ) : null}
+      </View>
+
+      {actionLabel ? (
+        <Button
+          label={actionLabel}
+          variant={actionVariant}
           className={cn(
-            "items-center gap-3 rounded-xl border border-border-default bg-white p-6 dark:bg-bg-hover",
-            className,
+            "mt-2 self-stretch",
+            actionVariant === "secondary" &&
+              "border-border-focus dark:border-bg-band",
           )}
-        >
-          <View className="size-14 items-center justify-center rounded-full bg-status-danger-subtle">
-            {icon ?? <Warning />}
-          </View>
-
-          <View className="items-center gap-2">
-            <Text className="text-center font-h5 text-h5 text-text-primary">
-              {title}
-            </Text>
-            {description ? (
-              <Text className="text-center font-body-sm text-body-sm text-[#6B7280] dark:text-text-on-dark">
-                {description}
-              </Text>
-            ) : null}
-          </View>
-
-          {actionLabel ? (
-            <Button
-              label={actionLabel}
-              variant={actionVariant}
-              className={cn(
-                "mt-2 self-stretch",
-                actionVariant === "secondary" &&
-                  "border-border-focus dark:border-bg-band",
-              )}
-              labelClassName={cn(
-                actionVariant === "secondary" &&
-                  "text-text-brand dark:text-text-on-dark",
-              )}
-              onPress={onAction}
-            />
-          ) : null}
-        </Pressable>
-      </Pressable>
-    </RNModal>
+          labelClassName={cn(
+            actionVariant === "secondary" &&
+              "text-text-brand dark:text-text-on-dark",
+          )}
+          onPress={onAction}
+        />
+      ) : null}
+    </ModalFrame>
   );
 }
