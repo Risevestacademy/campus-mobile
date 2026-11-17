@@ -11,6 +11,7 @@ export * from "./Pill";
 export * from "./Row";
 export * from "./Spinner";
 export * from "./StatusDot";
+export * from "./Switch";
 export * from "./Text";
 export * from "./TextField";
 export * from "./Toast";
