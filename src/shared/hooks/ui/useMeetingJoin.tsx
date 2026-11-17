@@ -10,12 +10,15 @@ const MeetingJoinModalContext =
   React.createContext<MeetingJoinContextValue | null>(null);
 
 export type MeetingJoinData = {
-  meetingId: string;
+  /** The world space the meeting is in; Join opens it. */
+  spaceKey: string;
   title: string;
   hostName?: string;
   location: string;
   startsAt?: Date;
   participants: { imageUrl?: string; name: string }[];
+  /** Runs when Join is tapped, before the space opens, e.g. to walk there. */
+  onJoin?: () => void;
 };
 
 type MeetingJoinContextValue = {

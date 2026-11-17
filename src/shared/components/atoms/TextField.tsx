@@ -1,3 +1,4 @@
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { cn } from "@shared/utils/style";
 import { CaretDownIcon, WarningCircleIcon } from "phosphor-react-native";
 import { ReactNode, useRef, useState } from "react";
@@ -13,6 +14,9 @@ import { Text } from "./Text";
 
 const StyledCaretDownIcon = withUniwind(CaretDownIcon);
 const StyledWarningCircleIcon = withUniwind(WarningCircleIcon);
+const SheetTextInput = withUniwind(
+  BottomSheetTextInput,
+) as unknown as typeof RNTextInput;
 
 export interface TextFieldProps extends Omit<RNTextInputProps, "prefix"> {
   label?: ReactNode;
@@ -22,6 +26,11 @@ export interface TextFieldProps extends Omit<RNTextInputProps, "prefix"> {
   helper?: ReactNode;
   error?: boolean | string;
   select?: boolean;
+  /**
+   * Set when the field is inside a gorhom bottom sheet, so the sheet moves
+   * up with the keyboard instead of being covered by it.
+   */
+  inBottomSheet?: boolean;
   disabled?: boolean;
   onPress?: () => void;
   containerClassName?: string;
@@ -39,6 +48,7 @@ export function TextField({
   helper,
   error,
   select = false,
+  inBottomSheet = false,
   disabled = false,
   placeholder,
   onPress,
@@ -54,6 +64,7 @@ export function TextField({
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<RNTextInput>(null);
 
+  const Input = inBottomSheet ? SheetTextInput : RNTextInput;
   const actualSuffix = suffix ?? surfix;
   const helperText = typeof error === "string" ? error : helper;
   const hasError = Boolean(error);
@@ -115,7 +126,7 @@ export function TextField({
           </View>
         )}
 
-        <RNTextInput
+        <Input
           ref={inputRef}
           {...props}
           textAlignVertical="top"
@@ -149,7 +160,7 @@ export function TextField({
           )}
 
           {select && !hasError && !actualSuffix && (
-            <StyledCaretDownIcon size={18} colorClassName="accent-icon-muted" />
+            <StyledCaretDownIcon size={18} colorClassName="accent-text-muted" />
           )}
         </View>
       </Pressable>

@@ -12,7 +12,7 @@ import { useShallow } from "zustand/react/shallow";
  */
 export type Presence = Pick<
   Avatar,
-  "userId" | "displayName" | "status" | "spaceKey"
+  "userId" | "displayName" | "status" | "statusUntil" | "spaceKey"
 >;
 
 export type WorldState = {
@@ -21,6 +21,13 @@ export type WorldState = {
   selfId: string | null;
   players: Record<string, Presence>;
   spaces: Record<string, SpaceName>;
+  /**
+   * avatar: this device stands for you on the map. watcher: another device
+   * does, and this one only looks on. Null until `welcome`.
+   */
+  mode: "avatar" | "watcher" | null;
+  /** Space keys locked in your cohort right now. */
+  lockedSpaces: string[];
   /** Who is close enough to hear you, in a proximity space; else empty. */
   nearby: string[];
 };
@@ -28,13 +35,21 @@ export type WorldState = {
 const initialState: WorldState = {
   ready: false,
   selfId: null,
+  mode: null,
   players: {},
   spaces: {},
+  lockedSpaces: [],
   nearby: [],
 };
 
-function toPresence({ userId, displayName, status, spaceKey }: Avatar) {
-  return { userId, displayName, status, spaceKey };
+function toPresence({
+  userId,
+  displayName,
+  status,
+  statusUntil,
+  spaceKey,
+}: Avatar) {
+  return { userId, displayName, status, statusUntil, spaceKey };
 }
 
 function bySpaceKey(spaces: SpaceName[]) {
@@ -61,7 +76,7 @@ export function applyWorldMessage(
 ): WorldState {
   switch (message.type) {
     case "welcome":
-      return { ...state, selfId: message.userId };
+      return { ...state, selfId: message.userId, mode: message.mode };
     case "snapshot":
       return {
         ...state,
@@ -70,6 +85,7 @@ export function applyWorldMessage(
           message.players.map((p) => [p.userId, toPresence(p)]),
         ),
         spaces: bySpaceKey(message.spaces),
+        lockedSpaces: message.lockedSpaces,
         // A new connection: world sends `nearby` again if it applies.
         nearby: [],
       };
@@ -87,7 +103,10 @@ export function applyWorldMessage(
       return { ...state, players };
     }
     case "statusChanged":
-      return patch(state, message.userId, { status: message.status });
+      return patch(state, message.userId, {
+        status: message.status,
+        statusUntil: message.until,
+      });
     case "spaceChanged": {
       const next = patch(state, message.userId, { spaceKey: message.spaceKey });
       // Earshot belongs to the space you were in; a new one sends its own.
@@ -101,8 +120,20 @@ export function applyWorldMessage(
       });
     case "spaces":
       return { ...state, spaces: bySpaceKey(message.spaces) };
+    case "lockChanged": {
+      const others = state.lockedSpaces.filter(
+        (key) => key !== message.spaceKey,
+      );
+      return {
+        ...state,
+        lockedSpaces: message.locked ? [...others, message.spaceKey] : others,
+      };
+    }
     case "replaced":
-      return initialState;
+      return { ...state, ready: false, mode: "watcher", nearby: [] };
+    // Another device took over, but this socket stays open to look on.
+    case "watching":
+      return { ...state, mode: "watcher", nearby: [] };
     default:
       return state;
   }
@@ -123,6 +154,22 @@ export const useCampusCount = () =>
 
 export const useWorldReady = () => useWorldStore((state) => state.ready);
 
+/** Another device stands for you on the map; this one only looks on. */
+export const useIsWatching = () =>
+  useWorldStore((state) => state.mode === "watcher");
+
+/**
+ * Watching, but nobody stands for you: the device that did has left. World
+ * never hands the avatar to a watcher on its own.
+ */
+export const isStandingEmpty = (state: WorldState) =>
+  state.mode === "watcher" &&
+  state.ready &&
+  state.selfId !== null &&
+  !state.players[state.selfId];
+
+export const useStandingEmpty = () => useWorldStore(isStandingEmpty);
+
 export const useMySpace = () =>
   useWorldStore((state) => {
     const key = state.selfId
@@ -135,6 +182,12 @@ export const useMySpace = () =>
 export const useMyStatus = () =>
   useWorldStore((state) =>
     state.selfId ? state.players[state.selfId]?.status : undefined,
+  );
+
+/** When a status you chose for a while ends, as an ISO timestamp; else null. */
+export const useMyStatusUntil = () =>
+  useWorldStore((state) =>
+    state.selfId ? (state.players[state.selfId]?.statusUntil ?? null) : null,
   );
 
 /**

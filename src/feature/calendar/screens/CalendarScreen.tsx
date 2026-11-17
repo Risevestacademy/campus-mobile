@@ -1,7 +1,7 @@
-import { Button, Text } from "@shared/components/atoms";
+import { Button, Spinner, Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 
 import {
   AttendanceNote,
@@ -36,7 +36,7 @@ function CalendarScreen() {
 
   const body = (() => {
     if (isLoading) {
-      return <ActivityIndicator className="py-6" />;
+      return <Spinner className="py-6" />;
     }
     if (isError || !data) {
       return (

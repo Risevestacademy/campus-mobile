@@ -142,6 +142,7 @@ describe("RootLayout world socket", () => {
           userId: "me",
           displayName: null,
           status: "available",
+          statusUntil: null,
           spaceKey: "_default",
         },
       },

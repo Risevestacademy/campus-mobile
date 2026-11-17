@@ -9,6 +9,7 @@ import {
   CampusHeaderHero,
   HappeningAroundYou,
   LiveMeeting,
+  MyDeskShortcut,
   Spaces,
 } from "../components";
 import { useCollapsingHeader } from "../hooks";
@@ -17,7 +18,7 @@ export function CampusScreen() {
   const ready = useWorldReady();
   const userCount = useCampusCount();
   const spaceKey = useMySpace();
-  const { status, setStatus } = useAvailability();
+  const { status, until, setStatus } = useAvailability();
   const header = useCollapsingHeader();
 
   const noOfParticipants = ready ? userCount : undefined;
@@ -38,6 +39,7 @@ export function CampusScreen() {
           progress={header.progress}
           onLayout={header.onHeroLayout}
           onSummaryLayout={header.onSummaryLayout}
+          footer={<MyDeskShortcut />}
         />
         <View className="px-6">
           <LiveMeeting />
@@ -47,6 +49,7 @@ export function CampusScreen() {
       </Animated.ScrollView>
       <CampusHeaderBar
         status={status}
+        statusUntil={until}
         onStatusChange={setStatus}
         noOfParticipants={noOfParticipants}
         location={location?.name}

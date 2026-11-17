@@ -1,3 +1,4 @@
+import { FeedbackService } from "@services/feedback";
 import { ProfileService } from "@services/profile";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -23,4 +24,12 @@ export function useUpdateProfile() {
   });
 
   return { update, isUpdating };
+}
+
+export function useSendFeedback() {
+  const { mutateAsync: send, isPending: isSending } = useMutation({
+    mutationFn: FeedbackService.send,
+  });
+
+  return { send, isSending };
 }
