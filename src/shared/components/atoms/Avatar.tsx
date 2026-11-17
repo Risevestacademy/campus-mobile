@@ -1,3 +1,4 @@
+import { cn } from "@shared/utils/style";
 import { UserIcon } from "phosphor-react-native";
 import { Image, View } from "react-native";
 import { withUniwind } from "uniwind";
@@ -10,6 +11,7 @@ export type AvatarProps = {
   bg?: string;
   placeholder?: string;
   placeholderClassName?: string;
+  className?: string;
 };
 
 const StyledUserIcon = withUniwind(UserIcon);
@@ -20,6 +22,7 @@ export function Avatar({
   bg,
   placeholder,
   placeholderClassName,
+  className,
 }: AvatarProps) {
   let child;
 
@@ -37,7 +40,10 @@ export function Avatar({
 
   return (
     <View
-      className="items-center justify-center overflow-hidden rounded-full bg-action-primary"
+      className={cn(
+        "items-center justify-center overflow-hidden rounded-full bg-action-primary",
+        className,
+      )}
       style={{
         width: size,
         height: size,
