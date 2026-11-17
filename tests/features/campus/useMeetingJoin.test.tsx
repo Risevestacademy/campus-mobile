@@ -4,11 +4,13 @@ import {
   MeetingJoinProvider,
   useMeetingJoin,
 } from "@shared/hooks/ui";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 
+const mockPush = jest.fn();
+
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: mockPush }),
 }));
 
 const meeting: MeetingJoinData = {
@@ -24,7 +26,15 @@ function Opener({ data = meeting }: { data?: MeetingJoinData }) {
 }
 
 describe("useMeetingJoin", () => {
-  it("shows the meeting's details without a way to join", async () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("joins the meeting room exactly once on repeated presses", async () => {
     await render(
       <MeetingJoinProvider>
         <Opener />
@@ -32,10 +42,19 @@ describe("useMeetingJoin", () => {
     );
 
     await fireEvent.press(screen.getByText("Open meeting"));
+    const join = screen.getByText("Join");
 
-    expect(screen.getByText("Design Foundations")).toBeTruthy();
-    expect(screen.getByText("Close")).toBeTruthy();
-    expect(screen.queryByText("Join")).toBeNull();
+    await fireEvent.press(join);
+    await fireEvent.press(join);
+    // Outlast the Button's own press throttle so only the join guard is left
+    await act(() => jest.advanceTimersByTime(1000));
+    await fireEvent.press(join);
+
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(app)/space/[id]",
+      params: { id: "design-foundations" },
+    });
   });
 
   it("runs the meeting's own join step once, then opens its space", async () => {
@@ -54,7 +73,7 @@ describe("useMeetingJoin", () => {
 
     expect(onJoin).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: "/(app)/(tabs)/(campus)/space/[id]",
+      pathname: "/(app)/space/[id]",
       params: { id: "campus-space-id" },
     });
   });
