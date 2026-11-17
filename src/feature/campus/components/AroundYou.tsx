@@ -7,7 +7,6 @@ import {
   Text,
 } from "@shared/components/atoms";
 import { capitalize, formatParticipantPresentation } from "@shared/helpers";
-import { useMeetingJoin } from "@shared/hooks/ui";
 import { useWs } from "@shared/hooks/useWs";
 import {
   type Presence,
@@ -15,6 +14,7 @@ import {
   useIsWatching,
   useWorldReady,
 } from "@store/world";
+import { useRouter } from "expo-router";
 import { AudioLines, Hand, Navigation } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
@@ -37,7 +37,7 @@ export function HappeningAroundYou() {
   const ready = useWorldReady();
   const { space, earshot, inMySpace } = useAroundMe();
   const { send } = useWs();
-  const { open } = useMeetingJoin();
+  const router = useRouter();
   const call = useCurrentCall();
   // Only the device standing for you can walk.
   const watching = useIsWatching();
@@ -47,14 +47,9 @@ export function HappeningAroundYou() {
   const spaceName = space?.name ?? "";
 
   const joinConversation = () => {
-    const participants = earshot.map((player) => ({ name: nameOf(player) }));
-    open({
-      spaceKey: space?.spaceKey ?? "",
-      title: formatParticipantPresentation(participants.map((p) => p.name)),
-      hostName: "",
-      startsAt: new Date(),
-      participants,
-      location: spaceName,
+    router.push({
+      pathname: "/(app)/space/[id]",
+      params: { id: space?.spaceKey ?? "" },
     });
   };
 
@@ -68,7 +63,6 @@ export function HappeningAroundYou() {
               call?.participants ??
               earshot.map((player) => ({ name: nameOf(player) })),
             desc: spaceName,
-            inCall: call !== null,
             onJoin: joinConversation,
           },
         ]
@@ -121,8 +115,6 @@ type HappeningProps = {
   id: string;
   participants: CallParticipant[];
   desc?: string;
-  /** You're already in it: shows a disabled "In call" in place of Join. */
-  inCall?: boolean;
   /** Only the conversation within earshot can be joined. */
   onJoin?: () => void;
   /** Rows for one person, outside the call, get Wave and Navigate. */
@@ -134,7 +126,6 @@ type HappeningProps = {
 function Happening({
   participants,
   desc,
-  inCall,
   onJoin,
   person,
   onWave,
@@ -171,20 +162,7 @@ function Happening({
           </Text>
         ) : null}
       </View>
-      {inCall ? (
-        <Row
-          className="gap-1 rounded-full bg-overlay-white-15 px-3 py-1"
-          accessible
-          accessibilityRole="button"
-          accessibilityLabel={`In call with ${who}`}
-          accessibilityState={{ disabled: true }}
-        >
-          <StyledAudioLines colorClassName="accent-text-rail" size={14} />
-          <Text className="text-text-rail" variant="label">
-            In call
-          </Text>
-        </Row>
-      ) : onJoin ? (
+      {onJoin ? (
         <Pressable
           onPress={onJoin}
           accessibilityRole="button"

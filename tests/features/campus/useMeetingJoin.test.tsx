@@ -52,7 +52,7 @@ describe("useMeetingJoin", () => {
 
     expect(mockPush).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/(app)/(tabs)/(campus)/space/[id]",
+      pathname: "/(app)/space/[id]",
       params: { id: "design-foundations" },
     });
   });
@@ -73,7 +73,7 @@ describe("useMeetingJoin", () => {
 
     expect(onJoin).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: "/(app)/(tabs)/(campus)/space/[id]",
+      pathname: "/(app)/space/[id]",
       params: { id: "campus-space-id" },
     });
   });

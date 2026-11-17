@@ -41,6 +41,14 @@
             "backgroundColor": "#162350"
           }
         }
+      ],
+      "@livekit/react-native-expo-plugin",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Campus uses your camera when you turn it on in a space.",
+          "microphonePermission": "Campus uses your microphone so people in your space can hear you."
+        }
       ]
     ],
     "experiments": {

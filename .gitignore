@@ -52,3 +52,11 @@ example
 docs/plans
 
 .env
+campus-api-full.md
+live-kit.md
+
+# Local EAS builds
+*.apk
+*.aab
+.easignore
+build/
