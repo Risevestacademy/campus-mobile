@@ -15,11 +15,13 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
   const { mutateAsync: update, isPending: isUpdating } = useMutation({
     mutationFn: ProfileService.updateProfile,
-    // The header reads the name from ["me"]; refetch both views of the user.
+    // The header reads the name from ["me"] and the desk reads the bio from
+    // your member card; refetch every view of the user.
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["me"] }),
         queryClient.invalidateQueries({ queryKey: ["user/me"] }),
+        queryClient.invalidateQueries({ queryKey: ["profile/member"] }),
       ]),
   });
 
@@ -32,4 +34,15 @@ export function useSendFeedback() {
   });
 
   return { send, isSending };
+}
+
+/** Waits while `id` is unknown, e.g. until the signed-in user loads. */
+export function useGetMemberProfile(id: string | undefined) {
+  const { isLoading, data, refetch, error } = useQuery({
+    queryKey: ["profile/member", id],
+    queryFn: () => ProfileService.viewMemberProfile(id!),
+    enabled: Boolean(id),
+  });
+
+  return { isLoading, data, refetch, error };
 }
