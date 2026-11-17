@@ -3,6 +3,7 @@ import { Button, Dialog, Text } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { useLogout } from "@shared/hooks/useLogout";
 import { useAppearanceStore } from "@store/appearance";
+import { useRouter } from "expo-router";
 import {
   Armchair,
   Bell,
@@ -31,6 +32,7 @@ import { Project } from "../types";
 const StyledLogOut = withUniwind(LogOut);
 
 export function ProfileScreen() {
+  const router = useRouter();
   const appearanceSheetRef = useRef<BottomSheetModal>(null);
   const { theme } = useUniwind();
   const appearance = useAppearanceStore((state) => state.preference);
@@ -50,6 +52,7 @@ export function ProfileScreen() {
         title: "My desk",
         subtitle: "D-07 · Design faculty",
         icon: Armchair,
+        onPress: () => router.push("/(app)/desk"),
       },
       {
         title: "My character",
@@ -57,7 +60,7 @@ export function ProfileScreen() {
         icon: UserRound,
       },
     ],
-    [],
+    [router],
   );
   const SETTINGS = useMemo(
     () => [
