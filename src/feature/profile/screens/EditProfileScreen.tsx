@@ -11,16 +11,17 @@ import {
 import SafeArea from "@shared/components/safearea/SafeArea";
 import { capitalize, getInitials } from "@shared/helpers";
 import { useMe } from "@shared/hooks/useMe";
-import { Lock } from "lucide-react-native";
+import { Camera, Lock } from "lucide-react-native";
 import React from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { withUniwind } from "uniwind";
 
 import { HeaderWithBack } from "../components";
-import { useProfile, useUpdateProfile } from "../hooks";
+import { useChangeAvatar, useProfile, useUpdateProfile } from "../hooks";
 import { useHasProfileChanges, useProfileUpdateStore } from "../store";
 
 const StyledLock = withUniwind(Lock);
+const StyledCamera = withUniwind(Camera);
 
 export function EditProfileScreen() {
   const { data } = useProfile();
@@ -35,6 +36,7 @@ export function EditProfileScreen() {
   const activeMembership = data?.memberships.find(
     (e) => e.cohort.id === me?.membership?.cohortId,
   );
+  const { change: changeAvatar, isChanging, preview } = useChangeAvatar();
 
   React.useEffect(() => {
     if (data) hydrate(data);
@@ -86,17 +88,33 @@ export function EditProfileScreen() {
       />
       <ScrollView contentContainerClassName="px-5 gap-4 items-stretch">
         <View className="items-center gap-2 self-center pt-5">
-          <Avatar
-            size={88}
-            imageUrl={data?.avatarUrl ?? undefined}
-            placeholderClassName="text-h4 text-text-on-dark"
-            placeholder={getInitials(data?.displayName ?? "", {
-              onlyFirst: true,
-            })}
-          />
-          <Text variant="label" color="link">
-            Change photo
-          </Text>
+          <View className="relative">
+            <Avatar
+              size={88}
+              // The picked photo stands in while it uploads.
+              imageUrl={preview ?? data?.avatarUrl ?? undefined}
+              placeholderClassName="text-h4 text-text-on-dark"
+              placeholder={getInitials(data?.displayName ?? "", {
+                onlyFirst: true,
+              })}
+              className={isChanging ? "opacity-60" : undefined}
+            />
+            <Pressable
+              onPress={changeAvatar}
+              disabled={isChanging}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile picture"
+              accessibilityState={{ disabled: isChanging, busy: isChanging }}
+              className="absolute right-0 bottom-0 size-7.5 items-center justify-center rounded-full border-[3px] border-bg-page bg-action-primary"
+            >
+              {isChanging ? (
+                <Spinner size={14} />
+              ) : (
+                <StyledCamera colorClassName="accent-text-on-dark" size={14} />
+              )}
+            </Pressable>
+          </View>
         </View>
         <TextField
           label="Display name"

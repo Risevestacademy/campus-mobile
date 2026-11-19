@@ -26,6 +26,13 @@ export class ProfileService {
     );
   }
 
+  /** Sets an uploaded picture (kind `avatar`) as yours, within 30 minutes of uploading it. */
+  static async setAvatar(mediaId: string): Promise<ProfileGetResponse> {
+    return unwrap<ProfileGetResponse>(
+      client.PUT("/v1/users/me/avatar", { body: { mediaId } }),
+    );
+  }
+
   static async viewMemberProfile(id: string): Promise<ProfileViewResponse> {
     return unwrap<ProfileViewResponse>(
       client.GET("/v1/users/{id}/profile", { params: { path: { id } } }),
