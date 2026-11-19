@@ -32,6 +32,12 @@ export type WebSocketState = {
    * asks; ifFree claims it only when nobody holds it.
    */
   reconnect: (enter?: EnterMode) => void;
+  /**
+   * Reopens the socket while standing for you, resuming the avatar world
+   * holds for it. World takes it as an arrival, so it sends fresh `call` and
+   * `broadcast` credentials. Does nothing unless admitted and open.
+   */
+  rejoin: () => void;
   /** Sends when open; returns false (and drops it) otherwise. */
   send: (message: ClientMessage) => boolean;
   /**
