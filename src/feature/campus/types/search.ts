@@ -6,14 +6,19 @@ export type SearchFilter =
 /** What a result can be: every filter but All. */
 export type SearchResultType = Exclude<SearchFilter, "all">;
 
-/** Somebody on campus now, from the world socket. */
+/** Somebody in your cohort; on campus now when world has them. */
 export type PersonResult = {
   id: string;
   name: string;
-  status: Status;
+  onCampus: boolean;
+  /** Only while they're on campus. */
+  status?: Status;
   /** The space they're standing in, by name. */
   spaceName?: string;
 };
+
+/** Somebody in your cohort, as campus-api lists them. */
+export type CohortPerson = { id: string; displayName: string | null };
 /** A drawn space on the map, and how many are in it now. */
 export type SpaceResult = {
   id: string;

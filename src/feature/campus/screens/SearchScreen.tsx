@@ -101,6 +101,8 @@ export function SearchScreen() {
   // Wave, meetings and resources wait on their own flows.
   const resultActions: SearchResultActions = {
     onGoToPerson: (person) => walk({ type: "goTo", userId: person.id }),
+    onOpenPerson: (person) =>
+      router.push({ pathname: "/desk", params: { userId: person.id } }),
     // useGoToSpace reports a refused or blocked walk when it ends.
     onGoToSpace: (space) => {
       if (goToSpace(space.id, space.name)) {
