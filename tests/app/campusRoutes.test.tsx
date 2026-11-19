@@ -10,8 +10,15 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ id: "main-hallway" }),
 }));
 
+const mockSend = jest.fn(() => true);
+
 jest.mock("@shared/hooks/useWs", () => ({
-  useWs: () => ({ status: "idle", subscribe: () => () => {} }),
+  useWs: () => ({
+    status: "idle",
+    subscribe: () => () => {},
+    send: mockSend,
+    rejoin: jest.fn(),
+  }),
 }));
 
 describe("campus routes", () => {
@@ -30,6 +37,11 @@ describe("campus routes", () => {
     );
 
     expect(screen.queryByLabelText("Go back")).toBeNull();
-    expect(screen.getByText("Waiting to join…")).toBeTruthy();
+    // Not in the space yet: opening it walks you there before any call.
+    expect(screen.getByText("Walking to main-hallway…")).toBeTruthy();
+    expect(mockSend).toHaveBeenCalledWith({
+      type: "goToSpace",
+      spaceKey: "main-hallway",
+    });
   });
 });

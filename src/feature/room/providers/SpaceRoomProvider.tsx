@@ -1,21 +1,49 @@
 import { AudioSession, LiveKitRoom } from "@livekit/react-native";
-import { toast } from "@shared/components/atoms";
 import React from "react";
 
-import { useSpaceCallContext } from "./SpaceCallProvider";
+import { useProximitySubscriptions, useRoomConnection } from "../hooks";
+
+type RoomConnection = Pick<
+  ReturnType<typeof useRoomConnection>,
+  "phase" | "retry" | "walk" | "stuckReason"
+>;
+
+const RoomConnectionContext = React.createContext<RoomConnection | undefined>(
+  undefined,
+);
+
+/** Where the space screen is in getting you into its call. */
+export function useRoomConnectionContext(): RoomConnection {
+  const value = React.useContext(RoomConnectionContext);
+  if (value === undefined) {
+    throw new Error(
+      "useRoomConnectionContext must be used inside SpaceRoomProvider",
+    );
+  }
+  return value;
+}
+
+/** Hears only the nearby, in a proximity space. Renders nothing. */
+function ProximitySubscriptions() {
+  useProximitySubscriptions();
+  return null;
+}
 
 /**
- * Connects to the room of the space you are standing in, muted with the
- * camera off. Mount it on the space screen so leaving the screen leaves the
- * room. Keyed on `call.room`, so stepping into another space leaves one room
- * and joins the next. Without a call it renders `children` outside a room.
- *
- * A join that fails (a rejected token, say) stops instead of retrying in a
- * loop; a new `call` from the server tries again.
+ * Connects to `spaceKey`'s call, muted with the camera off, once you are
+ * standing in that space and world has sent its call. Mount it on the space
+ * screen so leaving the screen leaves the room. Until then, and after a
+ * failed or lost call, it renders `children` outside a room.
  */
-export function SpaceRoomProvider({ children }: { children: React.ReactNode }) {
-  const { call } = useSpaceCallContext();
-  const [failedToken, setFailedToken] = React.useState<string | null>(null);
+export function SpaceRoomProvider({
+  spaceKey,
+  children,
+}: {
+  spaceKey: string;
+  children: React.ReactNode;
+}) {
+  const connection = useRoomConnection(spaceKey);
+  const { call, connect, roomKey } = connection;
 
   React.useEffect(() => {
     void AudioSession.startAudioSession();
@@ -24,27 +52,38 @@ export function SpaceRoomProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  if (call === null) return <>{children}</>;
-
-  const fail = (message: string) => {
-    console.warn("[room]", message);
-    if (failedToken === call.token) return;
-    setFailedToken(call.token);
-    toast.error("Couldn't join the call.");
+  const value: RoomConnection = {
+    phase: connection.phase,
+    retry: connection.retry,
+    walk: connection.walk,
+    stuckReason: connection.stuckReason,
   };
 
   return (
-    <LiveKitRoom
-      key={call.room}
-      serverUrl={call.url}
-      token={call.token}
-      connect={failedToken !== call.token}
-      audio={false}
-      video={false}
-      onError={(error) => fail(error.message)}
-      onDisconnected={() => fail("disconnected")}
-    >
-      {children}
-    </LiveKitRoom>
+    <RoomConnectionContext.Provider value={value}>
+      {call && connect && roomKey ? (
+        <LiveKitRoom
+          key={roomKey}
+          serverUrl={call.url}
+          token={call.token}
+          connect
+          audio={false}
+          video={false}
+          // Proximity: hear only who `nearby` names, not the whole room.
+          connectOptions={{ autoSubscribe: call.hearing !== "proximity" }}
+          onConnected={connection.onConnected}
+          onDisconnected={connection.onDisconnected}
+          onError={(error) => {
+            console.warn("[room]", error.message);
+            connection.onError();
+          }}
+        >
+          <ProximitySubscriptions />
+          {children}
+        </LiveKitRoom>
+      ) : (
+        children
+      )}
+    </RoomConnectionContext.Provider>
   );
 }
