@@ -4,10 +4,10 @@ import {
   Hand,
   Lock,
   LogOut,
+  MessageCircle,
   Mic,
   MicOff,
   MoreHorizontal,
-  Smile,
   Video,
   VideoOff,
 } from "lucide-react-native";
@@ -24,7 +24,7 @@ const StyledMicOff = withUniwind(MicOff);
 const StyledVideo = withUniwind(Video);
 const StyledVideoOff = withUniwind(VideoOff);
 const StyledHand = withUniwind(Hand);
-const StyledSmile = withUniwind(Smile);
+const StyledChat = withUniwind(MessageCircle);
 const StyledMore = withUniwind(MoreHorizontal);
 const StyledLogOut = withUniwind(LogOut);
 const StyledLock = withUniwind(Lock);
@@ -114,8 +114,8 @@ export function RoomControls() {
       >
         <StyledHand colorClassName="accent-text-primary" size={20} />
       </RoundControl>
-      <RoundControl label="React" disabled>
-        <StyledSmile colorClassName="accent-text-on-dark" size={20} />
+      <RoundControl label="Chat" disabled>
+        <StyledChat colorClassName="accent-text-on-dark" size={20} />
       </RoundControl>
       <RoundControl label="More" disabled>
         <StyledMore colorClassName="accent-text-on-dark" size={20} />

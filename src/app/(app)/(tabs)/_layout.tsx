@@ -6,7 +6,7 @@ import {
   CalendarCheck2,
   type LucideIcon,
   Map,
-  MessageCircle,
+  // MessageCircle, // chat tab hidden: chat now lives inside calls
   MessageCircleWarning,
   UserRound,
 } from "lucide-react-native";
@@ -127,6 +127,7 @@ export default function TabsLayout() {
             tabBarIcon: tabIcon(Map),
           }}
         />
+        {/* Chat tab hidden: chat is localized to calls (see room chat).
         <Tabs.Screen
           name="(messages)"
           options={{
@@ -134,6 +135,9 @@ export default function TabsLayout() {
             tabBarIcon: tabIcon(MessageCircle),
           }}
         />
+        */}
+        {/* href: null keeps the route but removes it from the tab bar. */}
+        <Tabs.Screen name="(messages)" options={{ href: null }} />
         <Tabs.Screen
           name="(calendar)"
           options={{
