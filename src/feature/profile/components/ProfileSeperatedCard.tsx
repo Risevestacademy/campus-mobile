@@ -12,6 +12,7 @@ type ProfileSeparatedCardProps = {
     subtitle?: string;
     onPress?: () => void;
     icon: LucideIcon;
+    surfix?: React.ReactNode;
   }[];
 };
 
@@ -42,10 +43,14 @@ export function ProfileSeparatedCard({ data }: ProfileSeparatedCardProps) {
                     </Text>
                   )}
                 </View>
-                <StyledChevronRight
-                  colorClassName="accent-text-muted"
-                  size={16}
-                />
+                {e.surfix ? (
+                  e.surfix
+                ) : (
+                  <StyledChevronRight
+                    colorClassName="accent-text-muted"
+                    size={16}
+                  />
+                )}
               </Row>
             </Pressable>
           );
