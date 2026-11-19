@@ -4,17 +4,20 @@ import {
   Divider,
   MultiAvatar,
   Row,
+  StatusDot,
   Text,
 } from "@shared/components/atoms";
-import { capitalize, formatParticipantPresentation } from "@shared/helpers";
+import { formatParticipantPresentation } from "@shared/helpers";
 import { useMeetingJoin } from "@shared/hooks/ui";
 import { useWs } from "@shared/hooks/useWs";
+import type { Status } from "@shared/lib/generated/world-protocol";
 import {
   type Presence,
   useAroundMe,
   useIsWatching,
   useWorldReady,
 } from "@store/world";
+import { useRouter } from "expo-router";
 import { AudioLines, Hand, Navigation } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
@@ -39,6 +42,7 @@ export function HappeningAroundYou() {
   const { send } = useWs();
   const { open } = useMeetingJoin();
   const call = useCurrentCall();
+  const router = useRouter();
   // Only the device standing for you can walk.
   const watching = useIsWatching();
 
@@ -75,9 +79,12 @@ export function HappeningAroundYou() {
       : []),
     ...inMySpace.map((player) => ({
       onNavigate: watching ? undefined : () => goTo(player.userId),
+      onOpen: () =>
+        router.push({ pathname: "/desk", params: { userId: player.userId } }),
       id: player.userId,
       participants: [{ id: player.userId, name: nameOf(player) }],
-      desc: [capitalize(player.status), spaceName].filter(Boolean).join(" · "),
+      desc: spaceName,
+      status: player.status,
       person: true,
     })),
   ];
@@ -129,6 +136,10 @@ type HappeningProps = {
   person?: boolean;
   onWave?: () => void;
   onNavigate?: () => void;
+  /** A person's status, as a dot on their avatar. */
+  status?: Status;
+  /** Opens their desk. */
+  onOpen?: () => void;
 };
 
 function Happening({
@@ -139,38 +150,59 @@ function Happening({
   person,
   onWave,
   onNavigate,
+  onOpen,
+  status,
 }: HappeningProps) {
   const who = formatParticipantPresentation(participants.map((p) => p.name));
 
   return (
     <Row className="border-text-on-accent">
-      <MultiAvatar
-        size={36}
-        participants={participants.map((p) => ({
-          id: p.id,
-          imageUrl: p.imageUrl,
-          placeholder: p.initial ?? p.name[0] ?? "",
-        }))}
-        ringClassName="border-bg-ink-card border-[2px]"
-      />
-      <View className="flex-1">
-        <Text
-          variant="label"
-          numberOfLines={1}
-          className="overflow-hidden text-ellipsis text-text-on-dark"
-        >
-          {who}
-        </Text>
-        {desc ? (
+      <Pressable
+        onPress={onOpen}
+        disabled={!onOpen}
+        accessibilityRole={onOpen ? "button" : undefined}
+        accessibilityLabel={onOpen ? `Open ${who}'s desk` : undefined}
+        // The dot says this to sighted people.
+        accessibilityValue={status ? { text: status } : undefined}
+        className="flex-1 flex-row items-center gap-2"
+      >
+        <View className="relative">
+          <MultiAvatar
+            size={36}
+            participants={participants.map((p) => ({
+              id: p.id,
+              imageUrl: p.imageUrl,
+              placeholder: p.initial ?? p.name[0] ?? "",
+            }))}
+            ringClassName="border-bg-ink-card border-[2px]"
+          />
+          {status ? (
+            <StatusDot
+              status={status}
+              testID="status-dot"
+              className="absolute right-0 bottom-0 size-3 border-2 border-bg-ink-card"
+            />
+          ) : null}
+        </View>
+        <View className="flex-1">
           <Text
-            variant="caption"
+            variant="label"
             numberOfLines={1}
-            className="overflow-hidden text-ellipsis text-text-rail"
+            className="overflow-hidden text-ellipsis text-text-on-dark"
           >
-            {desc}
+            {who}
           </Text>
-        ) : null}
-      </View>
+          {desc ? (
+            <Text
+              variant="caption"
+              numberOfLines={1}
+              className="overflow-hidden text-ellipsis text-text-rail"
+            >
+              {desc}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
       {inCall ? (
         <Row
           className="gap-1 rounded-full bg-overlay-white-15 px-3 py-1"

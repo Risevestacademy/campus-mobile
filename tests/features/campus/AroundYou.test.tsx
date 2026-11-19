@@ -5,8 +5,10 @@ import { useWorldStore } from "@store/world";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 
+const mockPush = jest.fn();
+
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: jest.fn() }),
 }));
 
 const mockSend = jest.fn();
@@ -70,12 +72,29 @@ describe("HappeningAroundYou", () => {
     expect(screen.getByText("Nobody else is here right now.")).toBeTruthy();
   });
 
+  it("opens somebody's desk from their row", async () => {
+    arrive(player("Bo"));
+    await render(<HappeningAroundYou />);
+
+    await fireEvent.press(screen.getByLabelText("Open Bo's desk"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/desk",
+      params: { userId: "Bo" },
+    });
+  });
+
   it("lists people in your space with their status, Wave and Navigate", async () => {
     arrive(player("Bo", { status: "busy" }));
     await render(<HappeningAroundYou />);
 
     expect(screen.getByText("Bo")).toBeTruthy();
-    expect(screen.getByText("Busy · Library")).toBeTruthy();
+    // Status shows as a dot on the avatar, not in words.
+    expect(screen.queryByText(/Busy/)).toBeNull();
+    expect(screen.getAllByText("Library").length).toBeGreaterThan(0);
+    expect(
+      screen.getByLabelText("Open Bo's desk").props.accessibilityValue,
+    ).toEqual({ text: "busy" });
     expect(screen.getByLabelText("Wave at Bo")).toBeTruthy();
     expect(screen.getByLabelText("Navigate to Bo")).toBeTruthy();
     expect(screen.queryByText("Join")).toBeNull();
