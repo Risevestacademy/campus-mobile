@@ -8,6 +8,8 @@ type ProfileUpdateResponse =
   paths["/v1/users/me"]["patch"]["responses"]["200"]["content"]["application/json"];
 type ProfileViewResponse =
   paths["/v1/users/{id}/profile"]["get"]["responses"]["200"]["content"]["application/json"];
+type CohortPeopleResponse =
+  paths["/v1/cohorts/{id}/profiles"]["get"]["responses"]["200"]["content"]["application/json"];
 
 type ProfileUpdateDto = components["schemas"]["UpdateProfileDto"];
 
@@ -24,9 +26,26 @@ export class ProfileService {
     );
   }
 
+  /** Sets an uploaded picture (kind `avatar`) as yours, within 30 minutes of uploading it. */
+  static async setAvatar(mediaId: string): Promise<ProfileGetResponse> {
+    return unwrap<ProfileGetResponse>(
+      client.PUT("/v1/users/me/avatar", { body: { mediaId } }),
+    );
+  }
+
   static async viewMemberProfile(id: string): Promise<ProfileViewResponse> {
     return unwrap<ProfileViewResponse>(
       client.GET("/v1/users/{id}/profile", { params: { path: { id } } }),
+    );
+  }
+
+  static async listCohortPeople(
+    cohortId: string,
+  ): Promise<CohortPeopleResponse> {
+    return unwrap<CohortPeopleResponse>(
+      client.GET("/v1/cohorts/{id}/profiles", {
+        params: { path: { id: cohortId } },
+      }),
     );
   }
 }

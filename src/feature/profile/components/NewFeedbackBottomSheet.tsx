@@ -4,12 +4,14 @@ import {
   useBottomSheet,
   useBottomSheetModal,
 } from "@gorhom/bottom-sheet";
+import { shouldUploadAgain } from "@services/uploads";
 import { BottomSheet } from "@shared/components";
 import {
   Button,
   Card,
   Checkbox,
   Row,
+  Spinner,
   Text,
   TextField,
   toast,
@@ -21,16 +23,23 @@ import { usePathname } from "expo-router";
 import {
   Bug,
   Check,
+  CircleAlert,
   Lightbulb,
   MessageCircle,
   Paperclip,
   Send,
+  X,
 } from "lucide-react-native";
 import React from "react";
-import { Pressable, useWindowDimensions, View } from "react-native";
+import { Image, Pressable, useWindowDimensions, View } from "react-native";
 import { useCSSVariable, withUniwind } from "uniwind";
 
-import { useProfile, useSendFeedback } from "../hooks";
+import {
+  type FeedbackAttachment,
+  useFeedbackAttachments,
+  useProfile,
+  useSendFeedback,
+} from "../hooks";
 
 const StyledBug = withUniwind(Bug);
 const StyledLightBulb = withUniwind(Lightbulb);
@@ -38,6 +47,8 @@ const StyledMessageCircle = withUniwind(MessageCircle);
 const StyledPaperclip = withUniwind(Paperclip);
 const StyledSend = withUniwind(Send);
 const StyledCheck = withUniwind(Check);
+const StyledCircleAlert = withUniwind(CircleAlert);
+const StyledX = withUniwind(X);
 
 type FeedbackType = components["schemas"]["FeedbackType"];
 
@@ -62,6 +73,8 @@ type SentFeedback = { title: string; type: FeedbackType };
 
 type FeedbackDraft = SentFeedback & {
   details: string;
+  /** Uploaded screenshots, in the order they were added. */
+  attachmentIds: string[];
   /** The space it's about, by name. */
   about?: string;
   /** Whether to attach where in the app they were when sending. */
@@ -147,6 +160,113 @@ const SpacePickerSheet = React.forwardRef<
 
 SpacePickerSheet.displayName = "SpacePickerSheet";
 
+const ATTACHMENT_LABEL: Record<FeedbackAttachment["state"], string> = {
+  uploading: "uploading",
+  ready: "added",
+  failed: "didn't upload",
+  expired: "expired, add it again",
+};
+
+function AttachmentThumb({
+  attachment,
+  index,
+  onRemove,
+}: {
+  attachment: FeedbackAttachment;
+  index: number;
+  onRemove: () => void;
+}) {
+  const { state } = attachment;
+  return (
+    <View
+      className="size-16 overflow-hidden rounded-lg border border-border-default"
+      accessible
+      accessibilityLabel={`Screenshot ${index + 1}, ${ATTACHMENT_LABEL[state]}`}
+    >
+      <Image
+        source={{ uri: attachment.uri }}
+        className={cn("size-full", state !== "ready" && "opacity-50")}
+      />
+      {state === "uploading" ? (
+        <View className="absolute inset-0 items-center justify-center">
+          <Spinner size={16} />
+        </View>
+      ) : state === "failed" || state === "expired" ? (
+        <View className="absolute inset-0 items-center justify-center">
+          <StyledCircleAlert size={18} colorClassName="accent-status-danger" />
+        </View>
+      ) : null}
+      <Pressable
+        onPress={onRemove}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove screenshot ${index + 1}`}
+        className="absolute top-1 right-1 size-5 items-center justify-center rounded-full bg-bg-ink-card"
+      >
+        <StyledX size={12} colorClassName="accent-text-on-dark" />
+      </Pressable>
+    </View>
+  );
+}
+
+function Screenshots({
+  attachments,
+}: {
+  attachments: ReturnType<typeof useFeedbackAttachments>;
+}) {
+  const { items, add, remove, canAdd, max } = attachments;
+  const expired = items.some((item) => item.state === "expired");
+
+  return (
+    <View className="gap-2">
+      <Row justify="between">
+        <Text variant="label">Screenshots</Text>
+        {items.length > 0 ? (
+          <Text variant="caption" color="secondary">
+            {items.length} of {max}
+          </Text>
+        ) : null}
+      </Row>
+      {items.length > 0 ? (
+        <Row wrap>
+          {items.map((item, index) => (
+            <AttachmentThumb
+              key={item.key}
+              attachment={item}
+              index={index}
+              onRemove={() => remove(item.key)}
+            />
+          ))}
+        </Row>
+      ) : null}
+      {expired ? (
+        <Text variant="caption" className="text-text-danger">
+          Some screenshots went up too long ago. Remove them and add them again.
+        </Text>
+      ) : null}
+      {canAdd ? (
+        <Pressable
+          onPress={() => void add()}
+          accessibilityRole="button"
+          accessibilityLabel="Add screenshots"
+        >
+          <Card className="rounded-lg border border-dashed border-border-strong bg-bg-raised-cool">
+            <Row>
+              <StyledPaperclip colorClassName="accent-text-muted" size={16} />
+              <View>
+                <Text variant="label">Add a screenshot</Text>
+                <Text variant="caption" color="secondary">
+                  Tap to choose images, up to {max}
+                </Text>
+              </View>
+            </Row>
+          </Card>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 function FeedbackForm({
   sending,
   onSend,
@@ -164,6 +284,21 @@ function FeedbackForm({
   const [selectedType, setSelectedType] = React.useState<FeedbackType>("bug");
   const [includeDeviceInfo, setIncludeDeviceInfo] = React.useState(true);
   const selectedFillColor = useCSSVariable("--color-text-on-dark") as string;
+  const attachments = useFeedbackAttachments();
+
+  const submit = () => {
+    const attachmentIds = attachments.take();
+    // Marked expired; the list says to add them again.
+    if (!attachmentIds) return;
+    onSend({
+      type: selectedType,
+      title: title.trim(),
+      details: details.trim(),
+      about: space?.name,
+      includeContext: includeDeviceInfo,
+      attachmentIds,
+    });
+  };
 
   return (
     <>
@@ -231,20 +366,7 @@ function FeedbackForm({
         selected={spaceKey}
         onSelect={setSpaceKey}
       />
-      <View className="gap-2">
-        <Text variant="label">Screenshot</Text>
-        <Card className="rounded-lg border border-dashed border-border-strong bg-bg-raised-cool">
-          <Row>
-            <StyledPaperclip colorClassName="accent-text-muted" size={16} />
-            <View>
-              <Text variant="label"> Add a screenshot</Text>
-              <Text variant="caption" color="secondary">
-                Click to select an image
-              </Text>
-            </View>
-          </Row>
-        </Card>
-      </View>
+      <Screenshots attachments={attachments} />
       <Row>
         <Checkbox
           value={includeDeviceInfo}
@@ -255,18 +377,10 @@ function FeedbackForm({
         </Text>
       </Row>
       <Button
-        // The API needs both a title and details.
-        disabled={!title.trim() || !details.trim()}
+        // The API needs both a title and details; screenshots must be up.
+        disabled={!title.trim() || !details.trim() || attachments.isUploading}
         loading={sending}
-        onPress={() =>
-          onSend({
-            type: selectedType,
-            title: title.trim(),
-            details: details.trim(),
-            about: space?.name,
-            includeContext: includeDeviceInfo,
-          })
-        }
+        onPress={submit}
       >
         <StyledSend size={16} colorClassName="accent-text-on-dark" />
         <Text variant="label">Send feedback</Text>
@@ -358,7 +472,11 @@ export const NewFeedbackBottomSheet = React.forwardRef<BottomSheetModal>(
       } catch (error) {
         if (startedIn !== session.current) return;
         toast.error(
-          error instanceof Error ? error.message : "Please try again.",
+          shouldUploadAgain(error)
+            ? "A screenshot didn't go up in time. Remove it and add it again."
+            : error instanceof Error
+              ? error.message
+              : "Please try again.",
           "Couldn't send feedback",
         );
       } finally {

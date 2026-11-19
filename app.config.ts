@@ -134,6 +134,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "react-native-nitro-google-signin",
         { iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME },
       ],
+      [
+        "expo-image-picker",
+        {
+          photosPermission:
+            "Campus uses your photos for your profile picture and the screenshots you add to feedback.",
+          // Pictures come from the library only, for now.
+          cameraPermission: false,
+          microphonePermission: false,
+        },
+      ],
     ],
     extra: { ...config.extra, appConfig },
   };

@@ -1,4 +1,5 @@
 export type {
+  CohortPerson,
   LiveMeetingItem,
   MeetingJoinTarget,
   MeetingResult,

@@ -8,6 +8,8 @@ export const statusDotVariants = cva("size-2 rounded-full", {
       available: "bg-status-success",
       away: "bg-status-warning",
       busy: "bg-status-danger",
+      // Not on campus.
+      offline: "bg-text-muted",
     },
   },
 });

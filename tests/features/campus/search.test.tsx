@@ -5,6 +5,7 @@ import {
 } from "@features/campus/helpers";
 import { SearchScreen } from "@features/campus/screens/SearchScreen";
 import { CalendarService } from "@services/calendar";
+import { ProfileService } from "@services/profile";
 import { type RoomLinkEntry, RoomLinkService } from "@services/roomLinks";
 import { useRecentSearchesStore } from "@store/recentSearches";
 import type { Presence } from "@store/world";
@@ -128,6 +129,46 @@ describe("searchCampus", () => {
   });
 });
 
+describe("searchCampus with the cohort", () => {
+  const cohort = [
+    { id: "me", displayName: "Me" },
+    { id: "ada", displayName: "Ada Lovelace" },
+    { id: "bea", displayName: "Bea Okafor" },
+    { id: "abe", displayName: "Abe Mensah" },
+  ];
+
+  it("lists everybody in the cohort, on campus first", () => {
+    const results = searchCampus(world, "", cohort);
+
+    expect(results.people?.map((r) => r.data.name)).toEqual([
+      "Ada Lovelace",
+      "José Ruiz",
+      "Abe Mensah",
+      "Bea Okafor",
+    ]);
+  });
+
+  it("says who isn't on campus, with no status or space", () => {
+    const results = searchCampus(world, "bea", cohort);
+
+    expect(results.people?.[0]?.data).toEqual({
+      id: "bea",
+      name: "Bea Okafor",
+      onCampus: false,
+    });
+  });
+
+  it("keeps world's status and space for those on campus", () => {
+    const results = searchCampus(world, "ada", cohort);
+
+    expect(results.people?.[0]?.data).toMatchObject({
+      onCampus: true,
+      status: "available",
+      spaceName: "Library",
+    });
+  });
+});
+
 describe("toSearchSections", () => {
   const results = searchCampus(world, "");
 
@@ -194,6 +235,11 @@ describe("SearchScreen", () => {
     mockDesk = null;
     mockHoldsDesk = false;
     jest
+      .spyOn(ProfileService, "listCohortPeople")
+      .mockResolvedValue([
+        { id: "bea", displayName: "Bea Okafor", spriteKey: null },
+      ]);
+    jest
       .spyOn(CalendarService, "getEvents")
       .mockResolvedValue({ connected: false, events: [], truncated: false });
   });
@@ -230,7 +276,8 @@ describe("SearchScreen", () => {
     await typeInSearch("a");
 
     // A heading with the count over each type's results.
-    expect(screen.getByText("People · 1")).toBeTruthy();
+    // Ada on campus, and Bea from the cohort.
+    expect(await screen.findByText("People · 2")).toBeTruthy();
   });
 
   it("filters to one type, without headings", async () => {
@@ -424,6 +471,29 @@ describe("SearchScreen", () => {
       spaceKey: "library",
     });
     expect(mockToastSuccess).toHaveBeenCalledWith("Walking to Library");
+  });
+
+  it("finds people in the cohort who aren't on campus", async () => {
+    await renderScreen();
+    await typeInSearch("bea");
+
+    expect(await screen.findByText("Bea Okafor")).toBeTruthy();
+    expect(
+      screen.getByLabelText("Open Bea Okafor's desk").props.accessibilityValue,
+    ).toEqual({ text: "not on campus" });
+    expect(screen.getByLabelText("Go to Bea Okafor")).toBeDisabled();
+  });
+
+  it("opens a person's desk", async () => {
+    await renderScreen();
+    await typeInSearch("ada");
+
+    await fireEvent.press(screen.getByLabelText("Open Ada Lovelace's desk"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/desk",
+      params: { userId: "ada" },
+    });
   });
 
   it("says why when a space turns you away", async () => {
