@@ -43,6 +43,12 @@ export interface SpaceCall {
   joinBy: number | null;
   nearbyUserIds: string[];
   /**
+   * Somebody has come within earshot since this call arrived: in a proximity
+   * space, the moment to start listening. Stays true for the call, so people
+   * stepping in and out of range don't connect and disconnect it.
+   */
+  heard: boolean;
+  /**
    * Gets fresh credentials: world sends them only on arrival or a step, so
    * this reopens the socket, resuming the avatar, which counts as arrival.
    */
@@ -55,10 +61,17 @@ type State = {
   /** Calls still owed: one on arrival, one per step. Zero means in sync. */
   owed: number;
   nearbyUserIds: string[];
+  heard: boolean;
 };
 
 /** Nothing to join until world admits this socket and sends a call. */
-const NO_CALL: State = { call: null, joinBy: null, owed: 1, nearbyUserIds: [] };
+const NO_CALL: State = {
+  call: null,
+  joinBy: null,
+  owed: 1,
+  nearbyUserIds: [],
+  heard: false,
+};
 
 /**
  * Latest `call` credentials and `nearby` user ids from the world socket.
@@ -97,14 +110,21 @@ export function useSpaceCall(): SpaceCall {
               call: message.call,
               joinBy: message.call ? joinDeadline(message.call.token) : null,
               owed: s.owed - 1,
+              // `nearby` can come first: it counts for this call too.
+              heard: s.nearbyUserIds.length > 0,
             }));
             return;
           case "spaceChanged":
             if (message.userId !== selfId.current) return;
-            setState((s) => ({ ...s, owed: s.owed + 1 }));
+            // Earshot belongs to the space you left; the new one sends its own.
+            setState((s) => ({ ...s, owed: s.owed + 1, nearbyUserIds: [] }));
             return;
           case "nearby":
-            setState((s) => ({ ...s, nearbyUserIds: message.userIds }));
+            setState((s) => ({
+              ...s,
+              nearbyUserIds: message.userIds,
+              heard: s.heard || message.userIds.length > 0,
+            }));
             return;
           case "watching":
           case "replaced":
@@ -124,6 +144,7 @@ export function useSpaceCall(): SpaceCall {
     inSync: call !== null && state.owed === 0,
     joinBy: call ? state.joinBy : null,
     nearbyUserIds: state.nearbyUserIds,
+    heard: call !== null && state.heard,
     refresh: rejoin,
   };
 }

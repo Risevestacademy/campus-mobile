@@ -1,4 +1,4 @@
-import { SpaceCallProvider } from "@features/room";
+import { SpaceCallProvider, SpaceRoomHost } from "@features/room";
 import { render, screen } from "@testing-library/react-native";
 import React from "react";
 
@@ -32,7 +32,9 @@ describe("campus routes", () => {
   it("renders the space detail route", async () => {
     await render(
       <SpaceCallProvider>
-        <SpaceIndex />
+        <SpaceRoomHost>
+          <SpaceIndex />
+        </SpaceRoomHost>
       </SpaceCallProvider>,
     );
 

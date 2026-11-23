@@ -6,13 +6,13 @@ import { useRoomConnection } from "../../../src/feature/room/hooks/useRoomConnec
 
 const mockSend = jest.fn(() => true);
 const mockListeners = new Set<(message: unknown) => void>();
-const mockCtx = {
-  call: null as null | { url: string; room: string; token: string },
-  inSync: false,
-  joinBy: null as number | null,
-  nearbyUserIds: [] as string[],
-  refresh: jest.fn(),
+const mockClose = jest.fn();
+const mockHost = {
+  phase: "idle" as string,
+  retry: jest.fn(),
+  open: jest.fn(() => mockClose),
 };
+const mockCtx = { inSync: false };
 
 jest.mock("@shared/hooks/useWs", () => ({
   useWs: () => ({
@@ -26,6 +26,10 @@ jest.mock("@shared/hooks/useWs", () => ({
 
 jest.mock("../../../src/feature/room/providers/SpaceCallProvider", () => ({
   useSpaceCallContext: () => mockCtx,
+}));
+
+jest.mock("../../../src/feature/room/providers/SpaceRoomHost", () => ({
+  useSpaceRoomContext: () => mockHost,
 }));
 
 const apply = (message: unknown) =>
@@ -52,25 +56,17 @@ function standIn(spaceKey: string, mode = "avatar") {
   });
 }
 
-function callFor(room: string, token = `${room}-token`) {
-  mockCtx.call = { url: "wss://media.example", room, token };
-  mockCtx.inSync = true;
-  mockCtx.joinBy = Date.now() + 10 * 60_000;
-}
-
 describe("useRoomConnection", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockListeners.clear();
     useWorldStore.getState().reset();
-    mockCtx.call = null;
+    mockHost.phase = "idle";
     mockCtx.inSync = false;
-    mockCtx.joinBy = null;
   });
 
-  it("walks you there and won't join the call of the space you're leaving", async () => {
+  it("walks you there, and doesn't ask to join the space you're leaving", async () => {
     standIn("library");
-    callFor("library");
 
     const { result } = await renderHook(() => useRoomConnection("studio"));
 
@@ -79,30 +75,47 @@ describe("useRoomConnection", () => {
       spaceKey: "studio",
     });
     expect(result.current.phase).toBe("walking");
-    expect(result.current.connect).toBe(false);
+    expect(mockHost.open).not.toHaveBeenCalled();
+  });
+
+  it("asks the app-wide call to join once you're in the space", async () => {
+    standIn("studio");
+    mockCtx.inSync = true;
+    mockHost.phase = "connecting";
+
+    const { result, unmount } = await renderHook(() =>
+      useRoomConnection("studio"),
+    );
+
+    expect(mockSend).not.toHaveBeenCalled();
+    expect(mockHost.open).toHaveBeenCalledTimes(1);
+    expect(result.current.phase).toBe("joining");
+
+    // Closing the screen lets the call go back to listening only for nearby.
+    await unmount();
+    expect(mockClose).toHaveBeenCalled();
   });
 
   it("waits for this space's call once you arrive", async () => {
     standIn("studio");
-    callFor("library");
-    mockCtx.inSync = false;
 
     const { result } = await renderHook(() => useRoomConnection("studio"));
 
     expect(result.current.phase).toBe("waiting");
-    expect(result.current.connect).toBe(false);
   });
 
-  it("joins once you're there and the call is this space's", async () => {
-    standIn("studio");
-    callFor("studio");
+  it.each(["connected", "failed", "dropped", "refreshing"])(
+    "shows the call's %s phase",
+    async (phase) => {
+      standIn("studio");
+      mockCtx.inSync = true;
+      mockHost.phase = phase;
 
-    const { result } = await renderHook(() => useRoomConnection("studio"));
+      const { result } = await renderHook(() => useRoomConnection("studio"));
 
-    expect(mockSend).not.toHaveBeenCalled();
-    expect(result.current.phase).toBe("joining");
-    expect(result.current.connect).toBe(true);
-  });
+      expect(result.current.phase).toBe(phase);
+    },
+  );
 
   it("says when the walk there was turned away", async () => {
     standIn("library");
@@ -110,66 +123,21 @@ describe("useRoomConnection", () => {
 
     await act(() =>
       mockListeners.forEach((listener) =>
-        listener({
-          type: "walkEnded",
-          toSpaceKey: "studio",
-          reason: "refused",
-        }),
+        listener({ type: "walkEnded", toSpaceKey: "studio", reason: "full" }),
       ),
     );
 
     expect(result.current.phase).toBe("stuck");
-    expect(result.current.stuckReason).toBe("refused");
+    expect(result.current.stuckReason).toBe("full");
   });
 
   it("stays out while another device stands for you", async () => {
     standIn("studio", "watcher");
-    callFor("studio");
+    mockCtx.inSync = true;
 
     const { result } = await renderHook(() => useRoomConnection("studio"));
 
     expect(result.current.phase).toBe("watching");
-    expect(result.current.connect).toBe(false);
-  });
-
-  it("tells a failed join from a call lost after joining, and retries both", async () => {
-    standIn("studio");
-    callFor("studio");
-    const { result } = await renderHook(() => useRoomConnection("studio"));
-
-    await act(() => result.current.onDisconnected());
-    expect(result.current.phase).toBe("failed");
-
-    await act(() => result.current.retry());
-    expect(result.current.phase).toBe("joining");
-    const secondTry = result.current.roomKey;
-
-    await act(() => result.current.onConnected());
-    expect(result.current.phase).toBe("connected");
-
-    await act(() => result.current.onDisconnected());
-    expect(result.current.phase).toBe("dropped");
-    expect(result.current.connect).toBe(false);
-
-    await act(() => result.current.retry());
-    expect(result.current.phase).toBe("joining");
-    expect(result.current.roomKey).not.toBe(secondTry);
-  });
-
-  it("gets fresh credentials instead of joining with an expired token", async () => {
-    jest.useFakeTimers();
-    standIn("studio");
-    callFor("studio");
-    mockCtx.joinBy = Date.now() - 1;
-
-    const { result } = await renderHook(() => useRoomConnection("studio"));
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(0);
-    });
-
-    expect(result.current.phase).toBe("refreshing");
-    expect(result.current.connect).toBe(false);
-    expect(mockCtx.refresh).toHaveBeenCalledTimes(1);
-    jest.useRealTimers();
+    expect(mockHost.open).not.toHaveBeenCalled();
   });
 });

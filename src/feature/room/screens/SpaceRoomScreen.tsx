@@ -1,7 +1,6 @@
 import { Button, Spinner, Text } from "@shared/components/atoms";
 import type { WalkEndReason } from "@shared/lib/generated/world-protocol";
 import { useWorldStore } from "@store/world";
-import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -12,8 +11,8 @@ import {
   RoomControls,
   RoomHeader,
 } from "../components";
-import { useRoomParticipants } from "../hooks";
-import { useRoomConnectionContext, useSpaceCallContext } from "../providers";
+import { useRoomConnection, useRoomParticipants } from "../hooks";
+import { useSpaceCallContext } from "../providers";
 
 function RoomBody() {
   const people = useRoomParticipants().length;
@@ -61,8 +60,8 @@ function Status({
   );
 }
 
-function RoomState({ name }: { name: string }) {
-  const { phase, retry, walk, stuckReason } = useRoomConnectionContext();
+function RoomState({ spaceKey, name }: { spaceKey: string; name: string }) {
+  const { phase, retry, walk, stuckReason } = useRoomConnection(spaceKey);
 
   switch (phase) {
     case "joining":
@@ -103,10 +102,11 @@ function RoomState({ name }: { name: string }) {
   }
 }
 
-export function SpaceRoomScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+/** The call for `spaceKey`, which runs app-wide in `SpaceRoomHost`. */
+export function SpaceRoomScreen({ spaceKey }: { spaceKey: string }) {
   const { call } = useSpaceCallContext();
-  const name = useWorldStore((state) => state.spaces[id]?.name) ?? id;
+  const name =
+    useWorldStore((state) => state.spaces[spaceKey]?.name) ?? spaceKey;
   const { top } = useSafeAreaInsets();
 
   return (
@@ -118,7 +118,7 @@ export function SpaceRoomScreen() {
           call?.hearing === "proximity" ? "Nearby conversation" : "Open room"
         }
       />
-      <RoomState name={name} />
+      <RoomState spaceKey={spaceKey} name={name} />
     </View>
   );
 }

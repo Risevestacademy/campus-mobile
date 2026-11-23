@@ -87,6 +87,38 @@ describe("useSpaceCall", () => {
     expect(result.current.inSync).toBe(true);
   });
 
+  it("notes when somebody first comes within earshot of this call", async () => {
+    const { result } = await arrive();
+    expect(result.current.heard).toBe(false);
+
+    await emit({ type: "nearby", userIds: ["ada"] });
+    expect(result.current.heard).toBe(true);
+
+    // Stays heard as people step out of range: no connect, disconnect churn.
+    await emit({ type: "nearby", userIds: [] });
+    expect(result.current.heard).toBe(true);
+  });
+
+  it("starts unheard in the next space", async () => {
+    const { result } = await arrive();
+    await emit({ type: "nearby", userIds: ["ada"] });
+
+    await emit({ type: "spaceChanged", userId: "me", spaceKey: "studio" });
+    await emit({ type: "call", call: call("studio") });
+
+    expect(result.current.heard).toBe(false);
+  });
+
+  it("counts a nearby that came before its call", async () => {
+    const { result } = await arrive();
+    await emit({ type: "spaceChanged", userId: "me", spaceKey: "studio" });
+
+    await emit({ type: "nearby", userIds: ["ada"] });
+    await emit({ type: "call", call: call("studio") });
+
+    expect(result.current.heard).toBe(true);
+  });
+
   it("ignores somebody else stepping", async () => {
     const { result } = await arrive();
 
