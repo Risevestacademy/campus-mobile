@@ -18,6 +18,8 @@ export interface ChatMessage {
   userId: string;
   name: string;
   text: string;
+  /** The name of the file sent with it, if any. */
+  attachmentName: string | null;
   timestamp: number;
   isLocal: boolean;
 }
@@ -71,6 +73,9 @@ export function useRoomChat() {
         userId: line.userId,
         name: players[line.userId]?.displayName || "Guest",
         text: line.text,
+        attachmentName: line.attachment
+          ? (line.attachment.fileName ?? "File")
+          : null,
         timestamp: Date.parse(line.at),
         isLocal: line.userId === selfId,
       })),

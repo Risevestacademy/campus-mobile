@@ -108,6 +108,33 @@ describe("useRoomChat", () => {
     ]);
   });
 
+  it("shows a line that is only a file by the file's name", async () => {
+    const { result } = await renderHook(() => useRoomChat());
+    await act(async () => {
+      useChatStore.getState().say(
+        {
+          type: "said",
+          id: "f",
+          userId: "u1",
+          spaceKey: "hall",
+          text: "",
+          attachment: {
+            mediaId: "m1",
+            fileName: "notes.pdf",
+            contentType: "application/pdf",
+            sizeBytes: 1,
+          },
+          at: "2026-11-24T10:00:00.000Z",
+        },
+        "me",
+      );
+    });
+    expect(result.current.messages[0]).toMatchObject({
+      text: "",
+      attachmentName: "notes.pdf",
+    });
+  });
+
   it("toasts when world refuses a say", async () => {
     const { result } = await renderHook(() => useRoomChat());
     await act(async () => {

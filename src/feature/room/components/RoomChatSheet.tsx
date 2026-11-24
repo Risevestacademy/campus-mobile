@@ -42,7 +42,14 @@ function Bubble({ message }: { message: ChatMessage }) {
           mine ? "bg-action-primary" : "bg-bg-hover",
         )}
       >
-        <Text color={mine ? "inverse" : "primary"}>{message.text}</Text>
+        {message.text ? (
+          <Text color={mine ? "inverse" : "primary"}>{message.text}</Text>
+        ) : null}
+        {message.attachmentName ? (
+          <Text color={mine ? "inverse" : "primary"}>
+            📎 {message.attachmentName}
+          </Text>
+        ) : null}
       </View>
       <Text
         variant="caption"

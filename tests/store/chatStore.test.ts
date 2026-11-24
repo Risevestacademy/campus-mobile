@@ -9,6 +9,7 @@ const said = (id: string, userId = "u1", text = "hi"): Said => ({
   userId,
   spaceKey: "hall",
   text,
+  attachment: null,
   at: "2026-11-24T10:00:00.000Z",
 });
 
@@ -20,6 +21,20 @@ describe("chat store", () => {
     say(said("1"), "me");
     say(said("2", "u2", "yo"), "me");
     expect(useChatStore.getState().lines.map((l) => l.id)).toEqual(["1", "2"]);
+  });
+
+  it("keeps the file sent with a line", () => {
+    const attachment = {
+      mediaId: "m1",
+      fileName: "notes.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 1024,
+    };
+    useChatStore.getState().say({ ...said("1", "u1", ""), attachment }, "me");
+    expect(useChatStore.getState().lines[0]).toMatchObject({
+      text: "",
+      attachment,
+    });
   });
 
   it("ignores a line it already has", () => {

@@ -1,3 +1,4 @@
+import type { ChatAttachment } from "@shared/lib/generated/world-protocol";
 import type { ServerMessage } from "@shared/lib/ws";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
@@ -6,7 +7,10 @@ import { combine } from "zustand/middleware";
 export type ChatLine = {
   id: string;
   userId: string;
+  /** Empty when the line is only a file. */
   text: string;
+  /** The file sent with it; null for none. Opening it is not wired yet. */
+  attachment: ChatAttachment | null;
   /** When world relayed it, as an ISO timestamp. */
   at: string;
 };
@@ -38,6 +42,7 @@ export function applySaid(
     id: message.id,
     userId: message.userId,
     text: message.text,
+    attachment: message.attachment ?? null,
     at: message.at,
   };
   const fromOther = message.userId !== selfId;
