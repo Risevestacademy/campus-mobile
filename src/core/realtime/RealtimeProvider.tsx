@@ -6,11 +6,13 @@ import { useSessionStore } from "@store/session";
 import type { ReactNode } from "react";
 
 import { useClaimEmptyAvatar } from "./useClaimEmptyAvatar";
+import { useStaffNotices } from "./useStaffNotices";
 import { useWorldSync } from "./useWorldSync";
 
 function WorldSync() {
   useWorldSync();
   useClaimEmptyAvatar();
+  useStaffNotices();
   return null;
 }
 
