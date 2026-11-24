@@ -13,6 +13,13 @@ const mockHost = {
   open: jest.fn(() => mockClose),
 };
 const mockCtx = { inSync: false };
+const mockBack = jest.fn();
+const mockToastError = jest.fn();
+
+jest.mock("expo-router", () => ({ useRouter: () => ({ back: mockBack }) }));
+jest.mock("@shared/components/atoms", () => ({
+  toast: { error: (...args: unknown[]) => mockToastError(...args) },
+}));
 
 jest.mock("@shared/hooks/useWs", () => ({
   useWs: () => ({
@@ -129,6 +136,51 @@ describe("useRoomConnection", () => {
 
     expect(result.current.phase).toBe("stuck");
     expect(result.current.stuckReason).toBe("full");
+  });
+
+  it("goes back, saying why, when world refuses the walk itself", async () => {
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    standIn("library");
+    await renderHook(() => useRoomConnection("nowhere"));
+
+    await act(() =>
+      mockListeners.forEach((listener) =>
+        listener({ type: "error", code: "NOT_ALLOWED", message: "no space" }),
+      ),
+    );
+
+    expect(mockToastError).toHaveBeenCalledWith(
+      expect.any(String),
+      "Can't get there",
+    );
+    expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores an error once the walk has begun", async () => {
+    standIn("library");
+    await renderHook(() => useRoomConnection("studio"));
+
+    await act(() =>
+      mockListeners.forEach((listener) => {
+        listener({ type: "walking", toSpaceKey: "studio" });
+        listener({ type: "error", code: "NOT_ALLOWED", message: "say limit" });
+      }),
+    );
+
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("ignores an error when it asked for no walk", async () => {
+    standIn("studio");
+    await renderHook(() => useRoomConnection("studio"));
+
+    await act(() =>
+      mockListeners.forEach((listener) =>
+        listener({ type: "error", code: "NOT_ALLOWED", message: "other" }),
+      ),
+    );
+
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
   it("stays out while another device stands for you", async () => {
