@@ -99,6 +99,18 @@ describe("HappeningAroundYou", () => {
     });
   });
 
+  it("treats everyone in a whole-room space as one conversation", async () => {
+    arrive(player("Ada"), player("Bo"));
+    await render(<HappeningAroundYou />);
+
+    // World sends no `nearby` here: the space's call reaches everybody.
+    await act(() => apply({ type: "call", call: { hearing: "room" } }));
+
+    expect(screen.getByText("You, Ada & Bo")).toBeTruthy();
+    expect(screen.getByLabelText("Join You, Ada & Bo")).toBeTruthy();
+    expect(screen.queryByLabelText("Wave at Bo")).toBeNull();
+  });
+
   it("asks world to take you to someone when you tap Navigate", async () => {
     arrive(player("Bo"));
     await render(<HappeningAroundYou />);

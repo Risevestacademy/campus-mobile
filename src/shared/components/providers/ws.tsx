@@ -19,7 +19,10 @@ export const MAX_RETRY_DELAY_MS = 30_000;
 // Client-side code for a connection lost without a close frame.
 const ABNORMAL_CLOSURE = 1006;
 
-type ConnectionState = Omit<WebSocketState, "reconnect" | "send" | "subscribe">;
+type ConnectionState = Omit<
+  WebSocketState,
+  "reconnect" | "rejoin" | "send" | "subscribe"
+>;
 
 const IDLE: ConnectionState = {
   socket: null,
@@ -70,6 +73,9 @@ export function WebSocketProvider({
   const [generation, setGeneration] = React.useState(0);
   // How the next fresh start enters; `reconnect` sets it, the effect reads it.
   const restartAs = React.useRef<EnterMode>("take");
+  // Set by the running effect: reopens its socket in place. A no-op between
+  // effects, when there's nothing to reopen.
+  const rejoinCurrent = React.useRef<() => void>(() => {});
   const onRefresh = React.useEffectEvent(() => refreshSession());
   // Outlives sockets, so subscribers attached before a socket opens get its
   // first frames too.
@@ -291,10 +297,21 @@ export function WebSocketProvider({
       }
     });
 
+    // Like coming back from the background: admitted and resumeId survive,
+    // so the new socket resumes the avatar instead of watching it.
+    rejoinCurrent.current = () => {
+      if (disposed || stopped || paused || !admitted || !ws) return;
+      teardown();
+      attempt = 0;
+      setConnection(CONNECTING);
+      void connect();
+    };
+
     if (!paused) void connect();
 
     return () => {
       disposed = true;
+      rejoinCurrent.current = () => {};
       subscription.remove();
       teardown();
       setConnection(CONNECTING);
@@ -309,6 +326,7 @@ export function WebSocketProvider({
     restartAs.current = enter;
     setGeneration((g) => g + 1);
   }, []);
+  const rejoin = React.useCallback(() => rejoinCurrent.current(), []);
   const enabled = status === "authenticated" && cohortId !== null;
 
   const current = enabled ? connection : IDLE;
@@ -329,8 +347,8 @@ export function WebSocketProvider({
   }, []);
 
   const value = React.useMemo<WebSocketState>(
-    () => ({ ...current, reconnect, send, subscribe }),
-    [current, reconnect, send, subscribe],
+    () => ({ ...current, reconnect, rejoin, send, subscribe }),
+    [current, reconnect, rejoin, send, subscribe],
   );
 
   return (

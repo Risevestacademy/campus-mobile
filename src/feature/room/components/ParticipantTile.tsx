@@ -34,15 +34,8 @@ export function ParticipantTile({
   /** The featured speaker: fills the stage. */
   large?: boolean;
 }) {
-  const {
-    name,
-    userId,
-    isSpeaking,
-    isMuted,
-    isLocal,
-    canPublish,
-    cameraTrack,
-  } = participant;
+  const { name, userId, isSpeaking, isMuted, isLocal, cameraTrack } =
+    participant;
   const label = isLocal ? "You" : name;
   const Icon = isSpeaking
     ? StyledAudioLines
@@ -88,7 +81,8 @@ export function ParticipantTile({
           numberOfLines={1}
           className="shrink text-text-on-dark"
         >
-          {large && canPublish ? `${label} · Host` : label}
+          {/* No "Host": a call doesn't say who leads it, and anyone may speak. */}
+          {label}
         </Text>
       </View>
     </View>

@@ -98,8 +98,56 @@ jest.mock("@livekit/react-native", () => ({
     stopAudioSession: jest.fn(),
   },
   LiveKitRoom: ({ children }) => children,
+  RoomContext: require("react").createContext(undefined),
   useConnectionState: jest.fn(() => "connected"),
   useLocalParticipant: jest.fn(),
   useParticipants: jest.fn(() => []),
+  useRemoteParticipants: jest.fn(() => []),
   VideoTrack: () => null,
 }));
+
+// Same for the client: a Room that records joins and leaves, never connecting.
+jest.mock("livekit-client", () => {
+  class Room {
+    constructor() {
+      this.listeners = new Map();
+      this.connect = jest.fn(() => Promise.resolve());
+      this.disconnect = jest.fn(() => Promise.resolve());
+    }
+    on(event, listener) {
+      this.listeners.set(event, [
+        ...(this.listeners.get(event) ?? []),
+        listener,
+      ]);
+      return this;
+    }
+    off(event, listener) {
+      this.listeners.set(
+        event,
+        (this.listeners.get(event) ?? []).filter((l) => l !== listener),
+      );
+      return this;
+    }
+    /** Tests only: fire a room event at whoever listens. */
+    emit(event, ...args) {
+      for (const listener of this.listeners.get(event) ?? []) {
+        listener(...args);
+      }
+    }
+  }
+  return {
+    Room,
+    RoomEvent: {
+      Connected: "connected",
+      Disconnected: "disconnected",
+    },
+    ConnectionState: {
+      Disconnected: "disconnected",
+      Connecting: "connecting",
+      Connected: "connected",
+      Reconnecting: "reconnecting",
+      SignalReconnecting: "signalReconnecting",
+    },
+    Track: { Source: { Camera: "camera", Microphone: "microphone" } },
+  };
+});

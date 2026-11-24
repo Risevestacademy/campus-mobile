@@ -1,2 +1,3 @@
+export * from "./BroadcastRoom";
 export * from "./SpaceCallProvider";
-export * from "./SpaceRoomProvider";
+export * from "./SpaceRoomHost";

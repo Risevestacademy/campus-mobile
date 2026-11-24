@@ -30,6 +30,12 @@ export type WorldState = {
   lockedSpaces: string[];
   /** Who is close enough to hear you, in a proximity space; else empty. */
   nearby: string[];
+  /**
+   * How the call for your space is heard, from its `call`. room: everybody
+   * in the space hears everybody, and world sends no `nearby`. proximity:
+   * only the people `nearby` names. Null where there's no call.
+   */
+  hearing: "room" | "proximity" | null;
 };
 
 const initialState: WorldState = {
@@ -40,6 +46,7 @@ const initialState: WorldState = {
   spaces: {},
   lockedSpaces: [],
   nearby: [],
+  hearing: null,
 };
 
 function toPresence({
@@ -76,7 +83,15 @@ export function applyWorldMessage(
 ): WorldState {
   switch (message.type) {
     case "welcome":
-      return { ...state, selfId: message.userId, mode: message.mode };
+      // First frame of a connection: its `call` says how this space is heard.
+      return {
+        ...state,
+        selfId: message.userId,
+        mode: message.mode,
+        hearing: null,
+      };
+    case "call":
+      return { ...state, hearing: message.call?.hearing ?? null };
     case "snapshot":
       return {
         ...state,
@@ -129,11 +144,18 @@ export function applyWorldMessage(
         lockedSpaces: message.locked ? [...others, message.spaceKey] : others,
       };
     }
+    // A watcher is in no call, so nobody is in earshot of it.
     case "replaced":
-      return { ...state, ready: false, mode: "watcher", nearby: [] };
+      return {
+        ...state,
+        ready: false,
+        mode: "watcher",
+        nearby: [],
+        hearing: null,
+      };
     // Another device took over, but this socket stays open to look on.
     case "watching":
-      return { ...state, mode: "watcher", nearby: [] };
+      return { ...state, mode: "watcher", nearby: [], hearing: null };
     default:
       return state;
   }
@@ -193,37 +215,44 @@ export const useMyStatusUntil = () =>
 /**
  * Who is around you: everyone within earshot as one conversation, and
  * everyone else standing in your space. You're never in either list.
+ *
+ * In a whole-room space everybody in it hears everybody, so they're all in
+ * earshot; world sends no `nearby` there. In a proximity space, earshot is
+ * whoever `nearby` names.
  */
 export function useAroundMe() {
-  const { players, nearby, selfId, spaces } = useWorldStore(
+  const { players, nearby, selfId, spaces, hearing } = useWorldStore(
     useShallow((state) => ({
       players: state.players,
       nearby: state.nearby,
       selfId: state.selfId,
       spaces: state.spaces,
+      hearing: state.hearing,
     })),
   );
 
   return React.useMemo(() => {
     const me = selfId ? players[selfId] : undefined;
-    const earshot = nearby
-      .filter((id) => id !== selfId)
-      .map((id) => players[id])
-      .filter((player): player is Presence => player !== undefined);
-    const heard = new Set(earshot.map((player) => player.userId));
-    const inMySpace = me
+    const others = me
       ? Object.values(players).filter(
           (player) =>
-            player.userId !== selfId &&
-            player.spaceKey === me.spaceKey &&
-            !heard.has(player.userId),
+            player.userId !== selfId && player.spaceKey === me.spaceKey,
         )
       : [];
+    const earshot =
+      hearing === "room"
+        ? others
+        : nearby
+            .filter((id) => id !== selfId)
+            .map((id) => players[id])
+            .filter((player): player is Presence => player !== undefined);
+    const heard = new Set(earshot.map((player) => player.userId));
+    const inMySpace = others.filter((player) => !heard.has(player.userId));
 
     return {
       space: me ? spaces[me.spaceKey] : undefined,
       earshot,
       inMySpace,
     };
-  }, [players, nearby, selfId, spaces]);
+  }, [players, nearby, selfId, spaces, hearing]);
 }
