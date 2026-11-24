@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ConnectionBanner,
   ParticipantGrid,
+  RoomChatSheet,
   RoomChips,
   RoomControls,
   RoomHeader,
@@ -23,6 +24,7 @@ function RoomBody() {
         <RoomChips people={people} />
       </View>
       <RoomControls />
+      <RoomChatSheet />
     </>
   );
 }

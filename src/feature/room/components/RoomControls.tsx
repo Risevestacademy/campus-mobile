@@ -1,4 +1,5 @@
 import { cn } from "@shared/utils/style";
+import { useChatStore, useChatUnread } from "@store/chat";
 import { useRouter } from "expo-router";
 import {
   Hand,
@@ -16,7 +17,7 @@ import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
-import { useCameraToggle, useMicToggle } from "../hooks";
+import { useCameraToggle, useChatConnected, useMicToggle } from "../hooks";
 import { MicBlockedSheet } from "./MicBlockedSheet";
 
 const StyledMic = withUniwind(Mic);
@@ -81,6 +82,8 @@ export function RoomControls() {
   const [handRaised, setHandRaised] = React.useState(false);
   const MicIcon = micEnabled && canPublish ? StyledMic : StyledMicOff;
   const { bottom } = useSafeAreaInsets();
+  const chatConnected = useChatConnected();
+  const unread = useChatUnread();
 
   return (
     <View
@@ -114,8 +117,15 @@ export function RoomControls() {
       >
         <StyledHand colorClassName="accent-text-primary" size={20} />
       </RoundControl>
-      <RoundControl label="Chat" disabled>
+      <RoundControl
+        label="Chat"
+        disabled={!chatConnected}
+        onPress={() => useChatStore.getState().setOpen(true)}
+      >
         <StyledChat colorClassName="accent-text-on-dark" size={20} />
+        {unread > 0 && (
+          <View className="absolute top-0 right-0 size-3 rounded-full border-2 border-text-on-accent bg-status-live" />
+        )}
       </RoundControl>
       <RoundControl label="More" disabled>
         <StyledMore colorClassName="accent-text-on-dark" size={20} />

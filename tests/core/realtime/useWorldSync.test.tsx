@@ -1,5 +1,6 @@
 import { useWorldSync } from "@core/realtime/useWorldSync";
 import type { ServerMessage } from "@shared/lib/ws";
+import { useChatStore } from "@store/chat";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react-native";
 import React from "react";
@@ -30,5 +31,34 @@ describe("useWorldSync", () => {
     );
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["desks"] });
+  });
+
+  it("feeds said lines to the chat store and clears them in a new space", async () => {
+    const queryClient = new QueryClient();
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    useChatStore.getState().reset();
+
+    await renderHook(() => useWorldSync(), { wrapper });
+    const emit = (message: unknown) =>
+      act(() => mockListeners.forEach((l) => l(message as ServerMessage)));
+
+    await emit({ type: "welcome", userId: "me" });
+    await emit({
+      type: "said",
+      id: "1",
+      userId: "u1",
+      spaceKey: "hall",
+      text: "hi",
+      at: "2026-11-24T10:00:00.000Z",
+    });
+    expect(useChatStore.getState().lines).toHaveLength(1);
+
+    await emit({ type: "spaceChanged", userId: "u1", spaceKey: "x" });
+    expect(useChatStore.getState().lines).toHaveLength(1);
+
+    await emit({ type: "spaceChanged", userId: "me", spaceKey: "x" });
+    expect(useChatStore.getState().lines).toHaveLength(0);
   });
 });
