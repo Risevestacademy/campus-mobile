@@ -1,4 +1,5 @@
 import { useCurrentCall } from "@features/campus";
+import { MicBlockedSheet, useCallMute } from "@features/room";
 import { FloatingCall } from "@shared/components";
 import { Tabs } from "expo-router";
 import { PlatformPressable } from "expo-router/build/react-navigation";
@@ -96,7 +97,16 @@ export default function TabsLayout() {
   const inactiveFg = useCSSVariable("--color-text-muted") as string;
   const tabBarStyle = useResolveClassNames("bg-bg-card pt-2 h-20");
   const tabBarLabelStyle = useResolveClassNames("text-label");
-  const call = useCurrentCall();
+  const currentCall = useCurrentCall();
+  const mute = useCallMute();
+  // Who is in earshot comes from world; mute is the app-wide room's mic.
+  const call = currentCall
+    ? {
+        ...currentCall,
+        muted: mute.muted,
+        onToggleMute: mute.canToggle ? mute.toggle : undefined,
+      }
+    : null;
   // The call floats 10px above the tab bar, over every tab.
   const tabBarHeight =
     typeof tabBarStyle.height === "number" ? tabBarStyle.height : 80;
@@ -161,6 +171,10 @@ export default function TabsLayout() {
         />
       </Tabs>
       <FloatingCall call={call} bottomOffset={tabBarHeight + 10} />
+      <MicBlockedSheet
+        visible={mute.permissionDenied}
+        onDismiss={mute.dismissPermissionDenied}
+      />
     </View>
   );
 }

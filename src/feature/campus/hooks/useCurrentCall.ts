@@ -1,17 +1,16 @@
 import type { CallParticipant } from "@shared/components";
 import { useMe } from "@shared/hooks/useMe";
 import { useAroundMe, useIsWatching } from "@store/world";
-import { useState } from "react";
 
 /**
  * The conversation you're in, ready for `FloatingCall`: you and everyone
- * within earshot, or null while nobody is. Mute is local and there's no
- * Leave until call audio is wired.
+ * within earshot, or null while nobody is. Mute is not here: it is the mic
+ * of the app-wide room, which the tabs layout joins on (`useCallMute`). There
+ * is no Leave yet.
  */
 export function useCurrentCall() {
   const { space, earshot } = useAroundMe();
   const { data: me } = useMe();
-  const [muted, setMuted] = useState(false);
   const watching = useIsWatching();
 
   // A watcher is never sent a call: the device standing for you is in it.
@@ -34,7 +33,5 @@ export function useCurrentCall() {
   return {
     participants,
     space: space?.name ?? "",
-    muted,
-    onToggleMute: () => setMuted((current) => !current),
   };
 }

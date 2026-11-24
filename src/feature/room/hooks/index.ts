@@ -3,6 +3,7 @@ export * from "./useBroadcastCall";
 export * from "./useBroadcastConnection";
 export * from "./useBroadcastDucking";
 export * from "./useBroadcastSync";
+export * from "./useCallMute";
 export * from "./useCameraToggle";
 export * from "./useCanPublish";
 export * from "./useMicToggle";
