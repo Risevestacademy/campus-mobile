@@ -56,13 +56,4 @@ describe("useCurrentCall", () => {
       expect.objectContaining({ name: "Cy" }),
     ]);
   });
-
-  it("toggles mute", async () => {
-    const { result } = await renderHook(() => useCurrentCall());
-    await act(() => apply({ type: "nearby", userIds: ["Ada"] }));
-
-    await act(() => result.current?.onToggleMute());
-
-    expect(result.current?.muted).toBe(true);
-  });
 });

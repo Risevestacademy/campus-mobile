@@ -750,6 +750,25 @@ describe("WebSocketProvider close codes", () => {
     expect(lastSocket().url).toBe(RESUME_URL);
   });
 
+  it("rejoins in place, resuming its avatar, for fresh call credentials", async () => {
+    const socket = await openSocket();
+    await act(() => socket.receive(WELCOME));
+
+    await act(() => currentState().rejoin());
+
+    // An arrival again, so world sends a new call; not a watcher of itself.
+    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(lastSocket().url).toBe(RESUME_URL);
+  });
+
+  it("does nothing on rejoin before it has been let in", async () => {
+    await openSocket();
+
+    await act(() => currentState().rejoin());
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+  });
+
   it("keeps taking until it has been let in", async () => {
     await openSocket();
 

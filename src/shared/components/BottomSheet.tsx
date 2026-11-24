@@ -34,10 +34,25 @@ type SheetProps = Omit<BottomSheetModalProps, "children"> & {
    * scrolling and the sheet, so don't nest one inside a plain sheet.
    */
   scrollable?: boolean;
+  /**
+   * Renders `children` straight into the sheet with no padded wrapper, for a
+   * sheet that lays out its own list and footer (a gorhom scrollable has to
+   * be the direct content to hand drags to the sheet).
+   */
+  bare?: boolean;
 };
 
 export const BottomSheet = forwardRef<BottomSheetModal, SheetProps>(
-  ({ children, contentClassName = "", scrollable = false, ...props }, ref) => {
+  (
+    {
+      children,
+      contentClassName = "",
+      scrollable = false,
+      bare = false,
+      ...props
+    },
+    ref,
+  ) => {
     const background = useResolveClassNames("bg-bg-card");
     const { bottom } = useSafeAreaInsets();
 
@@ -50,7 +65,9 @@ export const BottomSheet = forwardRef<BottomSheetModal, SheetProps>(
         backdropComponent={renderBackdrop}
         {...props}
       >
-        {scrollable ? (
+        {bare ? (
+          children
+        ) : scrollable ? (
           <StyledBottomSheetScrollView
             contentContainerClassName={cn("gap-4 px-6", contentClassName)}
             contentContainerStyle={{ paddingBottom: bottom + 8 }}

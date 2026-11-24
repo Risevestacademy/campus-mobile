@@ -36,16 +36,19 @@ jest.mock("@shared/components/providers/ws", () => ({
 
 const mockWs = {
   status: "idle" as string,
-  listener: null as ((message: unknown) => void) | null,
+  listeners: new Set<(message: unknown) => void>(),
+  emit(message: unknown) {
+    this.listeners.forEach((listener) => listener(message));
+  },
 };
 
 jest.mock("@shared/hooks/useWs", () => ({
   useWs: () => ({
     status: mockWs.status,
     subscribe: (listener: (message: unknown) => void) => {
-      mockWs.listener = listener;
+      mockWs.listeners.add(listener);
       return () => {
-        mockWs.listener = null;
+        mockWs.listeners.delete(listener);
       };
     },
   }),
@@ -62,7 +65,7 @@ describe("RootLayout world socket", () => {
     mockProviderProps.mockClear();
     mockUseMe.mockReset();
     mockWs.status = "idle";
-    mockWs.listener = null;
+    mockWs.listeners.clear();
     useWorldStore.getState().reset();
     // Real hydrate finds no stored tokens and signs the session out.
     useSessionStore.setState({ hydrate: async () => {} });
@@ -113,8 +116,8 @@ describe("RootLayout world socket", () => {
 
     await render(<RootLayout />);
     await act(() => {
-      mockWs.listener?.({ type: "welcome", userId: "me" });
-      mockWs.listener?.({
+      mockWs.emit({ type: "welcome", userId: "me" });
+      mockWs.emit({
         type: "snapshot",
         players: [{ userId: "me", status: "busy", spaceKey: "_default" }],
         spaces: [],

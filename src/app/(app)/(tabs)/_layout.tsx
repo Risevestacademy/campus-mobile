@@ -1,4 +1,5 @@
 import { useCurrentCall } from "@features/campus";
+import { MicBlockedSheet, useCallMute } from "@features/room";
 import { FloatingCall } from "@shared/components";
 import { Tabs } from "expo-router";
 import { PlatformPressable } from "expo-router/build/react-navigation";
@@ -6,7 +7,7 @@ import {
   CalendarCheck2,
   type LucideIcon,
   Map,
-  MessageCircle,
+  // MessageCircle, // chat tab hidden: chat now lives inside calls
   MessageCircleWarning,
   UserRound,
 } from "lucide-react-native";
@@ -96,7 +97,16 @@ export default function TabsLayout() {
   const inactiveFg = useCSSVariable("--color-text-muted") as string;
   const tabBarStyle = useResolveClassNames("bg-bg-card pt-2 h-20");
   const tabBarLabelStyle = useResolveClassNames("text-label");
-  const call = useCurrentCall();
+  const currentCall = useCurrentCall();
+  const mute = useCallMute();
+  // Who is in earshot comes from world; mute is the app-wide room's mic.
+  const call = currentCall
+    ? {
+        ...currentCall,
+        muted: mute.muted,
+        onToggleMute: mute.canToggle ? mute.toggle : undefined,
+      }
+    : null;
   // The call floats 10px above the tab bar, over every tab.
   const tabBarHeight =
     typeof tabBarStyle.height === "number" ? tabBarStyle.height : 80;
@@ -127,6 +137,7 @@ export default function TabsLayout() {
             tabBarIcon: tabIcon(Map),
           }}
         />
+        {/* Chat tab hidden: chat is localized to calls (see room chat).
         <Tabs.Screen
           name="(messages)"
           options={{
@@ -134,6 +145,9 @@ export default function TabsLayout() {
             tabBarIcon: tabIcon(MessageCircle),
           }}
         />
+        */}
+        {/* href: null keeps the route but removes it from the tab bar. */}
+        <Tabs.Screen name="(messages)" options={{ href: null }} />
         <Tabs.Screen
           name="(calendar)"
           options={{
@@ -157,6 +171,10 @@ export default function TabsLayout() {
         />
       </Tabs>
       <FloatingCall call={call} bottomOffset={tabBarHeight + 10} />
+      <MicBlockedSheet
+        visible={mute.permissionDenied}
+        onDismiss={mute.dismissPermissionDenied}
+      />
     </View>
   );
 }

@@ -335,6 +335,46 @@ describe("useAroundMe", () => {
     expect(state().nearby).toEqual(["ada"]);
   });
 
+  it("puts everyone in a whole-room space in earshot, with no nearby", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    await act(() => {
+      apply({ type: "call", call: { hearing: "room" } } as ServerMessage);
+    });
+
+    expect(state().hearing).toBe("room");
+    expect(result.current.earshot.map((p) => p.userId).sort()).toEqual([
+      "ada",
+      "bo",
+    ]);
+    expect(result.current.inMySpace).toEqual([]);
+  });
+
+  it("goes back to nearby in a proximity space", async () => {
+    const { result } = await renderHook(() => useAroundMe());
+
+    await act(() => {
+      apply({ type: "call", call: { hearing: "room" } } as ServerMessage);
+      apply({ type: "call", call: { hearing: "proximity" } } as ServerMessage);
+      apply({ type: "nearby", userIds: ["ada"] });
+    });
+
+    expect(result.current.earshot.map((p) => p.userId)).toEqual(["ada"]);
+    expect(result.current.inMySpace.map((p) => p.userId)).toEqual(["bo"]);
+  });
+
+  it.each([
+    ["no call here", { type: "call", call: null }],
+    ["another device took over", { type: "watching" }],
+    ["a new connection", { type: "welcome", userId: "me" }],
+  ])("forgets how the space is heard when %s", async (_why, message) => {
+    apply({ type: "call", call: { hearing: "room" } } as ServerMessage);
+
+    apply(message as ServerMessage);
+
+    expect(state().hearing).toBeNull();
+  });
+
   it("skips earshot ids world hasn't told us about", async () => {
     const { result } = await renderHook(() => useAroundMe());
 
