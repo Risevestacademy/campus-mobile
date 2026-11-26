@@ -86,9 +86,14 @@ export function RequestLobbyScreen({
         </Text>
       </View>
       <View className="gap-3 pb-4">
-        <Button label="Back to campus" onPress={backToCampus} />
         <Button
-          variant="secondary"
+          className="bg-bg-on-colour active:bg-bg-on-colour"
+          labelClassName="text-text-on-accent"
+          label="Back to campus"
+          onPress={backToCampus}
+        />
+        <Button
+          variant="tertiary"
           label={ended ? "Close" : "Cancel request"}
           onPress={cancelRequest}
         />
