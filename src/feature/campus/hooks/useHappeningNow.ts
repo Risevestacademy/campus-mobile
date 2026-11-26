@@ -60,7 +60,7 @@ function joinTarget(
  * The current time, moved on once a minute and whenever the app comes back to
  * the foreground, since timers don't run in the background.
  */
-function useMinuteClock() {
+export function useMinuteClock() {
   const [now, setNow] = React.useState(() => Date.now());
   React.useEffect(() => {
     const tick = () => setNow(Date.now());

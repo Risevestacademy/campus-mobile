@@ -7,4 +7,5 @@ export * from "./useDeskPreview";
 export * from "./useGoToSpace";
 export * from "./useHappeningNow";
 export * from "./useMyDeskTarget";
+export * from "./useOpenMeeting";
 export * from "./useRecentSearches";
