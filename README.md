@@ -149,3 +149,4 @@ Useful references:
 - [Expo SDK 57 documentation](https://docs.expo.dev/versions/v57.0.0/)
 - [Expo development server guide](https://docs.expo.dev/get-started/start-developing/)
 - [Project architectural plan](docs/architectural-plan.md)
+- [Factory PR Review caller](.github/workflows/factory-pr-review.yml)
