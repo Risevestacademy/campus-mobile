@@ -76,6 +76,7 @@ const world = () => {
     players: state.players,
     lockedSpaces: state.lockedSpaces,
     lockableSpaces: state.lockableSpaces,
+    selfId: state.selfId,
   };
 };
 
@@ -98,9 +99,33 @@ describe("toCampusSpaces", () => {
       title: "Library",
       subtitle: "Ada, Bo +1",
       people: ["Ada", "Bo", "Cy"],
+      youAreHere: false,
       participants: 3,
       status: "occupied",
       type: "common",
+    });
+  });
+
+  it("calls you You, first, and says when it's just you", () => {
+    const apply = useWorldStore.getState().apply;
+    // Dee, alone in pod-1, is you.
+    apply({ type: "welcome", userId: "Dee", mode: "avatar" } as ServerMessage);
+    let pod1 = toCampusSpaces(world()).find((s) => s.key === "pod-1");
+    expect(pod1).toMatchObject({
+      people: ["You"],
+      youAreHere: true,
+      subtitle: "Locked · Just you",
+    });
+
+    apply({
+      type: "spaceChanged",
+      userId: "Ada",
+      spaceKey: "pod-1",
+    } as ServerMessage);
+    pod1 = toCampusSpaces(world()).find((s) => s.key === "pod-1");
+    expect(pod1).toMatchObject({
+      people: ["You", "Ada"],
+      subtitle: "Locked · You, Ada",
     });
   });
 
@@ -242,7 +267,7 @@ describe("SpacesScreen", () => {
     await fireEvent.press(screen.getByText("Library"));
 
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/(app)/(tabs)/(campus)/space/[id]",
+      pathname: "/(app)/space/[id]",
       params: { id: "library" },
     });
   });

@@ -13,9 +13,10 @@ const CORRIDORS = "_default";
 /** How many names a subtitle shows before "+N". */
 const NAMES_SHOWN = 2;
 
-/** "Ada, Bo +2", or "Nobody here". */
-function whoIsHere(names: string[]) {
+/** "You, Ada +2", "Just you", or "Nobody here". */
+function whoIsHere(names: string[], youAreHere: boolean) {
   if (names.length === 0) return "Nobody here";
+  if (youAreHere && names.length === 1) return "Just you";
   const shown = names.slice(0, NAMES_SHOWN).join(", ");
   const more = names.length - NAMES_SHOWN;
   return more > 0 ? `${shown} +${more}` : shown;
@@ -47,16 +48,21 @@ function meetingsBySpace(live: LiveMeetingItem[]) {
 export function toCampusSpaces(
   world: Pick<
     WorldState,
-    "spaces" | "players" | "lockedSpaces" | "lockableSpaces"
+    "spaces" | "players" | "lockedSpaces" | "lockableSpaces" | "selfId"
   >,
   live: LiveMeetingItem[] = [],
 ): Space[] {
+  // Everybody but you, by space; you're added as "You", first.
   const namesIn = new Map<string, string[]>();
   for (const player of Object.values(world.players)) {
+    if (player.userId === world.selfId) continue;
     const names = namesIn.get(player.spaceKey) ?? [];
     names.push(player.displayName ?? "Someone");
     namesIn.set(player.spaceKey, names);
   }
+  const yourSpace = world.selfId
+    ? world.players[world.selfId]?.spaceKey
+    : undefined;
   const locked = new Set(world.lockedSpaces);
   const lockable = new Set(world.lockableSpaces);
   const meetings = meetingsBySpace(live);
@@ -65,9 +71,11 @@ export function toCampusSpaces(
     .filter((space) => space.spaceKey !== CORRIDORS)
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((space) => {
-      const names = (namesIn.get(space.spaceKey) ?? []).sort((a, b) =>
+      const others = (namesIn.get(space.spaceKey) ?? []).sort((a, b) =>
         a.localeCompare(b),
       );
+      const youAreHere = yourSpace === space.spaceKey;
+      const names = youAreHere ? ["You", ...others] : others;
       const isLocked = locked.has(space.spaceKey);
       const meeting = meetings.get(space.spaceKey);
       const status: SpaceStatus = meeting
@@ -77,7 +85,11 @@ export function toCampusSpaces(
           : names.length > 0
             ? "occupied"
             : "empty";
-      const subtitle = [meeting, isLocked && "Locked", whoIsHere(names)]
+      const subtitle = [
+        meeting,
+        isLocked && "Locked",
+        whoIsHere(names, youAreHere),
+      ]
         .filter(Boolean)
         .join(" · ");
       return {
@@ -85,6 +97,7 @@ export function toCampusSpaces(
         title: space.name,
         subtitle,
         people: names,
+        youAreHere,
         ...(meeting ? { meeting } : {}),
         participants: names.length,
         status,

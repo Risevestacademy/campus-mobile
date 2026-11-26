@@ -18,8 +18,10 @@ export type Space = {
   title: string;
   /** Who is in it, and whether it's locked. */
   subtitle: string;
-  /** Names of the people in it, for search. */
+  /** Names of the people in it, "You" first when you're one of them. */
   people: string[];
+  /** You're standing in it. */
+  youAreHere: boolean;
   /** The meeting on there now, when it's live. */
   meeting?: string;
   participants: number;

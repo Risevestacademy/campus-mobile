@@ -41,7 +41,7 @@ export function SpacesScreen() {
 
   const openSpace = (space: Space) =>
     router.push({
-      pathname: "/(app)/(tabs)/(campus)/space/[id]",
+      pathname: "/(app)/space/[id]",
       params: { id: space.key },
     });
 

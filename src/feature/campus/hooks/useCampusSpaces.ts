@@ -19,6 +19,7 @@ export function useCampusSpaces() {
       players: state.players,
       lockedSpaces: state.lockedSpaces,
       lockableSpaces: state.lockableSpaces,
+      selfId: state.selfId,
     })),
   );
   const live = useHappeningNow();
@@ -33,4 +34,18 @@ export function useCampusSpaces() {
   );
 
   return { ready: world.ready, spaces, people };
+}
+
+/**
+ * One space by its world key, kept live like the list. `space` is undefined
+ * until world's first snapshot (`ready` false), or when the key isn't on the
+ * map, e.g. an old link after the map changed.
+ */
+export function useCampusSpace(key: string) {
+  const { ready, spaces } = useCampusSpaces();
+  const space = React.useMemo(
+    () => spaces.find((candidate) => candidate.key === key),
+    [spaces, key],
+  );
+  return { ready, space };
 }
