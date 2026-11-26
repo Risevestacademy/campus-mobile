@@ -50,6 +50,7 @@ export type ServerMessage =
   | WelcomeMessage
   | PongMessage
   | SnapshotMessage
+  | MapChangedMessage
   | JoinedMessage
   | AppearanceMessage
   | LeftMessage
@@ -62,6 +63,7 @@ export type ServerMessage =
   | LockableSpacesMessage
   | DesksChangedMessage
   | SpacesMessage
+  | NotificationMessage
   | EntryRequestedMessage
   | EntryRequestEndedMessage
   | SaidMessage
@@ -71,6 +73,7 @@ export type ServerMessage =
   | ReplacedMessage
   | WatchingMessage
   | MovedMessage
+  | PositionCorrectedMessage
   | MoveResultMessage
   | ErrorMessage;
 /**
@@ -88,7 +91,7 @@ export type EntryRequestOutcome =
   | "not_needed"
   | "cancelled";
 /**
- * arrived: walking to somebody, you are one tile from them, in their space, never on their tile; to a space, you are on the free tile nearest its middle, or its middle when none is free; to a tile, you are on it. stopped: you sent `stopWalking` or a `move`. refused: a space you may not enter is in the way, or is where you were going, and you stopped beside the first one; `mayAsk` says whether asking to enter it would be taken. gone: they left, or were not here. elsewhere: they are online, but connected to another world server, which a walk cannot reach. gone and elsewhere end only walks to somebody. no_way: no path reaches where you were going: walls, a space with no room beside them, or a walk past the step limit. moved_by_staff: staff removed you from a space mid-walk.
+ * arrived: walking to somebody, you are one tile from them, in their space, never on their tile; to a space, you are on the free tile nearest its middle, or its middle when none is free; to a tile, you are on it. stopped: you sent `stopWalking` or a `move`. refused: a space you may not enter is in the way, or is where you were going, and you stopped beside the first one; `mayAsk` says whether asking to enter it would be taken. full: a space you may enter is in the way, or is where you were going, but already holds as many people as its capacity allows, and you stopped beside the first one; `mayAsk` is false. Refused wins when a space is both closed to you and full. gone: they left, or were not here. elsewhere: they are online, but connected to another world server, which a walk cannot reach. gone and elsewhere end only walks to somebody. no_way: no path reaches where you were going: walls, a space with no room beside them, or a walk past the step limit. moved_by_staff: staff removed you from a space mid-walk.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "WalkEndReason".
@@ -97,17 +100,18 @@ export type WalkEndReason =
   | "arrived"
   | "stopped"
   | "refused"
+  | "full"
   | "gone"
   | "elsewhere"
   | "no_way"
   | "moved_by_staff";
 /**
- * moved: one tile in the direction asked. blocked: the tile is not walkable; they turn to face it without moving. refused: the tile is floor, but in a space they may not enter (designated and not on its list, or locked); they turn to face it without moving, and may ask with `requestEntry`. too_fast: over walking speed; nothing happens, not even the turn.
+ * moved: one tile in the direction asked. blocked: the tile is not walkable; they turn to face it without moving. refused: the tile is floor, but in a space they may not enter (designated and not on its list, or locked); they turn to face it without moving, and may ask with `requestEntry`. full: the tile is floor, in a space they may enter but that already holds as many people as its capacity allows; they turn to face it without moving. Asking does not help. too_fast: over walking speed; nothing happens, not even the turn.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "MoveOutcome".
  */
-export type MoveOutcome = "moved" | "blocked" | "refused" | "too_fast";
+export type MoveOutcome = "moved" | "blocked" | "refused" | "full" | "too_fast";
 /**
  * The close codes world sends. Two more reach a client without world sending them: 1006, from the browser, when the connection is lost, a heartbeat is missed or the client reads too slowly (reconnect with backoff); and 1009, from the socket library, for a frame over the size limit (client bug; reconnect).
  *
@@ -244,7 +248,7 @@ export interface AnswerEntryRequestMessage {
   admit: boolean;
 }
 /**
- * A line of chat to whoever can hear you: everybody in a whole-room space, or the people within its subscribe radius in a proximity space, measured when you send it, without the hysteresis `nearby` keeps, so the two need not match at the edge. Up to 500 characters, trimmed. Answered by the `said` you and they get; five lines at once, then one a second, after which a NOT_ALLOWED error. Never stored. Counts as activity.
+ * A line of chat to whoever can hear you: everybody in a whole-room space, or the people within its subscribe radius in a proximity space, measured when you send it, without the hysteresis `nearby` keeps, so the two need not match at the edge. Up to 500 characters, trimmed; may be empty when it carries an `attachment`. Answered by the `said` you and they get; five lines at once, then one a second, after which a NOT_ALLOWED error. Never stored. Counts as activity.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "SayMessage".
@@ -252,6 +256,22 @@ export interface AnswerEntryRequestMessage {
 export interface SayMessage {
   type: "say";
   text: string;
+  attachment?: ChatAttachment;
+}
+/**
+ * A file sent in a call’s chat, from `POST /v1/cohorts/{cohortId}/spaces/{spaceId}/call/attachments`.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "ChatAttachment".
+ */
+export interface ChatAttachment {
+  /**
+   * Open it with `GET /v1/media/{mediaId}/url` on campus-api.
+   */
+  mediaId: string;
+  fileName: string | null;
+  contentType: string;
+  sizeBytes: number;
 }
 /**
  * Staff only: switch off somebody’s microphone in the call for their space, once; they may switch it back on. An admin may mute anybody in the cohort’s campus; a professor or mentor only somebody in the designated space they stand in, whose list names them. Never an admin, never yourself. Answered by `staffAction`, to you and to them; otherwise by a NOT_ALLOWED error saying why. Counts as activity.
@@ -468,6 +488,33 @@ export interface SpaceName {
   name: string;
 }
 /**
+ * An admin published a new version of the map while you were here. Stop enforcing the one from `snapshot`, load `map.version`, and replace everything you draw from the map with it. Sent to everybody; a connection made afterwards gets it in `snapshot` instead.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "MapChangedMessage".
+ */
+export interface MapChangedMessage {
+  type: "mapChanged";
+  map: {
+    /**
+     * Which published map this is. With `version`, what to load: the server enforces exactly that one.
+     */
+    id: string;
+    /**
+     * The published version the server loaded. Load this version, not the current one: a map published since would have walls the server does not.
+     */
+    version: string;
+    /**
+     * In tiles.
+     */
+    width: number;
+    /**
+     * In tiles.
+     */
+    height: number;
+  };
+}
+/**
  * Somebody arrived in your cohort. Not sent when a socket is replaced within the same cohort, because the avatar never left.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
@@ -659,6 +706,42 @@ export interface SpacesMessage {
   spaces: SpaceName[];
 }
 /**
+ * Something happened that you are told about: enough to show a badge or a toast without asking campus-api. One about a cohort comes only on that cohort’s socket; one about no cohort, as a campus-wide notice, on every socket you have open. Best effort: one sent while you had no socket open, or that world missed, is in the list all the same, so fetch it on arriving.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "NotificationMessage".
+ */
+export interface NotificationMessage {
+  type: "notification";
+  /**
+   * The notification, as `GET /v1/notifications` lists it on campus-api; mark it read with `PATCH /v1/notifications/{id}/read`.
+   */
+  id: string;
+  /**
+   * What happened: `notice_posted`, `entry_request_admitted` or `entry_request_declined`. More will be added: show a plain alert for one you do not know.
+   */
+  kind: string;
+  /**
+   * What `referenceId` names: `notice` or `entry_request`. Grows with `kind`.
+   */
+  referenceType: string;
+  /**
+   * The notice's id, to fetch from campus-api for its text; for an entry request, the `requestId` its `entryRequestEnded` carried.
+   */
+  referenceId: string;
+  /**
+   * For an entry request, the cohort and space it was for. Null for a notice.
+   */
+  context: {
+    cohortId: string;
+    spaceKey: string;
+  } | null;
+  /**
+   * When it was written, as an ISO timestamp.
+   */
+  createdAt: string;
+}
+/**
  * Somebody asks to enter a space. Sent to the asker, and to each person inside who may answer, as they become able to: on the request, or on stepping in later. Every one is followed by an `entryRequestEnded` with the same `requestId`. Only answerable while you stand in that space.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
@@ -719,7 +802,14 @@ export interface SaidMessage {
    * The space they said it in, so a meeting’s chat can be kept apart.
    */
   spaceKey: string;
+  /**
+   * Empty when the line is only a file.
+   */
   text: string;
+  /**
+   * The file sent with it, as the speaker gave it; null for none.
+   */
+  attachment: ChatAttachment | null;
   /**
    * When world relayed it, as an ISO timestamp.
    */
@@ -857,7 +947,7 @@ export interface WatchingMessage {
   type: "watching";
 }
 /**
- * Everybody in your cohort who moved or turned since the last tick, once each, as they stand now: two steps inside one tick arrive as the second, so an entry can be more than one tile from where they were. Sent once per tick, and not at all when nobody moved. You are never in your own `moved` frame — your `moveResult` already says where you ended up.
+ * Everybody in your cohort who moved or turned since the last tick, once each, as they stand now: two steps inside one tick arrive as the second, so an entry can be more than one tile from where they were. Sent once per tick, and not at all when nobody moved. You are never in your own `moved` frame — your `moveResult` already says where you ended up. A map reload can also send one at once, carrying somebody the new walls moved.
  *
  * This interface was referenced by `WorldProtocol`'s JSON-Schema
  * via the `definition` "MovedMessage".
@@ -865,6 +955,16 @@ export interface WatchingMessage {
 export interface MovedMessage {
   type: "moved";
   players: Player[];
+}
+/**
+ * A new map put the tile you stood on inside a wall, so the server moved you to the nearest walkable one. Snap to `player`. Only you get this; the rest of your cohort sees the move in `moved`.
+ *
+ * This interface was referenced by `WorldProtocol`'s JSON-Schema
+ * via the `definition` "PositionCorrectedMessage".
+ */
+export interface PositionCorrectedMessage {
+  type: "positionCorrected";
+  player: Player;
 }
 /**
  * The answer to one admitted `move`. `player` is where the server has them; on anything but `moved`, the client snaps back to it.
