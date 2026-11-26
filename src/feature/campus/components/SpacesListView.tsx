@@ -1,34 +1,26 @@
+import { LiveIndicator } from "@shared/components";
 import { Divider, Row, Text } from "@shared/components/atoms";
 import { cn } from "@shared/utils/style";
 import { ChevronRight, DoorClosed, User } from "lucide-react-native";
 import React from "react";
-import { SectionList, View } from "react-native";
+import { Pressable, SectionList, View } from "react-native";
 import { withUniwind } from "uniwind";
+
+import type { Space, SpaceType } from "../types";
 
 const StyledChevronRight = withUniwind(ChevronRight);
 const StyledUser = withUniwind(User);
 const StyledDoorClosed = withUniwind(DoorClosed);
 
-type SpaceType = "classroom" | "private" | "common";
-
-export type Space = {
-  participants: number;
-  title: string;
-  subtitle: string;
-  status: "live" | "available" | "open" | "quiet";
-  type: SpaceType;
-};
-
 const SECTION_CONFIG: Record<
   SpaceType,
   { title: string; colorClassname: string }
 > = {
-  classroom: { title: "Classrooms", colorClassname: "bg-identity-sky-strong" },
   private: { title: "Private", colorClassname: "bg-identity-violet" },
   common: { title: "Common", colorClassname: "bg-action-accent" },
 };
 
-const SECTION_ORDER: SpaceType[] = ["classroom", "private", "common"];
+const SECTION_ORDER: SpaceType[] = ["private", "common"];
 
 type SpaceSection = {
   type: SpaceType;
@@ -39,15 +31,14 @@ type SpaceSection = {
 
 type SpacesListViewProps = {
   data: Space[];
+  onOpenSpace?: (space: Space) => void;
+  /** Shown in place of the list when there's nothing in it. */
+  empty?: React.ReactElement;
 };
 
 /** Groups spaces by type, in section order, leaving out empty groups. */
 export function toSpaceSections(spaces: Space[]): SpaceSection[] {
-  const grouped: Record<SpaceType, Space[]> = {
-    classroom: [],
-    private: [],
-    common: [],
-  };
+  const grouped: Record<SpaceType, Space[]> = { private: [], common: [] };
   for (const space of spaces) grouped[space.type].push(space);
 
   return SECTION_ORDER.map((type) => ({
@@ -76,23 +67,34 @@ function SpaceRow({
   colorClassname,
   first,
   last,
+  onPress,
 }: {
   space: Space;
   colorClassname: string;
   first: boolean;
   last: boolean;
+  onPress?: () => void;
 }) {
   return (
-    <Row
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${space.title}, ${space.subtitle}`}
       className={cn(
-        "border-x border-border-default bg-bg-card px-4 py-3",
+        "flex-row items-center gap-2 border-x border-border-default bg-bg-card px-4 py-3 active:bg-bg-hover",
         first && "rounded-t-xl border-t",
         last && "rounded-b-xl border-b",
       )}
     >
       <View className={cn("h-9 w-1 rounded-full", colorClassname)} />
       <View className="flex-1 gap-0.5">
-        <Text variant="label">{space.title}</Text>
+        <Row gap="xs">
+          <Text variant="label" numberOfLines={1} className="shrink">
+            {space.title}
+          </Text>
+          {space.status === "live" ? <LiveIndicator /> : null}
+        </Row>
         <Text variant="caption" color="secondary">
           {space.subtitle}
         </Text>
@@ -104,7 +106,7 @@ function SpaceRow({
         </Text>
       </View>
       <StyledChevronRight colorClassName="accent-text-muted" size={16} />
-    </Row>
+    </Pressable>
   );
 }
 
@@ -116,13 +118,17 @@ function RowDivider() {
   );
 }
 
-export function SpacesListView({ data }: SpacesListViewProps) {
+export function SpacesListView({
+  data,
+  onOpenSpace,
+  empty,
+}: SpacesListViewProps) {
   const sections = React.useMemo(() => toSpaceSections(data), [data]);
 
   return (
     <SectionList
       sections={sections}
-      keyExtractor={(space, index) => `${space.type}:${space.title}:${index}`}
+      keyExtractor={(space) => space.key}
       renderSectionHeader={({ section }) => <SectionHeader section={section} />}
       renderItem={({ item, index, section }) => (
         <SpaceRow
@@ -130,8 +136,10 @@ export function SpacesListView({ data }: SpacesListViewProps) {
           colorClassname={section.colorClassname}
           first={index === 0}
           last={index === section.data.length - 1}
+          onPress={onOpenSpace ? () => onOpenSpace(item) : undefined}
         />
       )}
+      ListEmptyComponent={empty}
       ItemSeparatorComponent={RowDivider}
       renderSectionFooter={() => <View className="h-3" />}
       stickySectionHeadersEnabled={false}

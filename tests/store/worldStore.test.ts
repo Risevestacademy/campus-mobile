@@ -124,6 +124,24 @@ describe("useWorldStore", () => {
     expect(state().players.ghost).toBeUndefined();
   });
 
+  it("keeps which spaces can be locked, and takes a new list when an admin changes it", () => {
+    apply({
+      type: "snapshot",
+      players: [],
+      spaces: [],
+      lockableSpaces: ["pod-1"],
+      lockedSpaces: [],
+    } as unknown as ServerMessage);
+    expect(state().lockableSpaces).toEqual(["pod-1"]);
+
+    apply({
+      type: "lockableSpaces",
+      spaceKeys: ["pod-1", "pod-2"],
+    } as ServerMessage);
+
+    expect(state().lockableSpaces).toEqual(["pod-1", "pod-2"]);
+  });
+
   it("replaces everybody on a new snapshot after a reconnect", () => {
     apply(snapshot(avatar("a"), avatar("b")));
     useWorldStore.getState().markStale();

@@ -1,3 +1,4 @@
+export * from "./campusSpaces";
 export * from "./searchCampus";
 export * from "./searchFilters";
 export * from "./searchHome";

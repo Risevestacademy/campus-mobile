@@ -14,3 +14,4 @@ export type {
   SearchSection,
   SpaceResult,
 } from "./search";
+export type { Space, SpaceFilter, SpaceStatus, SpaceType } from "./spaces";
