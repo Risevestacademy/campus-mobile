@@ -1,13 +1,15 @@
 import { SpaceInfoScreen } from "@features/campus";
+import { useEntryRequestStore } from "@features/campus/store/entryRequest";
 import type { Space } from "@features/campus/types";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import React from "react";
 
 const mockSend = jest.fn(() => true);
+const mockPush = jest.fn();
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
-    push: jest.fn(),
+    push: mockPush,
     back: jest.fn(),
     canGoBack: () => true,
   }),
@@ -37,6 +39,21 @@ const space = (overrides: Partial<Space>): Space => ({
 describe("SpaceInfoScreen", () => {
   beforeEach(() => {
     mockSend.mockClear();
+    mockPush.mockClear();
+    useEntryRequestStore.getState().clear();
+  });
+
+  it("goes back to the open request instead of asking again", async () => {
+    useEntryRequestStore.getState().start("pod-1", "Study Pod 1");
+    await render(<SpaceInfoScreen space={space({ status: "locked" })} />);
+
+    await fireEvent.press(screen.getByText("View request"));
+
+    expect(mockSend).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(app)/space/[id]/requst-lobby",
+      params: { id: "pod-1" },
+    });
   });
 
   it("offers to ask to join a locked space, walking to its door", async () => {
@@ -62,6 +79,11 @@ describe("SpaceInfoScreen", () => {
     expect(mockSend).toHaveBeenCalledWith({
       type: "goToSpace",
       spaceKey: "pod-1",
+    });
+    // The request waits in the lobby.
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(app)/space/[id]/requst-lobby",
+      params: { id: "pod-1" },
     });
   });
 

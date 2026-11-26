@@ -8,6 +8,7 @@ import {
   toast,
 } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
+import { useRouter } from "expo-router";
 import { CircleQuestionMark, Lock, Unlock } from "lucide-react-native";
 import React from "react";
 import { View } from "react-native";
@@ -52,39 +53,53 @@ function whoIsHere(people: string[], youAreHere: boolean) {
   return `${people[0]}, ${people[1]} and ${others} ${others === 1 ? "other" : "others"}`;
 }
 
+/**
+ * Locked: ask, and wait in the lobby. One request at a time, so while it's
+ * open this goes back to the lobby rather than asking again.
+ */
 function AskToJoin({ space }: { space: Space }) {
-  const { phase, reason, ask, withdraw } = useAskToJoin(space.key);
+  const router = useRouter();
+  const { phase, reason, ask } = useAskToJoin(space.key, space.title);
+  const open = phase !== "idle" && phase !== "ended";
+
+  const toLobby = () =>
+    router.push({
+      pathname: "/(app)/space/[id]/requst-lobby",
+      params: { id: space.key },
+    });
+
+  const askToJoin = () => {
+    if (!ask()) {
+      toast.error("You're not connected to campus right now.", "Can't ask");
+      return;
+    }
+    toLobby();
+  };
 
   return (
     <View className="gap-3">
-      {phase === "waiting" ? (
-        <>
-          <Text color="secondary">
-            Asked. Waiting for somebody inside to let you in…
-          </Text>
-          <Button variant="secondary" label="Withdraw" onPress={withdraw} />
-        </>
-      ) : phase === "entering" ? (
-        <Text color="secondary">You&apos;re in. Walking through…</Text>
-      ) : (
-        <>
-          {reason ? <Text color="secondary">{reason}</Text> : null}
-          <Button
-            label={phase === "ended" ? "Ask again" : "Ask to join"}
-            loading={phase === "walking"}
-            onPress={ask}
-          />
-          <Row gap="xs">
-            <StyledCircleQuestionMark
-              colorClassName="accent-text-secondary"
-              size={14}
-            />
-            <Text color="secondary" variant="caption" className="flex-1">
-              You&apos;ll walk to the door first. Anyone inside can let you in.
-            </Text>
-          </Row>
-        </>
-      )}
+      {phase === "ended" && reason ? (
+        <Text color="secondary">{reason}</Text>
+      ) : null}
+      <Button
+        label={
+          open
+            ? "View request"
+            : phase === "ended"
+              ? "Ask again"
+              : "Ask to join"
+        }
+        onPress={open ? toLobby : askToJoin}
+      />
+      <Row gap="xs">
+        <StyledCircleQuestionMark
+          colorClassName="accent-text-secondary"
+          size={14}
+        />
+        <Text color="secondary" variant="caption" className="flex-1">
+          You&apos;ll walk to the door first. Anyone inside can let you in.
+        </Text>
+      </Row>
     </View>
   );
 }
