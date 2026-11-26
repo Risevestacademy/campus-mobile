@@ -4,6 +4,7 @@ import {
   isStandingEmpty,
   useAroundMe,
   useMySpace,
+  useSpaceOf,
   useWorldStore,
 } from "@store/world";
 import { act, renderHook } from "@testing-library/react-native";
@@ -343,5 +344,42 @@ describe("useAroundMe", () => {
     });
 
     expect(result.current.earshot.map((p) => p.userId)).toEqual(["ada"]);
+  });
+});
+
+describe("useSpaceOf", () => {
+  const library = { spaceKey: "library", name: "Library" };
+
+  beforeEach(() => {
+    useWorldStore.getState().reset();
+  });
+
+  it("names the space somebody is in", async () => {
+    apply(
+      snapshotWithSpaces([library], avatar("ada", { spaceKey: "library" })),
+    );
+
+    const { result } = await renderHook(() => useSpaceOf("ada"));
+
+    expect(result.current).toBe("Library");
+  });
+
+  it("is undefined while they're not on campus", async () => {
+    apply(snapshotWithSpaces([library]));
+
+    const { result } = await renderHook(() => useSpaceOf("ada"));
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it("follows them when they leave", async () => {
+    apply(
+      snapshotWithSpaces([library], avatar("ada", { spaceKey: "library" })),
+    );
+    const { result } = await renderHook(() => useSpaceOf("ada"));
+
+    await act(() => apply({ type: "left", userId: "ada" } as ServerMessage));
+
+    expect(result.current).toBeUndefined();
   });
 });

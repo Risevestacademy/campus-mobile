@@ -1,4 +1,5 @@
 import { Avatar, Pill, Row, StatusDot, Text } from "@shared/components/atoms";
+import { cn } from "@shared/utils/style";
 import {
   CalendarDays,
   DoorClosed,
@@ -31,6 +32,8 @@ const StyledNavigation = withUniwind(Navigation);
 /** What each kind of result can do. Any left out does nothing for now. */
 export type SearchResultActions = {
   onGoToPerson?: (person: PersonResult) => void;
+  /** Opens their desk. */
+  onOpenPerson?: (person: PersonResult) => void;
   onWave?: (person: PersonResult) => void;
   onGoToSpace?: (space: SpaceResult) => void;
   onViewMeeting?: (meeting: MeetingResult) => void;
@@ -81,27 +84,41 @@ function PersonRow({
 }) {
   return (
     <Row gap="md" className="mx-4 rounded-lg bg-bg-hover p-3">
-      <View className="relative">
-        <Avatar size={40} placeholder={person.name[0] ?? ""} />
-        <StatusDot
-          status={person.status}
-          className="absolute right-0 bottom-0 size-3 border-2 border-bg-hover"
-        />
-      </View>
-      <View className="flex-1 gap-0.5">
-        <Text variant="label" numberOfLines={1}>
-          {person.name}
-        </Text>
-        {person.spaceName ? (
-          <Text variant="caption" color="secondary" numberOfLines={1}>
-            {person.spaceName}
+      <Pressable
+        onPress={() => actions.onOpenPerson?.(person)}
+        disabled={!actions.onOpenPerson}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${person.name}'s desk`}
+        // The dot says this to sighted people.
+        accessibilityValue={{
+          text: person.status ?? "not on campus",
+        }}
+        className="flex-1 flex-row items-center gap-3"
+      >
+        <View className="relative">
+          <Avatar size={40} placeholder={person.name[0] ?? ""} />
+          <StatusDot
+            status={person.status ?? "offline"}
+            className="absolute right-0 bottom-0 size-3 border-2 border-bg-hover"
+          />
+        </View>
+        <View className="flex-1 gap-0.5">
+          <Text variant="label" numberOfLines={1}>
+            {person.name}
           </Text>
-        ) : null}
-      </View>
+          {person.spaceName ? (
+            <Text variant="caption" color="secondary" numberOfLines={1}>
+              {person.spaceName}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
       <Row gap="sm">
         <IconButton
           label={`Go to ${person.name}`}
           onPress={() => actions.onGoToPerson?.(person)}
+          // Nobody to walk to until they're on campus.
+          disabled={!person.onCampus}
         >
           <StyledNavigation size={16} colorClassName="accent-text-primary" />
         </IconButton>
@@ -258,18 +275,25 @@ function PillButton({
 function IconButton({
   label,
   onPress,
+  disabled = false,
   children,
 }: {
   label: string;
   onPress: () => void;
+  disabled?: boolean;
   children: ReactNode;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
-      className="size-9 items-center justify-center rounded-full bg-bg-card active:opacity-80"
+      accessibilityState={{ disabled }}
+      className={cn(
+        "size-9 items-center justify-center rounded-full bg-bg-card active:opacity-80",
+        disabled && "opacity-50",
+      )}
     >
       {children}
     </Pressable>

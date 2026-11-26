@@ -1,4 +1,5 @@
 export * from "./useCampusSearch";
+export * from "./useCohortPeople";
 export * from "./useCollapsingHeader";
 export * from "./useCurrentCall";
 export * from "./useDeskPreview";

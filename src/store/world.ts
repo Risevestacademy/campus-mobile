@@ -179,6 +179,17 @@ export const useMySpace = () =>
     return state.spaces[key];
   });
 
+/**
+ * The name of the space somebody is in, or undefined while they're not on
+ * campus (or before the first snapshot).
+ */
+export const useSpaceOf = (userId: string | undefined) =>
+  useWorldStore((state) => {
+    const key = userId ? state.players[userId]?.spaceKey : undefined;
+    if (!key) return undefined;
+    return state.spaces[key]?.name ?? key;
+  });
+
 export const useMyStatus = () =>
   useWorldStore((state) =>
     state.selfId ? state.players[state.selfId]?.status : undefined,
