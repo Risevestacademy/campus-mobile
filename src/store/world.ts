@@ -28,6 +28,8 @@ export type WorldState = {
   mode: "avatar" | "watcher" | null;
   /** Space keys locked in your cohort right now. */
   lockedSpaces: string[];
+  /** Space keys whoever stands inside may lock: rooms, not open areas. */
+  lockableSpaces: string[];
   /** Who is close enough to hear you, in a proximity space; else empty. */
   nearby: string[];
 };
@@ -39,6 +41,7 @@ const initialState: WorldState = {
   players: {},
   spaces: {},
   lockedSpaces: [],
+  lockableSpaces: [],
   nearby: [],
 };
 
@@ -86,6 +89,7 @@ export function applyWorldMessage(
         ),
         spaces: bySpaceKey(message.spaces),
         lockedSpaces: message.lockedSpaces,
+        lockableSpaces: message.lockableSpaces,
         // A new connection: world sends `nearby` again if it applies.
         nearby: [],
       };
@@ -120,6 +124,9 @@ export function applyWorldMessage(
       });
     case "spaces":
       return { ...state, spaces: bySpaceKey(message.spaces) };
+    // An admin changed which spaces can be locked.
+    case "lockableSpaces":
+      return { ...state, lockableSpaces: message.spaceKeys };
     case "lockChanged": {
       const others = state.lockedSpaces.filter(
         (key) => key !== message.spaceKey,

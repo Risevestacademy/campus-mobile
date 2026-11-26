@@ -1,4 +1,5 @@
 export { CampusScreen } from "./CampusScreen";
+export { RequestLobbyScreen } from "./RequestLobbyScreen";
 export { SearchScreen } from "./SearchScreen";
-export { SpaceInfoScreen } from "./SpaceInfoScreen";
+export { SpaceInfoPlaceholder, SpaceInfoScreen } from "./SpaceInfoScreen";
 export { SpacesScreen } from "./SpacesScreen";

@@ -1,14 +1,11 @@
-import { RoomLinkService } from "@services/roomLinks";
 import { toast } from "@shared/components/atoms";
 import SafeArea from "@shared/components/safearea/SafeArea";
-import { useMeetingJoin } from "@shared/hooks/ui";
 import { useMyDesk } from "@shared/hooks/useDesks";
 import { useWs } from "@shared/hooks/useWs";
 import type { ClientMessage } from "@shared/lib/ws";
 import { useMySpace } from "@store/world";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Linking } from "react-native";
 
 import {
   SearchBar,
@@ -23,18 +20,14 @@ import {
   useGoToSpace,
   useHappeningNow,
   useMyDeskTarget,
+  useOpenMeeting,
   useRecentSearches,
 } from "../hooks";
-import type {
-  LiveMeetingItem,
-  MeetingJoinTarget,
-  QuickAction,
-  SearchFilter,
-} from "../types";
+import type { QuickAction, SearchFilter } from "../types";
 
 export function SearchScreen() {
   const router = useRouter();
-  const { open } = useMeetingJoin();
+  const openMeeting = useOpenMeeting();
   const { send } = useWs();
   const { goToSpace } = useGoToSpace();
   const myDesk = useMyDeskTarget();
@@ -51,40 +44,6 @@ export function SearchScreen() {
   );
 
   const showHome = query.trim() === "" && filter === "all";
-
-  /** Lets you in through the room link while its event is on, then walks there. */
-  const enterRoom = async (
-    room: Extract<MeetingJoinTarget, { kind: "campus" }>,
-  ) => {
-    try {
-      await RoomLinkService.enter(room.code);
-    } catch (error) {
-      // Walk anyway: a closed door can still be asked.
-      console.warn("Couldn't enter through the room link:", error);
-    }
-    if (goToSpace(room.spaceKey, room.spaceName)) {
-      toast.success(`Walking to ${room.spaceName}`);
-    }
-  };
-
-  const openMeeting = ({ join, title, startsAt }: LiveMeetingItem) => {
-    if (!join) return;
-    if (join.kind === "external") {
-      // Calls outside campus open in their own app; the join sheet is for rooms.
-      Linking.openURL(join.url).catch(() =>
-        toast.error("Couldn't open the meeting link.", "Can't join"),
-      );
-      return;
-    }
-    open({
-      spaceKey: join.spaceKey,
-      title,
-      location: join.spaceName,
-      startsAt: new Date(startsAt),
-      participants: [],
-      onJoin: () => void enterRoom(join),
-    });
-  };
 
   /** Asks world to walk you there; true when it was sent. */
   const walk = (message: ClientMessage) => {
