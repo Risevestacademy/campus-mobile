@@ -3,9 +3,16 @@ import "../global.css";
 import { registerSessionExpirationHandler } from "@core/api";
 import { GOOGLE_SIGN_IN_CONFIG } from "@core/auth/googleSignIn";
 import { RealtimeProvider } from "@core/realtime";
+import {
+  BroadcastRoom,
+  SpaceCallProvider,
+  SpaceRoomHost,
+} from "@features/room";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { registerGlobals } from "@livekit/react-native";
 import { Toast } from "@shared/components/atoms";
 import { MeetingJoinProvider } from "@shared/hooks/ui/useMeetingJoin";
+import { polyfillAbortReason } from "@shared/lib/abortReason";
 import { queryClient } from "@shared/lib/react-query";
 import { applySafeAreaInsets } from "@shared/lib/safeAreaInsets";
 import { useAppearanceStore } from "@store/appearance";
@@ -22,6 +29,10 @@ import {
   SafeAreaProvider,
 } from "react-native-safe-area-context";
 import { useResolveClassNames } from "uniwind";
+
+registerGlobals();
+// After LiveKit's globals: its cancelled joins read `signal.reason`.
+polyfillAbortReason();
 
 GoogleOneTapSignIn.configure(GOOGLE_SIGN_IN_CONFIG);
 
@@ -59,20 +70,29 @@ export default function RootLayout() {
                 <MeetingJoinProvider>
                   <KeyboardProvider>
                     <StatusBar style={"dark"} />
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        contentStyle,
-                        animation: "fade",
-                      }}
-                    >
-                      <Stack.Protected guard={canAccessAuth}>
-                        <Stack.Screen name="(auth)" />
-                      </Stack.Protected>
-                      <Stack.Protected guard={canAccessApp}>
-                        <Stack.Screen name="(app)" />
-                      </Stack.Protected>
-                    </Stack>
+                    <SpaceCallProvider>
+                      {/* Around the screens: the space call runs app-wide,
+                          and every screen reads it through LiveKit's hooks. */}
+                      <SpaceRoomHost>
+                        <Stack
+                          screenOptions={{
+                            headerShown: false,
+                            contentStyle,
+                            animation: "fade",
+                          }}
+                        >
+                          <Stack.Protected guard={canAccessAuth}>
+                            <Stack.Screen name="(auth)" />
+                          </Stack.Protected>
+                          <Stack.Protected guard={canAccessApp}>
+                            <Stack.Screen name="(app)" />
+                          </Stack.Protected>
+                        </Stack>
+                      </SpaceRoomHost>
+                      {/* Beside the screens, not around them: you stay in the
+                          broadcast room wherever you go, in its own room. */}
+                      <BroadcastRoom />
+                    </SpaceCallProvider>
                     <Toast />
                   </KeyboardProvider>
                 </MeetingJoinProvider>
